@@ -1,5 +1,6 @@
 package com.psnf.api.psnf.domain.models;
 
+import com.psnf.api.psnf.anuncio.domain.models.Anuncio;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

@@ -1,4 +1,4 @@
-package com.psnf.api.psnf.domain.repositories;
+package com.psnf.api.psnf.usuario;
 
 import com.psnf.api.psnf.domain.models.Usuario;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -8,4 +8,7 @@ import java.util.UUID;
 
 @Repository
 public interface UsuarioRepository extends JpaRepository<UUID, Usuario> {
+
+
+
 }

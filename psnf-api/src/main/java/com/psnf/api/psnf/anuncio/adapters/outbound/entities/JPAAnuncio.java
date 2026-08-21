@@ -1,5 +1,10 @@
-package com.psnf.api.psnf.domain.models;
+package com.psnf.api.psnf.anuncio.adapters.outbound.entities;
 
+import com.psnf.api.psnf.anuncio.domain.models.ImagemAnuncio;
+import com.psnf.api.psnf.anuncio.domain.models.Valor;
+import com.psnf.api.psnf.anuncio.domain.models.Variacao;
+import com.psnf.api.psnf.categoria.Categoria;
+import com.psnf.api.psnf.domain.models.*;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -7,23 +12,22 @@ import lombok.Setter;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 @Entity
 @NoArgsConstructor
 @Setter
 @Getter
-public class Anuncio extends BaseEntity{
+public class JPAAnuncio extends BaseEntity{
 
     private String titulo;
     private String descricao;
     private boolean ativo;
 
     @OneToMany(mappedBy = "anuncio", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Valor> valores = new ArrayList<>();
+    private List<JPAValor> valores = new ArrayList<>();
 
     @OneToMany(mappedBy = "anuncio", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<ImagemAnuncio> imagens = new ArrayList<>();
+    private List<JPAImagemAnuncio> imagens = new ArrayList<>();
 
     @ManyToOne
     @JoinColumn(name = "categoria_id", nullable = false)
@@ -34,5 +38,5 @@ public class Anuncio extends BaseEntity{
     private Usuario vendedor;
 
     @OneToMany(mappedBy = "anuncio", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Variacao> variacoes = new ArrayList<>();
+    private List<JPAVariacao> variacoes = new ArrayList<>();
 }

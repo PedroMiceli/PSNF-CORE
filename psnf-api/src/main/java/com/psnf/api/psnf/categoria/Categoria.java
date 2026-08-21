@@ -1,5 +1,7 @@
-package com.psnf.api.psnf.domain.models;
+package com.psnf.api.psnf.categoria;
 
+import com.psnf.api.psnf.anuncio.domain.models.Anuncio;
+import com.psnf.api.psnf.domain.models.BaseEntity;
 import jakarta.persistence.Entity;
 import jakarta.persistence.OneToMany;
 import lombok.Getter;
@@ -13,7 +15,7 @@ import java.util.List;
 @NoArgsConstructor
 @Setter
 @Getter
-public class Categoria extends BaseEntity{
+public class Categoria extends BaseEntity {
 
     private String nome;
 
