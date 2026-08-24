@@ -1,6 +1,6 @@
 package com.psnf.api.psnf.categoria;
 
-import com.psnf.api.psnf.anuncio.domain.models.Anuncio;
+import com.psnf.api.psnf.domain.anuncio.model.Anuncio;
 import com.psnf.api.psnf.domain.models.BaseEntity;
 import jakarta.persistence.Entity;
 import jakarta.persistence.OneToMany;
@@ -18,11 +18,7 @@ import java.util.List;
 public class Categoria extends BaseEntity {
 
     private String nome;
-
-    @OneToMany(mappedBy = "categoria")
-    private List<Anuncio> anuncios = new ArrayList<>();
-
-
+    
     public Categoria(String nome) {
         this.nome = nome;
     }
