@@ -1,8 +1,8 @@
 package com.psnf.api.psnf.domain.anuncio.port.in;
 
 import com.psnf.api.psnf.domain.anuncio.model.Anuncio;
+import com.psnf.api.psnf.domain.anuncio.port.in.command.CadastrarAnuncio;
 
 public interface SalvarAnuncioUseCase {
-
-    Anuncio salvarAnuncio(SalvarAnuncioCommand anuncio);
+    Anuncio salvarAnuncio(CadastrarAnuncio anuncio);
 }

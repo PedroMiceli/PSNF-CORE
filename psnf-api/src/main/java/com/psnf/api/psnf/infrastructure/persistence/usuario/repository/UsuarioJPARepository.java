@@ -1,6 +1,6 @@
 package com.psnf.api.psnf.infrastructure.persistence.usuario.repository;
 
-import com.psnf.api.psnf.domain.models.Usuario;
+import com.psnf.api.psnf.domain.usuario.model.Usuario;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

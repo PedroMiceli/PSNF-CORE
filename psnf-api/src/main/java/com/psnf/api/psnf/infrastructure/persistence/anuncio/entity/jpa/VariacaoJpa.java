@@ -1,6 +1,6 @@
 package com.psnf.api.psnf.infrastructure.persistence.anuncio.entity.jpa;
 
-import com.psnf.api.psnf.domain.models.BaseEntity;
+import com.psnf.api.psnf.infrastructure.persistence.shared.BaseEntity;
 import jakarta.persistence.Entity;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;

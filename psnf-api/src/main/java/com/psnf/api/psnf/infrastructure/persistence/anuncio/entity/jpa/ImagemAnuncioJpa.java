@@ -1,6 +1,6 @@
 package com.psnf.api.psnf.infrastructure.persistence.anuncio.entity.jpa;
 
-import com.psnf.api.psnf.domain.models.BaseEntity;
+import com.psnf.api.psnf.infrastructure.persistence.shared.BaseEntity;
 import jakarta.persistence.Entity;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -19,7 +19,8 @@ public class ImagemAnuncioJpa extends BaseEntity {
 
     private UUID anuncioId;
 
-    public ImagemAnuncioJpa(String caminho, boolean principal,  UUID anuncioId) {
+    public ImagemAnuncioJpa(UUID id, String caminho, boolean principal,  UUID anuncioId) {
+        this.setId(id);
         this.caminho = caminho;
         this.principal = principal;
         this.anuncioId = anuncioId;

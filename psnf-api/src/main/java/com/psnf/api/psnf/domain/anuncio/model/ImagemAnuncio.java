@@ -1,9 +1,12 @@
 package com.psnf.api.psnf.domain.anuncio.model;
 
-import com.psnf.api.psnf.domain.models.BaseEntity;
+import com.psnf.api.psnf.domain.shared.model.BaseDomain;
+
+import java.time.LocalDateTime;
+import java.util.UUID;
 
 
-public class ImagemAnuncio extends BaseEntity {
+public class ImagemAnuncio extends BaseDomain {
 
     private String caminho;
     private boolean principal = false;
@@ -13,10 +16,21 @@ public class ImagemAnuncio extends BaseEntity {
     public ImagemAnuncio() {
     }
 
-    public ImagemAnuncio(String caminho, boolean principal, Anuncio anuncio) {
+    public ImagemAnuncio(UUID id, String caminho, boolean principal, Anuncio anuncio) {
+        super(id, null,null,null);
         this.caminho = caminho;
         this.principal = principal;
         this.anuncio = anuncio;
+    }
+
+    public ImagemAnuncio(String caminho, boolean principal) {
+        super(null, LocalDateTime.now(),null,null);
+        this.caminho = caminho;
+        this.principal = principal;
+    }
+
+    public static ImagemAnuncio criar(String caminho, boolean principal) {
+        return new ImagemAnuncio(caminho, principal);
     }
 
     public String getCaminho() {

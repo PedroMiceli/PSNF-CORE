@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -15,4 +16,9 @@ public interface ValorAnuncioJpaRepository extends JpaRepository<ValorJpa, UUID>
 
     @Query("SELECT MIN(v.valorUnidade) FROM ValorJpa v WHERE v.anuncio.id = :anuncioId")
     Optional<BigDecimal> buscarMenorValorUnidade(@Param("anuncioId") UUID anuncioId);
+
+    @Query("SELECT v FROM ValorJpa v WHERE v.anuncio.id = :anuncioId")
+    List<ValorJpa> buscarPorAnuncioId(@Param("anuncioId") UUID anuncioId);
+
+
 }

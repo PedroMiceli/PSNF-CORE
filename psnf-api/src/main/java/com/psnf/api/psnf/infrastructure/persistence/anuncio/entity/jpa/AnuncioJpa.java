@@ -1,6 +1,6 @@
 package com.psnf.api.psnf.infrastructure.persistence.anuncio.entity.jpa;
 
-import com.psnf.api.psnf.domain.models.*;
+import com.psnf.api.psnf.infrastructure.persistence.shared.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -11,7 +11,7 @@ import java.util.UUID;
 @Entity
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Getter
-public class AnuncioJpa extends BaseEntity{
+public class AnuncioJpa extends BaseEntity {
 
     private String titulo;
     private String descricao;
