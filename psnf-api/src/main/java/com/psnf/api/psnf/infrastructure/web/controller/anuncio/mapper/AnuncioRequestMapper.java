@@ -1,7 +1,7 @@
 package com.psnf.api.psnf.infrastructure.web.controller.anuncio.mapper;
 
+import com.psnf.api.psnf.domain.anuncio.port.in.command.CadastrarAnuncioCommand;
 import com.psnf.api.psnf.domain.anuncio.port.in.command.CadastrarImagemAnuncioCommand;
-import com.psnf.api.psnf.domain.anuncio.port.in.command.CadastrarAnuncio;
 import com.psnf.api.psnf.domain.anuncio.port.in.command.CadastrarValorAnuncioCommand;
 import com.psnf.api.psnf.domain.anuncio.port.in.command.CriarVariacaoAnuncioCommand;
 import com.psnf.api.psnf.infrastructure.web.controller.anuncio.dto.AnuncioRequest;
@@ -11,8 +11,8 @@ import com.psnf.api.psnf.infrastructure.web.controller.anuncio.dto.VariacaoReque
 
 public class AnuncioRequestMapper {
 
-    public static CadastrarAnuncio toCommand(AnuncioRequest request) {
-        return new CadastrarAnuncio(
+    public static CadastrarAnuncioCommand toCommand(AnuncioRequest request) {
+        return new CadastrarAnuncioCommand(
                 request.titulo(),
                 request.descricao(),
                 request.categoriaId(),

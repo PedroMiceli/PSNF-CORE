@@ -2,7 +2,7 @@ package com.psnf.api.psnf.infrastructure.web.controller.anuncio;
 
 import com.psnf.api.psnf.domain.anuncio.model.Anuncio;
 import com.psnf.api.psnf.domain.anuncio.port.in.SalvarAnuncioUseCase;
-import com.psnf.api.psnf.domain.anuncio.port.in.command.CadastrarAnuncio;
+import com.psnf.api.psnf.domain.anuncio.port.in.command.CadastrarAnuncioCommand;
 import com.psnf.api.psnf.infrastructure.web.controller.anuncio.dto.AnuncioRequest;
 import com.psnf.api.psnf.infrastructure.web.controller.anuncio.dto.AnuncioResponse;
 import com.psnf.api.psnf.infrastructure.web.controller.anuncio.mapper.AnuncioRequestMapper;
@@ -27,7 +27,7 @@ public class AnuncioController {
     public ResponseEntity<AnuncioResponse> salvar(
             @RequestBody @Valid AnuncioRequest request
     ) {
-        CadastrarAnuncio command = AnuncioRequestMapper.toCommand(request);
+        CadastrarAnuncioCommand command = AnuncioRequestMapper.toCommand(request);
 
         Anuncio anuncioSalvo = salvarAnuncioUseCase.salvarAnuncio(command);
 
