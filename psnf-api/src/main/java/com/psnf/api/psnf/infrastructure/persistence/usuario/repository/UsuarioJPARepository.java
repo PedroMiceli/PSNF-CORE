@@ -10,7 +10,7 @@ import java.util.UUID;
 
 public interface UsuarioJPARepository extends JpaRepository<Usuario, UUID> {
 
-    @Query("SELECT c.nome FROM Usuario c WHERE c.id = :id")
+    @Query("SELECT c.nome FROM UsuarioJpa c WHERE c.id = :id")
     Optional<String> buscarNomePorId(@Param("id") UUID id);
 
 }

@@ -40,4 +40,9 @@ public class AnuncioJpaMapper {
         );
     }
 
+    // usado quando só se precisa dos dados "de topo" (ex.: indexação no Elastic)
+    public static Anuncio toDomain(AnuncioJpa anuncio) {
+        return toDomain(anuncio, List.of(), List.of(), List.of());
+    }
+
 }

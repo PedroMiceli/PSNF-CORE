@@ -1,5 +1,6 @@
 package com.psnf.api.psnf.domain.ordemDePedido.models;
 
+import com.psnf.api.psnf.domain.shared.model.BaseDomain;
 import com.psnf.api.psnf.domain.usuario.model.Usuario;
 import com.psnf.api.psnf.infrastructure.persistence.shared.BaseEntity;
 import jakarta.persistence.*;
@@ -7,29 +8,41 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-@Entity
-@NoArgsConstructor
-@Setter
-@Getter
-public class MensagemIncidente extends BaseEntity {
+import java.time.LocalDateTime;
+import java.util.UUID;
 
-    @Lob
-    @Column(columnDefinition = "TEXT")
+
+public class MensagemIncidente extends BaseDomain {
+
     private String mensagem;
 
     private String imagem;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "usuario_criador_id", nullable = false)
     private Usuario usuarioCriador;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "ordem_de_pedido_id", nullable = false)
     private OrdemDePedido ordemDePedido;
 
-//    // com UUID solto (como você tinha)
-//    boolean minhaMensagem = mensagem.getUsuarioCriador().equals(usuarioLogado.getId());
-//
-//    // com @ManyToOne (como sugeri)
-//    boolean minhaMensagem = mensagem.getUsuarioCriador().getId().equals(usuarioLogado.getId());
+    public MensagemIncidente(UUID id, LocalDateTime dataCadastro, LocalDateTime dataAlteracao, LocalDateTime dataExcluido, String mensagem, String imagem, Usuario usuarioCriador, OrdemDePedido ordemDePedido) {
+        super(id, dataCadastro, dataAlteracao, dataExcluido);
+        this.mensagem = mensagem;
+        this.imagem = imagem;
+        this.usuarioCriador = usuarioCriador;
+        this.ordemDePedido = ordemDePedido;
+    }
+
+    public String getMensagem() {
+        return mensagem;
+    }
+
+    public String getImagem() {
+        return imagem;
+    }
+
+    public Usuario getUsuarioCriador() {
+        return usuarioCriador;
+    }
+
+    public OrdemDePedido getOrdemDePedido() {
+        return ordemDePedido;
+    }
 }

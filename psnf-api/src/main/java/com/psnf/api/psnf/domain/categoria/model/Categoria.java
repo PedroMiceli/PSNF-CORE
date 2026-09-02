@@ -6,7 +6,8 @@ public class Categoria extends BaseDomain {
 
     private String nome;
 
-    public Categoria() {
+    public Categoria(String nome) {
+        this.nome = nome;
     }
 
     public String getNome() {
