@@ -1,13 +1,13 @@
-package com.psnf.api.psnf.infrastructure.persistence.ordemDePedido;
+package com.psnf.api.psnf.infrastructure.persistence.ordemDePedido.entity;
 
-import com.psnf.api.psnf.domain.ordemDePedido.models.OrdemDePedido;
-import com.psnf.api.psnf.domain.usuario.model.Usuario;
 import com.psnf.api.psnf.infrastructure.persistence.shared.BaseEntity;
 import com.psnf.api.psnf.infrastructure.persistence.usuario.entity.UsuarioJpa;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
+import java.util.UUID;
 
 @Entity
 @NoArgsConstructor
@@ -25,8 +25,11 @@ public class MensagemIncidenteJpa extends BaseEntity {
     @JoinColumn(name = "usuario_criador_id", nullable = false)
     private UsuarioJpa usuarioCriador;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "ordem_de_pedido_id", nullable = false)
-    private OrdemDePedidoJpa ordemDePedido;
 
+    public MensagemIncidenteJpa(UUID id, String mensagem, String imagem, UsuarioJpa usuarioCriador) {
+        this.setIdAndDate(id);
+        this.mensagem = mensagem;
+        this.imagem = imagem;
+        this.usuarioCriador = usuarioCriador;
+    }
 }

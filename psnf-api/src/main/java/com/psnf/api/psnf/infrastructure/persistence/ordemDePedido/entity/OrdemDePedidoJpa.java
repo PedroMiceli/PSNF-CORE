@@ -1,4 +1,4 @@
-package com.psnf.api.psnf.infrastructure.persistence.ordemDePedido;
+package com.psnf.api.psnf.infrastructure.persistence.ordemDePedido.entity;
 
 import com.psnf.api.psnf.infrastructure.persistence.shared.BaseEntity;
 import com.psnf.api.psnf.infrastructure.persistence.usuario.entity.UsuarioJpa;
@@ -10,6 +10,7 @@ import lombok.Setter;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 
 @Entity
@@ -38,5 +39,19 @@ public class OrdemDePedidoJpa extends BaseEntity {
     @OneToMany(mappedBy = "ordemDePedido", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<NotaFiscalJpa> notasFiscais = new ArrayList<>();
 
+    public OrdemDePedidoJpa(UUID id) {
+        this.setIdAndDate(id);
+    }
+
+    public OrdemDePedidoJpa(UUID id, String codigo, LocalDate previsaoDeEntrega, UsuarioJpa comprador, UsuarioJpa vendedor, List<PagamentoJpa> pagamentos, List<MensagemIncidenteJpa> mensagensIncidente, List<NotaFiscalJpa> notasFiscais) {
+        this.setIdAndDate(id);
+        this.codigo = codigo;
+        this.previsaoDeEntrega = previsaoDeEntrega;
+        this.comprador = comprador;
+        this.vendedor = vendedor;
+        this.pagamentos = pagamentos;
+        this.mensagensIncidente = mensagensIncidente;
+        this.notasFiscais = notasFiscais;
+    }
 }
 

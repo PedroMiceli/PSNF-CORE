@@ -1,4 +1,4 @@
-package com.psnf.api.psnf.infrastructure.web.controller.anuncio.dto;
+package com.psnf.api.psnf.infrastructure.web.controller.anuncio.dto.response;
 
 import com.psnf.api.psnf.domain.anuncio.model.Anuncio;
 

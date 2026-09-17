@@ -10,7 +10,6 @@ public class ImagemAnuncio extends BaseDomain {
 
     private String caminho;
     private boolean principal = false;
-
     private Anuncio anuncio;
 
     public ImagemAnuncio() {

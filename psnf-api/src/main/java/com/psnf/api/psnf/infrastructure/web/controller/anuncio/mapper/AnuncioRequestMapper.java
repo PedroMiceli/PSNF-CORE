@@ -3,11 +3,11 @@ package com.psnf.api.psnf.infrastructure.web.controller.anuncio.mapper;
 import com.psnf.api.psnf.domain.anuncio.port.in.command.CadastrarAnuncioCommand;
 import com.psnf.api.psnf.domain.anuncio.port.in.command.CadastrarImagemAnuncioCommand;
 import com.psnf.api.psnf.domain.anuncio.port.in.command.CadastrarValorAnuncioCommand;
-import com.psnf.api.psnf.domain.anuncio.port.in.command.CriarVariacaoAnuncioCommand;
-import com.psnf.api.psnf.infrastructure.web.controller.anuncio.dto.AnuncioRequest;
-import com.psnf.api.psnf.infrastructure.web.controller.anuncio.dto.ImagemAnuncioRequest;
-import com.psnf.api.psnf.infrastructure.web.controller.anuncio.dto.ValorRequest;
-import com.psnf.api.psnf.infrastructure.web.controller.anuncio.dto.VariacaoRequest;
+import com.psnf.api.psnf.domain.anuncio.port.in.command.CadastrarVariacaoAnuncioCommand;
+import com.psnf.api.psnf.infrastructure.web.controller.anuncio.dto.request.AnuncioRequest;
+import com.psnf.api.psnf.infrastructure.web.controller.anuncio.dto.request.ImagemAnuncioRequest;
+import com.psnf.api.psnf.infrastructure.web.controller.anuncio.dto.request.ValorRequest;
+import com.psnf.api.psnf.infrastructure.web.controller.anuncio.dto.request.VariacaoRequest;
 
 public class AnuncioRequestMapper {
 
@@ -30,7 +30,7 @@ public class AnuncioRequestMapper {
         return new CadastrarImagemAnuncioCommand(r.caminho(), r.principal());
     }
 
-    private static CriarVariacaoAnuncioCommand toVariacaoCommand(VariacaoRequest r) {
-        return new CriarVariacaoAnuncioCommand(r.variacao());
+    private static CadastrarVariacaoAnuncioCommand toVariacaoCommand(VariacaoRequest r) {
+        return new CadastrarVariacaoAnuncioCommand(r.variacao());
     }
 }

@@ -18,16 +18,39 @@ public class MensagemIncidente extends BaseDomain {
 
     private String imagem;
 
-    private Usuario usuarioCriador;
+    private UUID usuarioCriador;
 
-    private OrdemDePedido ordemDePedido;
 
-    public MensagemIncidente(UUID id, LocalDateTime dataCadastro, LocalDateTime dataAlteracao, LocalDateTime dataExcluido, String mensagem, String imagem, Usuario usuarioCriador, OrdemDePedido ordemDePedido) {
+    public MensagemIncidente(UUID id, LocalDateTime dataCadastro, LocalDateTime dataAlteracao, LocalDateTime dataExcluido, String mensagem, String imagem, UUID usuarioCriador) {
         super(id, dataCadastro, dataAlteracao, dataExcluido);
         this.mensagem = mensagem;
         this.imagem = imagem;
         this.usuarioCriador = usuarioCriador;
-        this.ordemDePedido = ordemDePedido;
+
+    }
+
+    public static MensagemIncidente criar(LocalDateTime dataCadastro, LocalDateTime dataAlteracao, LocalDateTime dataExcluido, String mensagem, String imagem, UUID usuarioCriador) {
+        return new MensagemIncidente(
+                null,
+                dataCadastro,
+                dataAlteracao,
+                dataExcluido,
+                mensagem,
+                imagem,
+                usuarioCriador
+        );
+    }
+
+    public static MensagemIncidente restaurar(UUID id, LocalDateTime dataCadastro, LocalDateTime dataAlteracao, LocalDateTime dataExcluido, String mensagem, String imagem, UUID usuarioCriador) {
+        return new MensagemIncidente(
+                id,
+                dataCadastro,
+                dataAlteracao,
+                dataExcluido,
+                mensagem,
+                imagem,
+                usuarioCriador
+                );
     }
 
     public String getMensagem() {
@@ -38,11 +61,8 @@ public class MensagemIncidente extends BaseDomain {
         return imagem;
     }
 
-    public Usuario getUsuarioCriador() {
+    public UUID getUsuarioCriador() {
         return usuarioCriador;
     }
 
-    public OrdemDePedido getOrdemDePedido() {
-        return ordemDePedido;
-    }
 }

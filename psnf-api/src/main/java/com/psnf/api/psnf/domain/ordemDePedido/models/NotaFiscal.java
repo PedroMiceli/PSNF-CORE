@@ -15,19 +15,41 @@ public class NotaFiscal extends BaseDomain {
 
     private String caminho;
 
-    private OrdemDePedido ordemDePedido;
+    private UUID ordemDePedido;
 
-    public NotaFiscal(UUID id, LocalDateTime dataCadastro, LocalDateTime dataAlteracao, LocalDateTime dataExcluido, String caminho, OrdemDePedido ordemDePedido) {
+    public NotaFiscal(UUID id, LocalDateTime dataCadastro, LocalDateTime dataAlteracao, LocalDateTime dataExcluido, String caminho, UUID ordemDePedido) {
         super(id, dataCadastro, dataAlteracao, dataExcluido);
         this.caminho = caminho;
         this.ordemDePedido = ordemDePedido;
+    }
+
+    public static NotaFiscal criar(LocalDateTime dataCadastro, LocalDateTime dataAlteracao, LocalDateTime dataExcluido, String mensagem, String caminho, UUID ordemDePedido) {
+        return new NotaFiscal(
+                null,
+                dataCadastro,
+                dataAlteracao,
+                dataExcluido,
+                caminho,
+                ordemDePedido
+        );
+    }
+
+    public static NotaFiscal restaurar(UUID id, LocalDateTime dataCadastro, LocalDateTime dataAlteracao, LocalDateTime dataExcluido, String caminho, UUID ordemDePedido) {
+        return new NotaFiscal(
+                id,
+                dataCadastro,
+                dataAlteracao,
+                dataExcluido,
+                caminho,
+                ordemDePedido
+        );
     }
 
     public String getCaminho() {
         return caminho;
     }
 
-    public OrdemDePedido getOrdemDePedido() {
+    public UUID getOrdemDePedido() {
         return ordemDePedido;
     }
 }

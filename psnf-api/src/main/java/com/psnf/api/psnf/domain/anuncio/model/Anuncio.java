@@ -2,6 +2,7 @@ package com.psnf.api.psnf.domain.anuncio.model;
 
 import com.psnf.api.psnf.domain.shared.model.BaseDomain;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -18,17 +19,8 @@ public class Anuncio extends BaseDomain {
     private List<ImagemAnuncio> imagens = new ArrayList<>();
     private List<Variacao> variacoes = new ArrayList<>();
 
-    private Anuncio(UUID id, String titulo, String descricao, boolean ativo, UUID categoria, UUID vendedor) {
-        super(id, null,null,null);
-        this.titulo = titulo;
-        this.descricao = descricao;
-        this.ativo = ativo;
-        this.categoria = categoria;
-        this.vendedor = vendedor;
-    }
-
-    private Anuncio(UUID id, String titulo, String descricao, boolean ativo, UUID categoria, UUID vendedor, List<Valor> valores, List<ImagemAnuncio> imagens, List<Variacao> variacoes) {
-        super(id, null,null,null);
+    private Anuncio(UUID id, LocalDateTime dataCadastro, LocalDateTime dataAlteracao, LocalDateTime dataExclusao,String titulo, String descricao, boolean ativo, UUID categoria, UUID vendedor, List<Valor> valores, List<ImagemAnuncio> imagens, List<Variacao> variacoes) {
+        super(id, dataCadastro,dataAlteracao,dataExclusao);
         this.titulo = titulo;
         this.descricao = descricao;
         this.ativo = ativo;
@@ -39,12 +31,12 @@ public class Anuncio extends BaseDomain {
         this.variacoes = variacoes;
     }
 
-    public static Anuncio criar(String titulo, String descricao, boolean ativo, UUID categoria, UUID vendedor) {
-        return new Anuncio(null, titulo, descricao, ativo, categoria, vendedor);
+    public static Anuncio criar(LocalDateTime dataCadastro, LocalDateTime dataAlteracao, LocalDateTime dataExclusao, String titulo, String descricao, boolean ativo, UUID categoria, UUID vendedor, List<Valor> valores, List<ImagemAnuncio> imagens, List<Variacao> variacoes) {
+        return new Anuncio(null, dataCadastro, dataAlteracao, dataExclusao, titulo, descricao, ativo, categoria, vendedor, valores, imagens, variacoes);
     }
 
-    public static Anuncio restaurar(UUID id,String titulo, String descricao, boolean ativo, UUID categoria, UUID vendedor, List<Valor> valores, List<ImagemAnuncio> imagens, List<Variacao> variacoes){
-        return new Anuncio(id, titulo, descricao, ativo, categoria, vendedor,  valores, imagens, variacoes);
+    public static Anuncio restaurar(UUID id, LocalDateTime dataCadastro, LocalDateTime dataAlteracao, LocalDateTime dataExclusao,String titulo, String descricao, boolean ativo, UUID categoria, UUID vendedor, List<Valor> valores, List<ImagemAnuncio> imagens, List<Variacao> variacoes){
+        return new Anuncio(id, dataCadastro, dataAlteracao, dataExclusao, titulo, descricao, ativo, categoria, vendedor,  valores, imagens, variacoes);
     }
 
     public List<ImagemAnuncio> getImagens() {

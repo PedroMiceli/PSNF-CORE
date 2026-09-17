@@ -1,6 +1,7 @@
 package com.psnf.api.psnf.infrastructure.web.handler;
 
 import com.psnf.api.psnf.domain.anuncio.exception.AnuncioNaoEncontradoException;
+import com.psnf.api.psnf.domain.usuario.exception.UsuarioNaoEncontradoException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -31,5 +32,10 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.NOT_FOUND)
                 .body(Map.of("erro", ex.getMessage()));
+    }
+
+    @ExceptionHandler(UsuarioNaoEncontradoException.class)
+    public ResponseEntity<String> handleUsuarioNaoEncontrado(UsuarioNaoEncontradoException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
     }
 }

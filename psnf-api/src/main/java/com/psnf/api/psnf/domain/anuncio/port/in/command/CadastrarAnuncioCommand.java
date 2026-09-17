@@ -9,7 +9,7 @@ public record CadastrarAnuncioCommand(
         UUID categoriaId,
         List<CadastrarValorAnuncioCommand> valores,
         List<CadastrarImagemAnuncioCommand> imagens,
-        List<CriarVariacaoAnuncioCommand> variacoes
+        List<CadastrarVariacaoAnuncioCommand> variacoes
 ) {
     public CadastrarAnuncioCommand {
         if (titulo == null || titulo.isBlank()) {

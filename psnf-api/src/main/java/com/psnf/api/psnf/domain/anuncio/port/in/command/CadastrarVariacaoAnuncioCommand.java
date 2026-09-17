@@ -1,9 +1,9 @@
 package com.psnf.api.psnf.domain.anuncio.port.in.command;
 
-public record CriarVariacaoAnuncioCommand(
+public record CadastrarVariacaoAnuncioCommand(
         String variacao
 ) {
-    public CriarVariacaoAnuncioCommand {
+    public CadastrarVariacaoAnuncioCommand {
         if (variacao == null || variacao.isBlank()) {
             throw new IllegalArgumentException("Variação é obrigatória");
         }

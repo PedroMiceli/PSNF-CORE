@@ -1,9 +1,6 @@
 package com.psnf.api.psnf.infrastructure.persistence.anuncio.adapter.mapper;
 
 import com.psnf.api.psnf.domain.anuncio.model.Anuncio;
-import com.psnf.api.psnf.domain.anuncio.model.ImagemAnuncio;
-import com.psnf.api.psnf.domain.anuncio.model.Valor;
-import com.psnf.api.psnf.domain.anuncio.model.Variacao;
 import com.psnf.api.psnf.infrastructure.persistence.anuncio.entity.jpa.AnuncioJpa;
 import com.psnf.api.psnf.infrastructure.persistence.anuncio.entity.jpa.ImagemAnuncioJpa;
 import com.psnf.api.psnf.infrastructure.persistence.anuncio.entity.jpa.ValorJpa;
@@ -29,6 +26,9 @@ public class AnuncioJpaMapper {
     public static Anuncio toDomain(AnuncioJpa anuncio, List<ValorJpa> valores, List<ImagemAnuncioJpa> imagens, List<VariacaoJpa> variacoes) {
         return Anuncio.restaurar(
                 anuncio.getId(),
+                anuncio.getDataCadastro(),
+                anuncio.getDataAlteracao(),
+                anuncio.getDataExcluido(),
                 anuncio.getTitulo(),
                 anuncio.getDescricao(),
                 anuncio.isAtivo(),

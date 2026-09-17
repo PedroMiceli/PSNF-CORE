@@ -1,12 +1,11 @@
 package com.psnf.api.psnf.domain.usuario.model;
 
-import com.psnf.api.psnf.infrastructure.persistence.shared.BaseEntity;
-import jakarta.persistence.Entity;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import com.psnf.api.psnf.domain.shared.model.BaseDomain;
 
-public class Endereco extends BaseEntity {
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+public class Endereco extends BaseDomain {
     private String logradouro;
     private String numero;
     private String complemento;
@@ -16,7 +15,8 @@ public class Endereco extends BaseEntity {
     private String cep;
     private String uf;
 
-    public Endereco(String logradouro, String numero, String complemento, String bairro, String cidade, String estado, String cep, String uf) {
+    public Endereco(UUID id, LocalDateTime dataCadastro, LocalDateTime dataAlteracao, LocalDateTime dataExclusao, String logradouro, String numero, String complemento, String bairro, String cidade, String estado, String cep, String uf) {
+        super(id,dataCadastro, dataAlteracao, dataExclusao);
         this.logradouro = logradouro;
         this.numero = numero;
         this.complemento = complemento;
@@ -25,6 +25,10 @@ public class Endereco extends BaseEntity {
         this.estado = estado;
         this.cep = cep;
         this.uf = uf;
+    }
+
+    public static Endereco criar(UUID id, LocalDateTime dataCadastro, LocalDateTime dataAlteracao, LocalDateTime dataExclusao, String logradouro, String numero, String complemento, String bairro, String cidade, String estado, String cep, String uf) {
+        return new Endereco(null, LocalDateTime.now(), null, null, logradouro, numero, complemento,  bairro, cidade, estado, cep, uf);
     }
 
     public String getLogradouro() {

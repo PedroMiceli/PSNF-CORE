@@ -1,4 +1,4 @@
-package com.psnf.api.psnf.infrastructure.web.controller.anuncio.dto;
+package com.psnf.api.psnf.infrastructure.web.controller.anuncio.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 
