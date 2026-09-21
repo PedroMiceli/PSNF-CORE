@@ -2,12 +2,9 @@ package com.psnf.api.psnf.application.anuncio;
 
 import com.psnf.api.psnf.application.anuncio.event.AnuncioSalvoEvent;
 import com.psnf.api.psnf.domain.anuncio.model.Anuncio;
-import com.psnf.api.psnf.domain.anuncio.model.ImagemAnuncio;
-import com.psnf.api.psnf.domain.anuncio.model.Valor;
-import com.psnf.api.psnf.domain.anuncio.model.Variacao;
 import com.psnf.api.psnf.domain.anuncio.port.in.SalvarAnuncioUseCase;
 import com.psnf.api.psnf.domain.anuncio.port.in.command.CadastrarAnuncioCommand;
-import com.psnf.api.psnf.domain.anuncio.port.in.command.CadastrarAnuncioCommandMapper;
+import com.psnf.api.psnf.domain.anuncio.port.in.mapper.CadastrarAnuncioCommandMapper;
 import com.psnf.api.psnf.domain.anuncio.port.out.AnuncioRepositoryPort;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -16,8 +13,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
-
-import static co.elastic.clients.elasticsearch.connector.ConnectorFieldType.List;
 
 @Service
 @RequiredArgsConstructor

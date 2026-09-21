@@ -8,7 +8,6 @@ public record CadastrarOrdemDePedidoCommand(
         UUID compradorId,
         UUID vendedorId,
         LocalDate previsaoDeEntrega,
-        List<PagamentoCommand> pagamentos
-
+        List<ItemPedidoCommand> itens
 ) {
 }

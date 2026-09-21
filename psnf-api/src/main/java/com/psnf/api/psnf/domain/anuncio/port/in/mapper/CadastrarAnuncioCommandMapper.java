@@ -1,8 +1,11 @@
-package com.psnf.api.psnf.domain.anuncio.port.in.command;
+package com.psnf.api.psnf.domain.anuncio.port.in.mapper;
 
 import com.psnf.api.psnf.domain.anuncio.model.ImagemAnuncio;
 import com.psnf.api.psnf.domain.anuncio.model.Valor;
 import com.psnf.api.psnf.domain.anuncio.model.Variacao;
+import com.psnf.api.psnf.domain.anuncio.port.in.command.CadastrarImagemAnuncioCommand;
+import com.psnf.api.psnf.domain.anuncio.port.in.command.CadastrarValorAnuncioCommand;
+import com.psnf.api.psnf.domain.anuncio.port.in.command.CadastrarVariacaoAnuncioCommand;
 
 import java.util.List;
 

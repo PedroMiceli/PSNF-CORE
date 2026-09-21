@@ -39,6 +39,9 @@ public class OrdemDePedidoJpa extends BaseEntity {
     @OneToMany(mappedBy = "ordemDePedido", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<NotaFiscalJpa> notasFiscais = new ArrayList<>();
 
+    @OneToMany(mappedBy = "ordemDePedido", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ItemPedidoJpa> itens = new ArrayList<>();
+
     public OrdemDePedidoJpa(UUID id) {
         this.setIdAndDate(id);
     }
