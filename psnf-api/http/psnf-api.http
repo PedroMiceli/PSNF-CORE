@@ -168,6 +168,11 @@ Content-Type: application/json
     client.global.set("anuncio2Id", response.body.id);
 %}
 
+### 3.2b Vitrine: anúncios ativos (opcional: ?categoriaId=...)
+GET {{baseUrl}}/anuncios?categoriaId={{categoriaId}}
+
+> {% client.test("200 - 2 anúncios na categoria", () => client.assert(response.body.length === 2)); %}
+
 ### 3.3 Buscar anúncio por id
 GET {{baseUrl}}/anuncios/{{anuncioId}}
 

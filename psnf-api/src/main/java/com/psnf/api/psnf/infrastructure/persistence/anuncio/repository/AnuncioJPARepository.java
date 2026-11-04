@@ -11,4 +11,8 @@ import java.util.UUID;
 public interface AnuncioJPARepository extends JpaRepository<AnuncioJpa, UUID> {
 
     List<AnuncioJpa> findByVendedorIdOrderByDataCadastroDesc(UUID vendedorId);
+
+    List<AnuncioJpa> findByAtivoTrueOrderByDataCadastroDesc();
+
+    List<AnuncioJpa> findByAtivoTrueAndCategoriaIdOrderByDataCadastroDesc(UUID categoriaId);
 }

@@ -27,6 +27,7 @@ public class AnuncioController {
     private final BuscarAnuncioPorIdUseCase buscarAnuncioPorIdUseCase;
     private final ListarAnunciosPorVendedorUseCase listarAnunciosPorVendedorUseCase;
     private final PesquisarAnunciosUseCase pesquisarAnunciosUseCase;
+    private final ListarAnunciosAtivosUseCase listarAnunciosAtivosUseCase;
 
     @PostMapping
     public ResponseEntity<AnuncioResponse> salvar(@RequestBody @Valid AnuncioRequest request) {
@@ -36,6 +37,16 @@ public class AnuncioController {
         return ResponseEntity
                 .created(URI.create("/anuncios/" + anuncioSalvo.getId()))
                 .body(AnuncioResponse.from(anuncioSalvo));
+    }
+
+    /**
+     * Vitrine: anúncios ativos (direto do banco). Ex.: GET /anuncios?categoriaId=...
+     */
+    @GetMapping
+    public ResponseEntity<List<AnuncioResponse>> listarAtivos(@RequestParam(required = false) UUID categoriaId) {
+        return ResponseEntity.ok(listarAnunciosAtivosUseCase.listarAtivos(categoriaId).stream()
+                .map(AnuncioResponse::from)
+                .toList());
     }
 
     @GetMapping("/{id}")
