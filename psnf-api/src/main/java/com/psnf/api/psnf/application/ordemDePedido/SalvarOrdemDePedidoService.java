@@ -8,6 +8,7 @@ import com.psnf.api.psnf.domain.ordemDePedido.port.in.CadastrarOrdemDePedidoUseC
 import com.psnf.api.psnf.domain.ordemDePedido.port.in.command.CadastrarOrdemDePedidoCommand;
 import com.psnf.api.psnf.domain.ordemDePedido.port.in.command.ItemPedidoCommand;
 import com.psnf.api.psnf.domain.ordemDePedido.port.out.OrdemDePedidoRepositoryPort;
+import com.psnf.api.psnf.domain.shared.exception.AcessoNegadoException;
 import com.psnf.api.psnf.domain.shared.exception.RegraDeNegocioException;
 import com.psnf.api.psnf.domain.usuario.model.Usuario;
 import com.psnf.api.psnf.domain.usuario.port.out.UsuarioRepositoryPort;
@@ -15,10 +16,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * O vendedor (usuário logado) cria a ordem para o comprador com quem negociou no chat.
+ * Cada item informa o anúncio, a quantidade e o valor unitário acordado.
+ */
 @Service
 @RequiredArgsConstructor
 public class SalvarOrdemDePedidoService implements CadastrarOrdemDePedidoUseCase {
@@ -31,41 +35,39 @@ public class SalvarOrdemDePedidoService implements CadastrarOrdemDePedidoUseCase
     @Transactional
     public OrdemDePedido cadastrarOrdemDePedido(CadastrarOrdemDePedidoCommand command) {
 
+        Usuario vendedor = usuarioRepositoryPort.buscarPorId(command.vendedorId());
         Usuario comprador = usuarioRepositoryPort.buscarPorId(command.compradorId());
 
-        UUID vendedorId = null;
-        List<ItemPedido> itens = new ArrayList<>();
-
-        for (ItemPedidoCommand itemCommand : command.itens()) {
-            Anuncio anuncio = anuncioRepositoryPort.buscarPorId(itemCommand.anuncioId());
-
-            if (!anuncio.isAtivo()) {
-                throw new RegraDeNegocioException("O anúncio '" + anuncio.getTitulo() + "' não está ativo");
-            }
-            if (vendedorId == null) {
-                vendedorId = anuncio.getVendedor();
-            } else if (!vendedorId.equals(anuncio.getVendedor())) {
-                throw new RegraDeNegocioException("Todos os itens de uma ordem de pedido devem ser do mesmo vendedor");
-            }
-
-            String variacao = itemCommand.variacaoId() == null
-                    ? null
-                    : anuncio.buscarVariacao(itemCommand.variacaoId()).getVariacao();
-
-            itens.add(ItemPedido.criar(
-                    anuncio.getId(),
-                    anuncio.getTitulo(),
-                    variacao,
-                    itemCommand.quantidade(),
-                    anuncio.calcularValorUnidade(itemCommand.quantidade())
-            ));
-        }
-
-        Usuario vendedor = usuarioRepositoryPort.buscarPorId(vendedorId);
+        List<ItemPedido> itens = command.itens().stream()
+                .map(item -> criarItem(item, vendedor))
+                .toList();
 
         OrdemDePedido ordemDePedido = OrdemDePedido.criar(gerarCodigo(), comprador, vendedor, itens);
 
         return ordemDePedidoRepositoryPort.save(ordemDePedido);
+    }
+
+    private ItemPedido criarItem(ItemPedidoCommand item, Usuario vendedor) {
+        Anuncio anuncio = anuncioRepositoryPort.buscarPorId(item.anuncioId());
+
+        if (!anuncio.pertenceA(vendedor.getId())) {
+            throw new AcessoNegadoException("O anúncio '" + anuncio.getTitulo() + "' não pertence ao vendedor");
+        }
+        if (!anuncio.isAtivo()) {
+            throw new RegraDeNegocioException("O anúncio '" + anuncio.getTitulo() + "' não está ativo");
+        }
+
+        String variacao = item.variacaoId() == null
+                ? null
+                : anuncio.buscarVariacao(item.variacaoId()).getVariacao();
+
+        return ItemPedido.criar(
+                anuncio.getId(),
+                anuncio.getTitulo(),
+                variacao,
+                item.quantidade(),
+                item.valorUnidade()
+        );
     }
 
     private String gerarCodigo() {

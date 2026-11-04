@@ -29,6 +29,10 @@ public class OrdemDePedidoController {
     private final RegistrarMensagemIncidenteUseCase registrarMensagemIncidenteUseCase;
     private final AlterarStatusOrdemDePedidoUseCase alterarStatusOrdemDePedidoUseCase;
 
+    /**
+     * O VENDEDOR (usuário logado) cria a ordem para o comprador com quem fechou acordo no chat,
+     * informando os itens com a quantidade e o valor unitário negociado.
+     */
     @PostMapping
     public ResponseEntity<OrdemDePedidoResponse> salvarOrdemDePedido(@RequestBody @Valid OrdemDePedidoRequest request) {
         OrdemDePedido ordem = cadastrarOrdemDePedidoUseCase.cadastrarOrdemDePedido(

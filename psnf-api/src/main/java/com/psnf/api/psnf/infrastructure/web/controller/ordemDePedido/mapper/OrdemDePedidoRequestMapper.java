@@ -7,11 +7,12 @@ import java.util.UUID;
 
 public class OrdemDePedidoRequestMapper {
 
-    public static CadastrarOrdemDePedidoCommand toCommand(UUID compradorId, OrdemDePedidoRequest request) {
+    public static CadastrarOrdemDePedidoCommand toCommand(UUID vendedorId, OrdemDePedidoRequest request) {
         return new CadastrarOrdemDePedidoCommand(
-                compradorId,
+                vendedorId,
+                request.compradorId(),
                 request.itens().stream()
-                        .map(i -> new ItemPedidoCommand(i.anuncioId(), i.variacaoId(), i.quantidade()))
+                        .map(i -> new ItemPedidoCommand(i.anuncioId(), i.variacaoId(), i.quantidade(), i.valorUnidade()))
                         .toList()
         );
     }
