@@ -46,4 +46,12 @@ public class AnuncioRepositoryAdapter implements AnuncioRepositoryPort {
                 .map(AnuncioJpaMapper::toDomain)
                 .toList();
     }
+
+    @Override
+    public List<Anuncio> buscarAtivos(UUID categoriaId) {
+        List<AnuncioJpa> anuncios = categoriaId == null
+                ? anuncioJPARepository.findByAtivoTrueOrderByDataCadastroDesc()
+                : anuncioJPARepository.findByAtivoTrueAndCategoriaIdOrderByDataCadastroDesc(categoriaId);
+        return anuncios.stream().map(AnuncioJpaMapper::toDomain).toList();
+    }
 }

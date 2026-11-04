@@ -12,4 +12,7 @@ public interface AnuncioRepositoryPort {
     Anuncio buscarPorId(UUID anuncioId);
 
     List<Anuncio> buscarPorVendedor(UUID vendedorId);
+
+    /** @param categoriaId opcional (null = todas as categorias) */
+    List<Anuncio> buscarAtivos(UUID categoriaId);
 }
