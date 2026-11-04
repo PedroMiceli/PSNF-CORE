@@ -473,3 +473,59 @@ X-Usuario-Id: {{compradorId}}
 GET {{baseUrl}}/anuncios/{{terceiroId}}
 
 > {% client.test("404", () => client.assert(response.status === 404, "status " + response.status)); %}
+
+
+### ============================ 7. ARQUIVOS (MinIO / S3) ================================
+### Requer o MinIO rodando:  docker compose up -d minio   (console: http://localhost:9001)
+
+### 7.1 Upload de imagem -> devolve o "caminho" para usar no anúncio, NF, mensagem ou perfil
+POST {{baseUrl}}/arquivos
+Content-Type: multipart/form-data; boundary=PsnfBoundary
+
+--PsnfBoundary
+Content-Disposition: form-data; name="arquivo"; filename="exemplo.png"
+Content-Type: image/png
+
+< ./exemplo.png
+--PsnfBoundary--
+
+> {%
+    client.test("201 - arquivo salvo", () => client.assert(response.status === 201, "status " + response.status));
+    client.test("tipo detectado: PNG", () => client.assert(response.body.contentType === "image/png"));
+    client.global.set("arquivoCaminho", response.body.caminho);
+%}
+
+### 7.2 Baixar o arquivo enviado
+GET {{baseUrl}}{{arquivoCaminho}}
+
+> {% client.test("200 image/png", () => client.assert(response.status === 200 && response.contentType.mimeType === "image/png")); %}
+
+### 7.3 Usar o arquivo como foto do perfil do vendedor
+PUT {{baseUrl}}/usuarios/me
+Content-Type: application/json
+
+{
+  "nome": "Vendedor Mock",
+  "telefone": "11999990001",
+  "imagem": "{{arquivoCaminho}}"
+}
+
+> {% client.test("200 - foto salva", () => client.assert(response.body.imagem === client.global.get("arquivoCaminho"))); %}
+
+### 7.4 [400] Tipo não suportado (o tipo é detectado pelo conteúdo, não pela extensão)
+POST {{baseUrl}}/arquivos
+Content-Type: multipart/form-data; boundary=PsnfBoundary
+
+--PsnfBoundary
+Content-Disposition: form-data; name="arquivo"; filename="foto.png"
+Content-Type: image/png
+
+<html><script>alert(1)</script></html>
+--PsnfBoundary--
+
+> {% client.test("400", () => client.assert(response.status === 400, "status " + response.status)); %}
+
+### 7.5 [404] Arquivo inexistente
+GET {{baseUrl}}/arquivos/00000000-0000-0000-0000-000000000000.png
+
+> {% client.test("404", () => client.assert(response.status === 404, "status " + response.status)); %}

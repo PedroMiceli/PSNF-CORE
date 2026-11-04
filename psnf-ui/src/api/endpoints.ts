@@ -1,6 +1,6 @@
 import { http } from './client';
 import type {
-  Anuncio, AnuncioInput, Categoria, EnderecoInput, NovaOrdemInput, OrdemDePedido,
+  ArquivoEnviado, Anuncio, AnuncioInput, Categoria, EnderecoInput, NovaOrdemInput, OrdemDePedido,
   OrdemDePedidoResumo, PagamentoInput, Usuario, UUID,
 } from './types';
 
@@ -12,6 +12,9 @@ const q = (params: Record<string, string | undefined | null>) => {
 };
 
 export const api = {
+  // arquivos (MinIO/S3): devolve o caminho a ser usado em imagens, NF, mensagens...
+  enviarArquivo: (arquivo: File) => http.upload<ArquivoEnviado>('/arquivos', 'arquivo', arquivo),
+
   // usuários
   usuarioLogado: () => http.get<Usuario>('/usuarios/me'),
   usuario: (id: UUID) => http.get<Usuario>(`/usuarios/${id}`),

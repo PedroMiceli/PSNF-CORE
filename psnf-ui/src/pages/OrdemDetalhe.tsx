@@ -4,7 +4,9 @@ import { api } from '../api/endpoints';
 import type { OrdemDePedido, StatusOrdem, TipoPagamento } from '../api/types';
 import { useAcao, useApi } from '../api/useApi';
 import { formatarData, formatarMoeda, STATUS_LABEL } from '../components/format';
-import { Campo, Carregando, ErroBox, StatusBadge } from '../components/ui';
+import { urlArquivo } from '../api/client';
+import { ACEITA_DOCUMENTOS, ACEITA_IMAGENS, UploadArquivo } from '../components/UploadArquivo';
+import { Campo, Carregando, ErroBox, ImagemAnuncio, StatusBadge } from '../components/ui';
 import { useUsuario } from '../context/UsuarioContext';
 
 const FLUXO: StatusOrdem[] = ['AGUARDANDO_PAGAMENTO', 'PAGO', 'ENVIADO', 'ENTREGUE'];
@@ -213,26 +215,26 @@ function Pagamentos({ ordem, podePagar, enviando, executar }: { ordem: OrdemDePe
 }
 
 function NotasFiscais({ ordem, podeAdicionar, enviando, executar }: { ordem: OrdemDePedido; podeAdicionar: boolean; enviando: boolean; executar: Exec }) {
-  const [caminho, setCaminho] = useState('');
-  const enviar = async (e: FormEvent) => {
-    e.preventDefault();
-    if (await executar(() => api.adicionarNotaFiscal(ordem.id, caminho))) setCaminho('');
-  };
+  const nomeArquivo = (caminho: string) => caminho.split('/').pop() ?? caminho;
   return (
     <div className="painel">
       <h3>Notas fiscais</h3>
       {ordem.notasFiscais.length === 0 ? <p className="dica">Nenhuma nota fiscal anexada.</p> : (
         <ul className="lista">
-          {ordem.notasFiscais.map((n) => (
-            <li key={n.id}>📄 {n.caminho} <small className="direita">{formatarData(n.dataCadastro)}</small></li>
+          {ordem.notasFiscais.map((n, i) => (
+            <li key={n.id}>
+              📄 <a href={urlArquivo(n.caminho)} target="_blank" rel="noreferrer">Nota fiscal {i + 1}</a>
+              <small title={n.caminho}>{nomeArquivo(n.caminho).slice(-12)}</small>
+              <small className="direita">{formatarData(n.dataCadastro)}</small>
+            </li>
           ))}
         </ul>
       )}
       {podeAdicionar && (
-        <form onSubmit={enviar} className="sub-form linha-form">
-          <Campo label="Arquivo / caminho da NF"><input value={caminho} onChange={(e) => setCaminho(e.target.value)} placeholder="notas/nf-000123.pdf" /></Campo>
-          <button className="btn" disabled={enviando}>Anexar</button>
-        </form>
+        <div className="sub-form">
+          <UploadArquivo accept={ACEITA_DOCUMENTOS} rotulo={enviando ? 'Anexando...' : 'Anexar NF (PDF ou XML, até 10 MB)'}
+            onEnviado={(a) => void executar(() => api.adicionarNotaFiscal(ordem.id, a.caminho))} />
+        </div>
       )}
     </div>
   );
@@ -242,10 +244,14 @@ function Mensagens({ ordem, usuarioId, podeEnviar, enviando, executar }: {
   ordem: OrdemDePedido; usuarioId: string; podeEnviar: boolean; enviando: boolean; executar: Exec;
 }) {
   const [texto, setTexto] = useState('');
+  const [anexo, setAnexo] = useState<string | null>(null);
   const autor = (id: string) => (id === ordem.comprador.id ? `${ordem.comprador.nome} (comprador)` : id === ordem.vendedor.id ? `${ordem.vendedor.nome} (vendedor)` : id);
   const enviar = async (e: FormEvent) => {
     e.preventDefault();
-    if (await executar(() => api.enviarMensagem(ordem.id, texto))) setTexto('');
+    if (await executar(() => api.enviarMensagem(ordem.id, texto, anexo ?? undefined))) {
+      setTexto('');
+      setAnexo(null);
+    }
   };
   return (
     <div className="painel">
@@ -256,14 +262,28 @@ function Mensagens({ ordem, usuarioId, podeEnviar, enviando, executar }: {
           <div key={m.id} className={`msg ${m.usuarioCriadorId === usuarioId ? 'minha' : ''}`}>
             <small>{autor(m.usuarioCriadorId)} · {formatarData(m.dataCadastro)}</small>
             <p>{m.mensagem}</p>
-            {m.imagem && <small>📎 {m.imagem}</small>}
+            {m.imagem && (
+              <a href={urlArquivo(m.imagem)} target="_blank" rel="noreferrer">
+                <ImagemAnuncio caminho={m.imagem} alt="Anexo da mensagem" className="msg-anexo" />
+              </a>
+            )}
           </div>
         ))}
       </div>
       {podeEnviar && (
-        <form onSubmit={enviar} className="sub-form linha-form">
-          <Campo label="Mensagem"><input value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Digite aqui a sua mensagem..." /></Campo>
-          <button className="btn" disabled={enviando || !texto.trim()}>Enviar</button>
+        <form onSubmit={enviar} className="sub-form">
+          <div className="linha-form">
+            <Campo label="Mensagem"><input value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Digite aqui a sua mensagem..." /></Campo>
+            <button className="btn" disabled={enviando || !texto.trim()}>Enviar</button>
+          </div>
+          {anexo ? (
+            <div className="anexo-pendente">
+              <ImagemAnuncio caminho={anexo} alt="Anexo" className="mini" /> Imagem anexada
+              <button type="button" className="btn pequeno perigo" onClick={() => setAnexo(null)}>Remover</button>
+            </div>
+          ) : (
+            <UploadArquivo accept={ACEITA_IMAGENS} compacto rotulo="Anexar foto (ex.: carga avariada)" onEnviado={(a) => setAnexo(a.caminho)} />
+          )}
         </form>
       )}
     </div>

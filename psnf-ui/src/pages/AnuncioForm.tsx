@@ -3,17 +3,22 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api/endpoints';
 import type { AnuncioInput } from '../api/types';
 import { useAcao, useApi } from '../api/useApi';
-import { Campo, Carregando, ErroBox } from '../components/ui';
+import { ACEITA_IMAGENS, UploadArquivo } from '../components/UploadArquivo';
+import { Campo, Carregando, ErroBox, ImagemAnuncio } from '../components/ui';
 
 interface ValorForm { valorUnidade: string; quantidadeMinima: string }
 interface ImagemForm { caminho: string; principal: boolean }
+
+/** Garante exatamente uma imagem principal (a primeira, se nenhuma estiver marcada). */
+const comPrincipal = (imgs: ImagemForm[]) =>
+  imgs.some((i) => i.principal) ? imgs : imgs.map((i, j) => ({ ...i, principal: j === 0 }));
 
 const vazio = {
   titulo: '',
   descricao: '',
   categoriaId: '',
   valores: [{ valorUnidade: '', quantidadeMinima: '1' }] as ValorForm[],
-  imagens: [{ caminho: '', principal: true }] as ImagemForm[],
+  imagens: [] as ImagemForm[],
   variacoes: [] as string[],
 };
 
@@ -25,6 +30,7 @@ export function AnuncioForm() {
   const existente = useApi(async () => (id ? api.anuncio(id) : null), [id]);
   const acao = useAcao();
   const [form, setForm] = useState(vazio);
+  const [urlExterna, setUrlExterna] = useState('');
 
   useEffect(() => {
     const a = existente.data;
@@ -51,7 +57,7 @@ export function AnuncioForm() {
       descricao: form.descricao,
       categoriaId: form.categoriaId,
       valores: form.valores.map((v) => ({ valorUnidade: Number(v.valorUnidade), quantidadeMinima: Number(v.quantidadeMinima) })),
-      imagens: form.imagens.filter((i) => i.caminho.trim()),
+      imagens: form.imagens,
       variacoes: form.variacoes.filter((v) => v.trim()).map((variacao) => ({ variacao })),
     };
     const r = await acao.executar(() => (id ? api.atualizarAnuncio(id, body) : api.criarAnuncio(body)));
@@ -107,26 +113,36 @@ export function AnuncioForm() {
 
         <div className="painel">
           <h3>Imagens</h3>
-          <p className="dica">Informe URLs (ex.: https://picsum.photos/seed/carrinho/600/400). Marque qual é a principal.</p>
+          <p className="dica">Envie as fotos do produto (JPG, PNG, WEBP ou GIF até 5 MB). Clique em ★ para escolher a principal.</p>
           {erroCampo('imagens') && <p className="campo-msg">{erroCampo('imagens')}</p>}
-          {form.imagens.map((img, i) => (
-            <div key={i} className="linha-form">
-              <Campo label={`Imagem ${i + 1}`}>
-                <input value={img.caminho} placeholder="https://..."
-                  onChange={(e) => set('imagens', form.imagens.map((x, j) => (j === i ? { ...x, caminho: e.target.value } : x)))} />
-              </Campo>
-              <label className="radio">
-                <input type="radio" name="principal" checked={img.principal}
-                  onChange={() => set('imagens', form.imagens.map((x, j) => ({ ...x, principal: j === i })))} />
-                principal
-              </label>
-              <button type="button" className="btn pequeno perigo" disabled={form.imagens.length === 1}
-                onClick={() => set('imagens', form.imagens.filter((_, j) => j !== i))}>Remover</button>
+          {form.imagens.length > 0 && (
+            <div className="galeria-form">
+              {form.imagens.map((img, i) => (
+                <div key={img.caminho + i} className={`galeria-item ${img.principal ? 'principal' : ''}`}>
+                  <ImagemAnuncio caminho={img.caminho} alt={`Imagem ${i + 1}`} className="galeria-item-img" />
+                  <div className="galeria-item-acoes">
+                    <button type="button" className="btn pequeno" title="Definir como principal" aria-pressed={img.principal}
+                      onClick={() => set('imagens', form.imagens.map((x, j) => ({ ...x, principal: j === i })))}>
+                      {img.principal ? '★ Principal' : '☆'}
+                    </button>
+                    <button type="button" className="btn pequeno perigo"
+                      onClick={() => set('imagens', comPrincipal(form.imagens.filter((_, j) => j !== i)))}>Remover</button>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-          <button type="button" className="btn pequeno" onClick={() => set('imagens', [...form.imagens, { caminho: '', principal: false }])}>
-            + Imagem
-          </button>
+          )}
+          <UploadArquivo accept={ACEITA_IMAGENS} multiple rotulo="Enviar imagens"
+            onEnviado={(a) => setForm((f) => ({ ...f, imagens: comPrincipal([...f.imagens, { caminho: a.caminho, principal: false }]) }))} />
+          <div className="linha-form url-externa">
+            <Campo label="ou adicione por URL">
+              <input value={urlExterna} placeholder="https://..." onChange={(e) => setUrlExterna(e.target.value)} />
+            </Campo>
+            <button type="button" className="btn pequeno" disabled={!urlExterna.trim()}
+              onClick={() => { set('imagens', comPrincipal([...form.imagens, { caminho: urlExterna.trim(), principal: false }])); setUrlExterna(''); }}>
+              Adicionar URL
+            </button>
+          </div>
         </div>
 
         <div className="painel">

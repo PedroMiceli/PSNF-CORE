@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import type { ApiError } from '../api/client';
+import { urlArquivo, type ApiError } from '../api/client';
 import type { StatusOrdem } from '../api/types';
 import { STATUS_LABEL } from './format';
 
@@ -57,5 +57,5 @@ export function ImagemAnuncio({ caminho, alt, className }: { caminho?: string | 
       </div>
     );
   }
-  return <img className={className} src={caminho} alt={alt} onError={() => setFalhou(true)} />;
+  return <img className={className} src={urlArquivo(caminho)} alt={alt} onError={() => setFalhou(true)} />;
 }
