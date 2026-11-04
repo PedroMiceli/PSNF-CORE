@@ -5,6 +5,7 @@ import com.psnf.api.psnf.domain.anuncio.port.in.BuscarAnuncioPorIdUseCase;
 import com.psnf.api.psnf.domain.anuncio.port.out.AnuncioRepositoryPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
@@ -15,6 +16,7 @@ public class BuscarAnuncioPorIdService implements BuscarAnuncioPorIdUseCase {
     private final AnuncioRepositoryPort anuncioRepositoryPort;
 
     @Override
+    @Transactional(readOnly = true)
     public Anuncio buscarPorId(UUID anuncio) {
         return anuncioRepositoryPort.buscarPorId(anuncio);
     }

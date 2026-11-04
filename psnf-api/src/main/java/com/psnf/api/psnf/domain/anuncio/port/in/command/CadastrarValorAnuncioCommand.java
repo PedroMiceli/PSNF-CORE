@@ -10,8 +10,8 @@ public record CadastrarValorAnuncioCommand(
         if (valorUnidade == null || valorUnidade.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Valor unitário deve ser positivo");
         }
-        if (quantidadeMinima < 0) {
-            throw new IllegalArgumentException("Quantidade mínima não pode ser negativa");
+        if (quantidadeMinima < 1) {
+            throw new IllegalArgumentException("Quantidade mínima deve ser maior que zero");
         }
     }
 }

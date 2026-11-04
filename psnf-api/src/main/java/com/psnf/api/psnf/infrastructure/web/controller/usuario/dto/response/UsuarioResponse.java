@@ -1,37 +1,34 @@
 package com.psnf.api.psnf.infrastructure.web.controller.usuario.dto.response;
 
 import com.psnf.api.psnf.domain.usuario.model.Usuario;
-import com.psnf.api.psnf.infrastructure.web.controller.anuncio.dto.response.AnuncioResponse;
-import com.psnf.api.psnf.infrastructure.web.controller.ordemDePedido.dto.response.OrdemDePedidoResponse;
 
-import java.util.ArrayList;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Anúncios e ordens do usuário são consultados nos próprios endpoints:
+ * GET /usuarios/{id}/anuncios, GET /ordens-de-pedido/compras e GET /ordens-de-pedido/vendas.
+ */
 public record UsuarioResponse(
         UUID id,
         String nome,
         String email,
         String imagem,
-        int telefone,
-        List<EnderecoResponse> enderecos,
-        List<AnuncioResponse> anuncios,
-        List<OrdemDePedidoResponse> ordens
+        String telefone,
+        LocalDateTime dataCadastro,
+        List<EnderecoResponse> enderecos
 ) {
 
-    public static UsuarioResponse from(Usuario usuario){
+    public static UsuarioResponse from(Usuario usuario) {
         return new UsuarioResponse(
                 usuario.getId(),
                 usuario.getNome(),
                 usuario.getEmail(),
                 usuario.getImagem(),
                 usuario.getTelefone(),
-                usuario.getEnderecos().stream().map(EnderecoResponse::from).toList(),
-                //buscar anuncios a parte
-                new ArrayList<>(),
-                //buscar ordens a parte
-                new ArrayList<>()
+                usuario.getDataCadastro(),
+                usuario.getEnderecos().stream().map(EnderecoResponse::from).toList()
         );
     }
-
 }

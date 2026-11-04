@@ -1,28 +1,24 @@
 package com.psnf.api.psnf.infrastructure.persistence.anuncio.entity.jpa;
 
 import com.psnf.api.psnf.infrastructure.persistence.shared.BaseEntity;
-import jakarta.persistence.Entity;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.util.UUID;
-
 @Entity
+@Table(name = "imagem_anuncio")
 @NoArgsConstructor
 @Setter
 @Getter
 public class ImagemAnuncioJpa extends BaseEntity {
 
+    @Column(nullable = false)
     private String caminho;
+
     private boolean principal = false;
 
-    private UUID anuncioId;
-
-    public ImagemAnuncioJpa(UUID id, String caminho, boolean principal,  UUID anuncioId) {
-        this.setId(id);
-        this.caminho = caminho;
-        this.principal = principal;
-        this.anuncioId = anuncioId;
-    }
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "anuncio_id", nullable = false)
+    private AnuncioJpa anuncio;
 }

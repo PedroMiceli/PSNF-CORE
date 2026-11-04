@@ -6,17 +6,17 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 public class Endereco extends BaseDomain {
-    private String logradouro;
-    private String numero;
-    private String complemento;
-    private String bairro;
-    private String cidade;
-    private String estado;
-    private String cep;
-    private String uf;
+    private final String logradouro;
+    private final String numero;
+    private final String complemento;
+    private final String bairro;
+    private final String cidade;
+    private final String estado;
+    private final String cep;
+    private final String uf;
 
-    public Endereco(UUID id, LocalDateTime dataCadastro, LocalDateTime dataAlteracao, LocalDateTime dataExclusao, String logradouro, String numero, String complemento, String bairro, String cidade, String estado, String cep, String uf) {
-        super(id,dataCadastro, dataAlteracao, dataExclusao);
+    private Endereco(UUID id, LocalDateTime dataCadastro, LocalDateTime dataAlteracao, LocalDateTime dataExcluido, String logradouro, String numero, String complemento, String bairro, String cidade, String estado, String cep, String uf) {
+        super(id, dataCadastro, dataAlteracao, dataExcluido);
         this.logradouro = logradouro;
         this.numero = numero;
         this.complemento = complemento;
@@ -27,39 +27,20 @@ public class Endereco extends BaseDomain {
         this.uf = uf;
     }
 
-    public static Endereco criar(UUID id, LocalDateTime dataCadastro, LocalDateTime dataAlteracao, LocalDateTime dataExclusao, String logradouro, String numero, String complemento, String bairro, String cidade, String estado, String cep, String uf) {
-        return new Endereco(null, LocalDateTime.now(), null, null, logradouro, numero, complemento,  bairro, cidade, estado, cep, uf);
+    public static Endereco criar(String logradouro, String numero, String complemento, String bairro, String cidade, String estado, String cep, String uf) {
+        return new Endereco(null, LocalDateTime.now(), null, null, logradouro, numero, complemento, bairro, cidade, estado, cep, uf);
     }
 
-    public String getLogradouro() {
-        return logradouro;
+    public static Endereco restaurar(UUID id, LocalDateTime dataCadastro, LocalDateTime dataAlteracao, LocalDateTime dataExcluido, String logradouro, String numero, String complemento, String bairro, String cidade, String estado, String cep, String uf) {
+        return new Endereco(id, dataCadastro, dataAlteracao, dataExcluido, logradouro, numero, complemento, bairro, cidade, estado, cep, uf);
     }
 
-    public String getNumero() {
-        return numero;
-    }
-
-    public String getComplemento() {
-        return complemento;
-    }
-
-    public String getBairro() {
-        return bairro;
-    }
-
-    public String getCidade() {
-        return cidade;
-    }
-
-    public String getEstado() {
-        return estado;
-    }
-
-    public String getCep() {
-        return cep;
-    }
-
-    public String getUf() {
-        return uf;
-    }
+    public String getLogradouro() { return logradouro; }
+    public String getNumero() { return numero; }
+    public String getComplemento() { return complemento; }
+    public String getBairro() { return bairro; }
+    public String getCidade() { return cidade; }
+    public String getEstado() { return estado; }
+    public String getCep() { return cep; }
+    public String getUf() { return uf; }
 }

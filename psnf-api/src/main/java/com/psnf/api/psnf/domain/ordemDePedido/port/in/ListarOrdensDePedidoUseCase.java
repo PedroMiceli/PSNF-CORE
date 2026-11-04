@@ -1,0 +1,13 @@
+package com.psnf.api.psnf.domain.ordemDePedido.port.in;
+
+import com.psnf.api.psnf.domain.ordemDePedido.models.OrdemDePedido;
+
+import java.util.List;
+import java.util.UUID;
+
+public interface ListarOrdensDePedidoUseCase {
+
+    List<OrdemDePedido> listarCompras(UUID usuarioId);
+
+    List<OrdemDePedido> listarVendas(UUID usuarioId);
+}

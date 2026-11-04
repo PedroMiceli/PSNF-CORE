@@ -7,29 +7,28 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.util.UUID;
-
+/**
+ * Relações:
+ *  - N:1 OrdemDePedido
+ *  - N:1 Usuario (quem escreveu a mensagem)
+ */
 @Entity
+@Table(name = "mensagem_incidente")
 @NoArgsConstructor
 @Setter
 @Getter
 public class MensagemIncidenteJpa extends BaseEntity {
 
-    @Lob
-    @Column(columnDefinition = "TEXT")
+    @Column(columnDefinition = "TEXT", nullable = false)
     private String mensagem;
 
     private String imagem;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "usuario_criador_id", nullable = false)
     private UsuarioJpa usuarioCriador;
 
-
-    public MensagemIncidenteJpa(UUID id, String mensagem, String imagem, UsuarioJpa usuarioCriador) {
-        this.setIdAndDate(id);
-        this.mensagem = mensagem;
-        this.imagem = imagem;
-        this.usuarioCriador = usuarioCriador;
-    }
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "ordem_de_pedido_id", nullable = false)
+    private OrdemDePedidoJpa ordemDePedido;
 }

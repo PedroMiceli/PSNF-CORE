@@ -17,7 +17,7 @@ public abstract class BaseEntity {
     @Column(updatable = false)
     private UUID id;
 
-    @Column(updatable = false, columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+    @Column(updatable = false, nullable = false)
     private LocalDateTime dataCadastro;
 
     private LocalDateTime dataAlteracao;
@@ -26,13 +26,26 @@ public abstract class BaseEntity {
 
     /******************************************* METODOS *******************************************/
 
-    public void setIdAndDate(UUID id){
-        this.setId(id);
+    /**
+     * Copia os dados de controle vindos do domínio para a entidade.
+     */
+    public void restaurarBase(UUID id, LocalDateTime dataCadastro, LocalDateTime dataAlteracao, LocalDateTime dataExcluido) {
+        this.id = id;
+        this.dataCadastro = dataCadastro;
+        this.dataAlteracao = dataAlteracao;
+        this.dataExcluido = dataExcluido;
+    }
 
-        if (id == null)
+    @PrePersist
+    protected void aoCriar() {
+        if (this.dataCadastro == null) {
             this.dataCadastro = LocalDateTime.now();
-        else
-            this.dataAlteracao = LocalDateTime.now();
+        }
+    }
+
+    @PreUpdate
+    protected void aoAlterar() {
+        this.dataAlteracao = LocalDateTime.now();
     }
 
     public void confirmarExclusao() { this.dataExcluido = LocalDateTime.now(); }

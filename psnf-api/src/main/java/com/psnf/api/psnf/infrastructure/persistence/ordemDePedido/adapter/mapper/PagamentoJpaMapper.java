@@ -7,37 +7,36 @@ import com.psnf.api.psnf.infrastructure.persistence.ordemDePedido.entity.Pagamen
 public class PagamentoJpaMapper {
 
     //transforma o domain para a entidade de infra
-    public static PagamentoJpa toEntity(Pagamento pagamento) {
-        return new PagamentoJpa(
-                pagamento.getId(),
-                pagamento.getAgencia(),
-                pagamento.getCodigoBanco(),
-                pagamento.getConta(),
-                pagamento.getNomeReferencia(),
-                pagamento.getChavePix(),
-                pagamento.getBoleto(),
-                pagamento.getValor(),
-                pagamento.getTipoPagamento(),
-                new OrdemDePedidoJpa(pagamento.getOrdemDePedido())
-        );
+    public static PagamentoJpa toEntity(Pagamento pagamento, OrdemDePedidoJpa ordemDePedido) {
+        PagamentoJpa jpa = new PagamentoJpa();
+        jpa.restaurarBase(pagamento.getId(), pagamento.getDataCadastro(), pagamento.getDataAlteracao(), pagamento.getDataExcluido());
+        jpa.setTipoPagamento(pagamento.getTipoPagamento());
+        jpa.setValor(pagamento.getValor());
+        jpa.setAgencia(pagamento.getAgencia());
+        jpa.setCodigoBanco(pagamento.getCodigoBanco());
+        jpa.setConta(pagamento.getConta());
+        jpa.setNomeReferencia(pagamento.getNomeReferencia());
+        jpa.setChavePix(pagamento.getChavePix());
+        jpa.setBoleto(pagamento.getBoleto());
+        jpa.setOrdemDePedido(ordemDePedido);
+        return jpa;
     }
 
     //transforma o jpa para domain
-    public static Pagamento toDomain(PagamentoJpa pagamentoJpa) {
+    public static Pagamento toDomain(PagamentoJpa jpa) {
         return Pagamento.restaurar(
-                pagamentoJpa.getId(),
-                pagamentoJpa.getDataCadastro(),
-                pagamentoJpa.getDataAlteracao(),
-                pagamentoJpa.getDataExcluido(),
-                pagamentoJpa.getAgencia(),
-                pagamentoJpa.getCodigoBanco(),
-                pagamentoJpa.getConta(),
-                pagamentoJpa.getNomeReferencia(),
-                pagamentoJpa.getChavePix(),
-                pagamentoJpa.getBoleto(),
-                pagamentoJpa.getValor(),
-                pagamentoJpa.getTipoPagamento(),
-                pagamentoJpa.getOrdemDePedido().getId()
+                jpa.getId(),
+                jpa.getDataCadastro(),
+                jpa.getDataAlteracao(),
+                jpa.getDataExcluido(),
+                jpa.getTipoPagamento(),
+                jpa.getValor(),
+                jpa.getAgencia(),
+                jpa.getCodigoBanco(),
+                jpa.getConta(),
+                jpa.getNomeReferencia(),
+                jpa.getChavePix(),
+                jpa.getBoleto()
         );
     }
 }

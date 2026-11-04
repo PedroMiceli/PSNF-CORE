@@ -1,38 +1,56 @@
 package com.psnf.api.psnf.infrastructure.persistence.ordemDePedido.adapter;
 
-import com.psnf.api.psnf.domain.anuncio.exception.AnuncioNaoEncontradoException;
-import com.psnf.api.psnf.domain.anuncio.exception.OrdemDePedidoNaoEncontrada;
+import com.psnf.api.psnf.domain.ordemDePedido.exception.OrdemDePedidoNaoEncontradaException;
 import com.psnf.api.psnf.domain.ordemDePedido.models.OrdemDePedido;
 import com.psnf.api.psnf.domain.ordemDePedido.port.out.OrdemDePedidoRepositoryPort;
-import com.psnf.api.psnf.infrastructure.persistence.anuncio.adapter.mapper.AnuncioJpaMapper;
-import com.psnf.api.psnf.infrastructure.persistence.anuncio.entity.jpa.AnuncioJpa;
-import com.psnf.api.psnf.infrastructure.persistence.anuncio.entity.jpa.ImagemAnuncioJpa;
-import com.psnf.api.psnf.infrastructure.persistence.anuncio.entity.jpa.ValorJpa;
-import com.psnf.api.psnf.infrastructure.persistence.anuncio.entity.jpa.VariacaoJpa;
+import com.psnf.api.psnf.infrastructure.persistence.anuncio.repository.AnuncioJPARepository;
 import com.psnf.api.psnf.infrastructure.persistence.ordemDePedido.adapter.mapper.OrdemDePedidoJpaMapper;
 import com.psnf.api.psnf.infrastructure.persistence.ordemDePedido.entity.OrdemDePedidoJpa;
 import com.psnf.api.psnf.infrastructure.persistence.ordemDePedido.repository.OrdemDePedidoJpaRepository;
+import com.psnf.api.psnf.infrastructure.persistence.usuario.repository.UsuarioJPARepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.UUID;
+
 @Component
 @RequiredArgsConstructor
 public class OrdemDePedidoRepositoryAdapter implements OrdemDePedidoRepositoryPort {
 
     private final OrdemDePedidoJpaRepository ordemDePedidoJpaRepository;
+    private final UsuarioJPARepository usuarioJPARepository;
+    private final AnuncioJPARepository anuncioJPARepository;
 
     @Override
     public OrdemDePedido save(OrdemDePedido ordemDePedido) {
-        return null;
+        OrdemDePedidoJpa entity = OrdemDePedidoJpaMapper.toEntity(
+                ordemDePedido,
+                usuarioJPARepository::getReferenceById,
+                anuncioJPARepository::getReferenceById
+        );
+        // itens, pagamentos, mensagens e notas fiscais são salvos em cascata
+        return OrdemDePedidoJpaMapper.toDomain(ordemDePedidoJpaRepository.saveAndFlush(entity));
     }
 
     @Override
-    public OrdemDePedido buscarPorId(UUID ordemDePedido) {
-        OrdemDePedidoJpa ordemDePedidoJpa = ordemDePedidoJpaRepository.findById(ordemDePedido)
-                .orElseThrow(() -> new OrdemDePedidoNaoEncontrada(ordemDePedido));
+    public OrdemDePedido buscarPorId(UUID ordemDePedidoId) {
+        return ordemDePedidoJpaRepository.findById(ordemDePedidoId)
+                .map(OrdemDePedidoJpaMapper::toDomain)
+                .orElseThrow(() -> new OrdemDePedidoNaoEncontradaException(ordemDePedidoId));
+    }
 
-        return OrdemDePedidoJpaMapper.toDomain(ordemDePedidoJpa);
+    @Override
+    public List<OrdemDePedido> buscarPorComprador(UUID compradorId) {
+        return ordemDePedidoJpaRepository.findByCompradorIdOrderByDataCadastroDesc(compradorId).stream()
+                .map(OrdemDePedidoJpaMapper::toDomain)
+                .toList();
+    }
+
+    @Override
+    public List<OrdemDePedido> buscarPorVendedor(UUID vendedorId) {
+        return ordemDePedidoJpaRepository.findByVendedorIdOrderByDataCadastroDesc(vendedorId).stream()
+                .map(OrdemDePedidoJpaMapper::toDomain)
+                .toList();
     }
 }

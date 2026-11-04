@@ -1,39 +1,40 @@
 package com.psnf.api.psnf.application.usuario;
 
-import com.psnf.api.psnf.domain.usuario.model.Endereco;
+import com.psnf.api.psnf.domain.usuario.exception.EmailJaCadastradoException;
 import com.psnf.api.psnf.domain.usuario.model.Usuario;
 import com.psnf.api.psnf.domain.usuario.port.in.SalvarUsuarioUseCase;
 import com.psnf.api.psnf.domain.usuario.port.in.command.CadastrarUsuarioCommand;
+import com.psnf.api.psnf.domain.usuario.port.in.mapper.EnderecoCommandMapper;
+import com.psnf.api.psnf.domain.usuario.port.out.SenhaEncoderPort;
 import com.psnf.api.psnf.domain.usuario.port.out.UsuarioRepositoryPort;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-
-import java.time.LocalDateTime;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
 public class SalvarUsuarioService implements SalvarUsuarioUseCase {
 
     private final UsuarioRepositoryPort usuarioRepositoryPort;
+    private final SenhaEncoderPort senhaEncoderPort;
 
     @Override
     @Transactional
-    public Usuario salvarUsuario(CadastrarUsuarioCommand usuario) {
+    public Usuario salvarUsuario(CadastrarUsuarioCommand command) {
+        String email = command.email().trim().toLowerCase();
+        if (usuarioRepositoryPort.existePorEmail(email)) {
+            throw new EmailJaCadastradoException(email);
+        }
 
-        Usuario usuarioDomain = Usuario.criar(
-                LocalDateTime.now(),
-                null,
-                null,
-                usuario.nome(),
-                usuario.email(),
-                usuario.senha(),
-                null,
-                null,
-                usuario.telefone(),
-                null
-                );
+        Usuario usuario = Usuario.criar(
+                command.nome(),
+                email,
+                senhaEncoderPort.criptografar(command.senha()),
+                command.telefone(),
+                command.imagem(),
+                EnderecoCommandMapper.toDomain(command.enderecos())
+        );
 
-        return usuarioRepositoryPort.save(usuarioDomain);
+        return usuarioRepositoryPort.save(usuario);
     }
 }

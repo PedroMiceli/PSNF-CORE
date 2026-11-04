@@ -1,16 +1,24 @@
 package com.psnf.api.psnf.infrastructure.web.controller.usuario.dto.request;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+
+import java.util.List;
 
 public record UsuarioRequest(
         @NotBlank(message = "Email é obrigatório")
+        @Email(message = "Email inválido")
         String email,
         @NotBlank(message = "Uma senha é obrigatória")
+        @Size(min = 6, message = "A senha deve ter ao menos 6 caracteres")
         String senha,
         @NotBlank(message = "O nome é obrigatório")
         String nome,
         @NotBlank(message = "Um telefone é obrigatório")
-        int telefone
+        String telefone,
+        String imagem,
+        List<@Valid EnderecoRequest> enderecos
 ) {
-
 }

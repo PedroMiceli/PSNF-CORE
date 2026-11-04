@@ -4,8 +4,11 @@ import com.psnf.api.psnf.infrastructure.persistence.anuncio.entity.jpa.AnuncioJp
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.UUID;
 
 @Repository
 public interface AnuncioJPARepository extends JpaRepository<AnuncioJpa, UUID> {
+
+    List<AnuncioJpa> findByVendedorIdOrderByDataCadastroDesc(UUID vendedorId);
 }

@@ -8,5 +8,7 @@ public interface UsuarioRepositoryPort {
 
     Usuario save(Usuario usuario);
 
-    Usuario detalhesUsuario(UUID usuario);
+    Usuario buscarPorId(UUID usuarioId);
+
+    boolean existePorEmail(String email);
 }
