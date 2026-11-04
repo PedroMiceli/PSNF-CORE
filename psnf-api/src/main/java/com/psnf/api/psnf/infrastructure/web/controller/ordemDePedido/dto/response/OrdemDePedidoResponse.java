@@ -1,4 +1,76 @@
 package com.psnf.api.psnf.infrastructure.web.controller.ordemDePedido.dto.response;
 
-public record OrdemDePedidoResponse() {
+import com.psnf.api.psnf.domain.ordemDePedido.models.*;
+import com.psnf.api.psnf.domain.ordemDePedido.models.enums.EnumStatusOrdemDePedido;
+import com.psnf.api.psnf.domain.ordemDePedido.models.enums.EnumTipoPagamento;
+import com.psnf.api.psnf.infrastructure.web.controller.usuario.dto.response.UsuarioResumoResponse;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.UUID;
+
+public record OrdemDePedidoResponse(
+        UUID id,
+        String codigo,
+        EnumStatusOrdemDePedido status,
+        LocalDateTime dataCadastro,
+        LocalDate previsaoDeEntrega,
+        UsuarioResumoResponse comprador,
+        UsuarioResumoResponse vendedor,
+        BigDecimal valorTotal,
+        BigDecimal valorPago,
+        BigDecimal valorRestante,
+        List<ItemResponse> itens,
+        List<PagamentoResponse> pagamentos,
+        List<NotaFiscalResponse> notasFiscais,
+        List<MensagemResponse> mensagensIncidente
+) {
+
+    public record ItemResponse(UUID id, UUID anuncioId, String tituloAnuncio, String variacao, int quantidade,
+                               BigDecimal valorUnidade, BigDecimal subtotal) {
+        static ItemResponse from(ItemPedido i) {
+            return new ItemResponse(i.getId(), i.getAnuncioId(), i.getTituloAnuncio(), i.getVariacao(), i.getQuantidade(),
+                    i.getValorUnidade(), i.getSubtotal());
+        }
+    }
+
+    public record PagamentoResponse(UUID id, EnumTipoPagamento tipoPagamento, BigDecimal valor, String nomeReferencia,
+                                    LocalDateTime dataCadastro) {
+        static PagamentoResponse from(Pagamento p) {
+            return new PagamentoResponse(p.getId(), p.getTipoPagamento(), p.getValor(), p.getNomeReferencia(), p.getDataCadastro());
+        }
+    }
+
+    public record NotaFiscalResponse(UUID id, String caminho, LocalDateTime dataCadastro) {
+        static NotaFiscalResponse from(NotaFiscal n) {
+            return new NotaFiscalResponse(n.getId(), n.getCaminho(), n.getDataCadastro());
+        }
+    }
+
+    public record MensagemResponse(UUID id, String mensagem, String imagem, UUID usuarioCriadorId, LocalDateTime dataCadastro) {
+        static MensagemResponse from(MensagemIncidente m) {
+            return new MensagemResponse(m.getId(), m.getMensagem(), m.getImagem(), m.getUsuarioCriador(), m.getDataCadastro());
+        }
+    }
+
+    public static OrdemDePedidoResponse from(OrdemDePedido ordem) {
+        return new OrdemDePedidoResponse(
+                ordem.getId(),
+                ordem.getCodigo(),
+                ordem.getStatus(),
+                ordem.getDataCadastro(),
+                ordem.getPrevisaoDeEntrega(),
+                UsuarioResumoResponse.from(ordem.getComprador()),
+                UsuarioResumoResponse.from(ordem.getVendedor()),
+                ordem.getValorTotal(),
+                ordem.getValorPago(),
+                ordem.getValorRestante(),
+                ordem.getItens().stream().map(ItemResponse::from).toList(),
+                ordem.getPagamentos().stream().map(PagamentoResponse::from).toList(),
+                ordem.getNotasFiscais().stream().map(NotaFiscalResponse::from).toList(),
+                ordem.getMensagensIncidente().stream().map(MensagemResponse::from).toList()
+        );
+    }
 }

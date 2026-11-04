@@ -1,16 +1,21 @@
 package com.psnf.api.psnf.application.ordemDePedido;
 
+import com.psnf.api.psnf.domain.anuncio.model.Anuncio;
+import com.psnf.api.psnf.domain.anuncio.port.out.AnuncioRepositoryPort;
+import com.psnf.api.psnf.domain.ordemDePedido.models.ItemPedido;
 import com.psnf.api.psnf.domain.ordemDePedido.models.OrdemDePedido;
 import com.psnf.api.psnf.domain.ordemDePedido.port.in.CadastrarOrdemDePedidoUseCase;
 import com.psnf.api.psnf.domain.ordemDePedido.port.in.command.CadastrarOrdemDePedidoCommand;
-import com.psnf.api.psnf.domain.ordemDePedido.port.in.mapper.CadastrarOrdemDePedidoCommandMapper;
+import com.psnf.api.psnf.domain.ordemDePedido.port.in.command.ItemPedidoCommand;
 import com.psnf.api.psnf.domain.ordemDePedido.port.out.OrdemDePedidoRepositoryPort;
+import com.psnf.api.psnf.domain.shared.exception.RegraDeNegocioException;
 import com.psnf.api.psnf.domain.usuario.model.Usuario;
 import com.psnf.api.psnf.domain.usuario.port.out.UsuarioRepositoryPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -20,27 +25,45 @@ public class SalvarOrdemDePedidoService implements CadastrarOrdemDePedidoUseCase
 
     private final OrdemDePedidoRepositoryPort ordemDePedidoRepositoryPort;
     private final UsuarioRepositoryPort usuarioRepositoryPort;
+    private final AnuncioRepositoryPort anuncioRepositoryPort;
 
     @Override
-    public OrdemDePedido cadastrarOrdemDePedido(CadastrarOrdemDePedidoCommand cadastrarOrdemDePedidoCommand) {
+    @Transactional
+    public OrdemDePedido cadastrarOrdemDePedido(CadastrarOrdemDePedidoCommand command) {
 
-        Usuario comprador = usuarioRepositoryPort.detalhesUsuario(cadastrarOrdemDePedidoCommand.compradorId());
-        Usuario vendedor = usuarioRepositoryPort.detalhesUsuario(cadastrarOrdemDePedidoCommand.vendedorId());
+        Usuario comprador = usuarioRepositoryPort.buscarPorId(command.compradorId());
 
+        UUID vendedorId = null;
+        List<ItemPedido> itens = new ArrayList<>();
 
-        OrdemDePedido ordemDePedido = OrdemDePedido.criar(
-                LocalDateTime.now(),
-                null,
-                null,
-                gerarCodigo(),
-                cadastrarOrdemDePedidoCommand.previsaoDeEntrega(),
-                comprador,
-                vendedor,
-                List.of(),
-                List.of(),
-                List.of(),
-                CadastrarOrdemDePedidoCommandMapper.toItens(cadastrarOrdemDePedidoCommand.itens())
-        );
+        for (ItemPedidoCommand itemCommand : command.itens()) {
+            Anuncio anuncio = anuncioRepositoryPort.buscarPorId(itemCommand.anuncioId());
+
+            if (!anuncio.isAtivo()) {
+                throw new RegraDeNegocioException("O anúncio '" + anuncio.getTitulo() + "' não está ativo");
+            }
+            if (vendedorId == null) {
+                vendedorId = anuncio.getVendedor();
+            } else if (!vendedorId.equals(anuncio.getVendedor())) {
+                throw new RegraDeNegocioException("Todos os itens de uma ordem de pedido devem ser do mesmo vendedor");
+            }
+
+            String variacao = itemCommand.variacaoId() == null
+                    ? null
+                    : anuncio.buscarVariacao(itemCommand.variacaoId()).getVariacao();
+
+            itens.add(ItemPedido.criar(
+                    anuncio.getId(),
+                    anuncio.getTitulo(),
+                    variacao,
+                    itemCommand.quantidade(),
+                    anuncio.calcularValorUnidade(itemCommand.quantidade())
+            ));
+        }
+
+        Usuario vendedor = usuarioRepositoryPort.buscarPorId(vendedorId);
+
+        OrdemDePedido ordemDePedido = OrdemDePedido.criar(gerarCodigo(), comprador, vendedor, itens);
 
         return ordemDePedidoRepositoryPort.save(ordemDePedido);
     }

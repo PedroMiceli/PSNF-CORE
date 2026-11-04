@@ -7,35 +7,34 @@ import com.psnf.api.psnf.infrastructure.persistence.usuario.entity.UsuarioJpa;
 public class EnderecoJpaMapper {
 
     public static EnderecoJpa toEntity(Endereco endereco, UsuarioJpa usuario) {
-
-        return new EnderecoJpa(
-                endereco.getId(),
-                endereco.getLogradouro(),
-                endereco.getNumero(),
-                endereco.getComplemento(),
-                endereco.getBairro(),
-                endereco.getCidade(),
-                endereco.getEstado(),
-                endereco.getCep(),
-                endereco.getUf(),
-                usuario
-        );
+        EnderecoJpa jpa = new EnderecoJpa();
+        jpa.restaurarBase(endereco.getId(), endereco.getDataCadastro(), endereco.getDataAlteracao(), endereco.getDataExcluido());
+        jpa.setLogradouro(endereco.getLogradouro());
+        jpa.setNumero(endereco.getNumero());
+        jpa.setComplemento(endereco.getComplemento());
+        jpa.setBairro(endereco.getBairro());
+        jpa.setCidade(endereco.getCidade());
+        jpa.setEstado(endereco.getEstado());
+        jpa.setCep(endereco.getCep());
+        jpa.setUf(endereco.getUf());
+        jpa.setUsuario(usuario);
+        return jpa;
     }
 
-    public static Endereco toDomain(EnderecoJpa enderecoJpa) {
-        return new Endereco(
-                enderecoJpa.getId(),
-                enderecoJpa.getDataCadastro(),
-                enderecoJpa.getDataAlteracao(),
-                enderecoJpa.getDataExcluido(),
-                enderecoJpa.getLogradouro(),
-                enderecoJpa.getNumero(),
-                enderecoJpa.getComplemento(),
-                enderecoJpa.getBairro(),
-                enderecoJpa.getCidade(),
-                enderecoJpa.getEstado(),
-                enderecoJpa.getCep(),
-                enderecoJpa.getUf()
+    public static Endereco toDomain(EnderecoJpa jpa) {
+        return Endereco.restaurar(
+                jpa.getId(),
+                jpa.getDataCadastro(),
+                jpa.getDataAlteracao(),
+                jpa.getDataExcluido(),
+                jpa.getLogradouro(),
+                jpa.getNumero(),
+                jpa.getComplemento(),
+                jpa.getBairro(),
+                jpa.getCidade(),
+                jpa.getEstado(),
+                jpa.getCep(),
+                jpa.getUf()
         );
     }
 }

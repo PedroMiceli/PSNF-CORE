@@ -13,19 +13,19 @@ public class CadastrarAnuncioCommandMapper {
 
     public static List<Valor> toValores(List<CadastrarValorAnuncioCommand> valores) {
         return valores.stream()
-                .map(v -> new Valor(v.valorUnidade(), v.quantidadeMinima()))
+                .map(v -> Valor.criar(v.valorUnidade(), v.quantidadeMinima()))
                 .toList();
     }
 
     public static List<ImagemAnuncio> toImagens(List<CadastrarImagemAnuncioCommand> imagens) {
         return imagens.stream()
-                .map(i -> new ImagemAnuncio(i.caminho(), i.principal()))
+                .map(i -> ImagemAnuncio.criar(i.caminho(), i.principal()))
                 .toList();
     }
 
     public static List<Variacao> toVariacoes(List<CadastrarVariacaoAnuncioCommand> variacoes) {
         return variacoes.stream()
-                .map(v -> new Variacao(v.variacao()))
+                .map(v -> Variacao.criar(v.variacao()))
                 .toList();
     }
 }

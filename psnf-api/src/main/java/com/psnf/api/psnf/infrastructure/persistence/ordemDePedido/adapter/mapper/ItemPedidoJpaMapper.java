@@ -8,14 +8,26 @@ import com.psnf.api.psnf.infrastructure.persistence.ordemDePedido.entity.OrdemDe
 public class ItemPedidoJpaMapper {
 
     public static ItemPedidoJpa toEntity(ItemPedido item, AnuncioJpa anuncio, OrdemDePedidoJpa ordemDePedido) {
-        return new ItemPedidoJpa(anuncio, ordemDePedido, item.getQuantidade(), item.getValorUnidade());
+        ItemPedidoJpa jpa = new ItemPedidoJpa();
+        jpa.restaurarBase(item.getId(), item.getDataCadastro(), item.getDataAlteracao(), item.getDataExcluido());
+        jpa.setQuantidade(item.getQuantidade());
+        jpa.setValorUnidade(item.getValorUnidade());
+        jpa.setTituloAnuncio(item.getTituloAnuncio());
+        jpa.setVariacao(item.getVariacao());
+        jpa.setAnuncio(anuncio);
+        jpa.setOrdemDePedido(ordemDePedido);
+        return jpa;
     }
 
     public static ItemPedido toDomain(ItemPedidoJpa jpa) {
         return ItemPedido.restaurar(
                 jpa.getId(),
+                jpa.getDataCadastro(),
+                jpa.getDataAlteracao(),
+                jpa.getDataExcluido(),
                 jpa.getAnuncio().getId(),
-                jpa.getOrdemDePedido().getId(),
+                jpa.getTituloAnuncio(),
+                jpa.getVariacao(),
                 jpa.getQuantidade(),
                 jpa.getValorUnidade()
         );

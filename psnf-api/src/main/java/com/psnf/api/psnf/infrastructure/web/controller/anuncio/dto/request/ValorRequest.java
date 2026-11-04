@@ -10,6 +10,7 @@ public record ValorRequest(
         @Positive(message = "Valor unitário deve ser maior que zero")
         BigDecimal valorUnidade,
 
+        @NotNull(message = "Quantidade mínima é obrigatória")
         @Positive(message = "Quantidade mínima deve ser maior que zero")
-        int quantidadeMinima
+        Integer quantidadeMinima
 ) {}

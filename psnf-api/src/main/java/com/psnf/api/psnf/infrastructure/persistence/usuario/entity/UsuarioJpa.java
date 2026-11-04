@@ -6,27 +6,41 @@ import com.psnf.api.psnf.infrastructure.persistence.shared.BaseEntity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
+/**
+ * Relações:
+ *  - 1:N Endereco  (dono do ciclo de vida: cascade + orphanRemoval)
+ *  - 1:N Anuncio   (como vendedor — lado inverso, sem cascade)
+ *  - 1:N OrdemDePedido como comprador / como vendedor (lado inverso, sem cascade)
+ */
 @Entity
+@Table(name = "usuario")
 @NoArgsConstructor
 @Getter
+@Setter
 public class UsuarioJpa extends BaseEntity {
 
+    @Column(nullable = false)
     private String nome;
+
+    @Column(nullable = false, unique = true)
     private String email;
+
+    @Column(nullable = false)
     private String senha;
+
     private String secret2fa;
     private String imagem;
-    private int telefone;
+    private String telefone;
 
     @OneToMany(mappedBy = "usuario", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<EnderecoJpa> enderecos = new ArrayList<>();
 
-    @OneToMany(mappedBy = "vendedor", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "vendedor")
     private List<AnuncioJpa> anuncios = new ArrayList<>();
 
     @OneToMany(mappedBy = "comprador")
@@ -34,40 +48,4 @@ public class UsuarioJpa extends BaseEntity {
 
     @OneToMany(mappedBy = "vendedor")
     private List<OrdemDePedidoJpa> vendas = new ArrayList<>();
-
-    public UsuarioJpa(UUID id) {
-        this.setId(id);
-    }
-
-    public UsuarioJpa(UUID id, String nome, String email, String senha, String secret2fa, String imagem, int telefone,
-                      List<EnderecoJpa> enderecos, List<AnuncioJpa> anuncios,
-                      List<OrdemDePedidoJpa> compras, List<OrdemDePedidoJpa> vendas) {
-        this.setId(id);
-        this.nome = nome;
-        this.email = email;
-        this.senha = senha;
-        this.secret2fa = secret2fa;
-        this.imagem = imagem;
-        this.telefone = telefone;
-        this.enderecos = enderecos;
-        this.anuncios = anuncios;
-        this.compras = compras;
-        this.vendas = vendas;
-    }
-
-    public UsuarioJpa(UUID id, String nome, String email, String senha, String secret2fa, String imagem, int telefone) {
-        this.setId(id);
-        this.nome = nome;
-        this.email = email;
-        this.senha = senha;
-        this.secret2fa = secret2fa;
-        this.imagem = imagem;
-        this.telefone = telefone;
-    }
-
-    // método utilitário pra manter os dois lados sincronizados
-    public void adicionarEndereco(EnderecoJpa endereco) {
-        enderecos.add(endereco);
-        endereco.setUsuario(this);
-    }
 }

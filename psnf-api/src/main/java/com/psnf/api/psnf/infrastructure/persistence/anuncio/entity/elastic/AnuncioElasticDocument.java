@@ -1,17 +1,17 @@
 package com.psnf.api.psnf.infrastructure.persistence.anuncio.entity.elastic;
 
-import jakarta.persistence.Id;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.elasticsearch.annotations.DateFormat;
 import org.springframework.data.elasticsearch.annotations.Document;
 import org.springframework.data.elasticsearch.annotations.Field;
 import org.springframework.data.elasticsearch.annotations.FieldType;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-@Document(indexName = "anuncios")
+@Document(indexName = "anuncios", createIndex = false)
 @Setter
 @Getter
 @NoArgsConstructor
@@ -33,7 +33,7 @@ public class AnuncioElasticDocument {
     private String imagemPrincipal;
 
     @Field(type = FieldType.Double)
-    private BigDecimal precoMenor;
+    private Double precoMenor;
 
     @Field(type = FieldType.Keyword)
     private String categoriaId;
@@ -47,6 +47,6 @@ public class AnuncioElasticDocument {
     @Field(type = FieldType.Text)
     private String vendedorNome;
 
-    @Field(type = FieldType.Date)
+    @Field(type = FieldType.Date, format = DateFormat.date_hour_minute_second_millis)
     private LocalDateTime criadoEm;
 }

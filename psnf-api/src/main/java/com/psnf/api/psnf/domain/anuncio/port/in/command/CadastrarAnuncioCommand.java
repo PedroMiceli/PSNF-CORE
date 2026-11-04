@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.UUID;
 
 public record CadastrarAnuncioCommand(
+        UUID vendedorId,
         String titulo,
         String descricao,
         UUID categoriaId,
@@ -12,6 +13,9 @@ public record CadastrarAnuncioCommand(
         List<CadastrarVariacaoAnuncioCommand> variacoes
 ) {
     public CadastrarAnuncioCommand {
+        if (vendedorId == null) {
+            throw new IllegalArgumentException("Vendedor é obrigatório");
+        }
         if (titulo == null || titulo.isBlank()) {
             throw new IllegalArgumentException("Título é obrigatório");
         }
@@ -24,9 +28,6 @@ public record CadastrarAnuncioCommand(
         if (imagens == null || imagens.isEmpty()) {
             throw new IllegalArgumentException("É necessário informar ao menos uma imagem");
         }
+        variacoes = variacoes == null ? List.of() : variacoes;
     }
 }
-
-
-
-

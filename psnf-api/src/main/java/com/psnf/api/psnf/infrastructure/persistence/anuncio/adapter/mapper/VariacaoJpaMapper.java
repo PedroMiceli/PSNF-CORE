@@ -7,13 +7,14 @@ import com.psnf.api.psnf.infrastructure.persistence.anuncio.entity.jpa.VariacaoJ
 public class VariacaoJpaMapper {
 
     public static VariacaoJpa toEntity(Variacao variacao, AnuncioJpa anuncioJpa) {
-        VariacaoJpa variacaoJpa = new VariacaoJpa();
-        variacaoJpa.setVariacao(variacao.getVariacao());
-        variacaoJpa.setAnuncio(anuncioJpa);
-        return variacaoJpa;
+        VariacaoJpa jpa = new VariacaoJpa();
+        jpa.restaurarBase(variacao.getId(), variacao.getDataCadastro(), variacao.getDataAlteracao(), variacao.getDataExcluido());
+        jpa.setVariacao(variacao.getVariacao());
+        jpa.setAnuncio(anuncioJpa);
+        return jpa;
     }
 
-    public static Variacao toDomain(VariacaoJpa variacaoJpa) {
-        return new Variacao(variacaoJpa.getId(),variacaoJpa.getVariacao());
+    public static Variacao toDomain(VariacaoJpa jpa) {
+        return Variacao.restaurar(jpa.getId(), jpa.getDataCadastro(), jpa.getDataAlteracao(), jpa.getDataExcluido(), jpa.getVariacao());
     }
 }

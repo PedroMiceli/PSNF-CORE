@@ -5,34 +5,22 @@ import com.psnf.api.psnf.domain.shared.model.BaseDomain;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-
 public class Variacao extends BaseDomain {
 
-    private String variacao;
+    private final String variacao;
 
-    private Anuncio anuncio;
-
-    public Variacao(UUID id, LocalDateTime dataCadastro, LocalDateTime dataAlteracao, LocalDateTime dataExcluido, String variacao, Anuncio anuncio) {
+    private Variacao(UUID id, LocalDateTime dataCadastro, LocalDateTime dataAlteracao, LocalDateTime dataExcluido, String variacao) {
         super(id, dataCadastro, dataAlteracao, dataExcluido);
-        this.variacao = variacao;
-        this.anuncio = anuncio;
-    }
-
-    public Variacao(UUID id, String variacao) {
-        super(id, LocalDateTime.now(), null, null);
-        this.variacao = variacao;
-    }
-
-    public Variacao(String variacao) {
-        super(null, LocalDateTime.now(), null, null);
         this.variacao = variacao;
     }
 
     public static Variacao criar(String variacao) {
-        return new Variacao(variacao);
+        return new Variacao(null, LocalDateTime.now(), null, null, variacao);
     }
 
-    public String getVariacao() {
-        return variacao;
+    public static Variacao restaurar(UUID id, LocalDateTime dataCadastro, LocalDateTime dataAlteracao, LocalDateTime dataExcluido, String variacao) {
+        return new Variacao(id, dataCadastro, dataAlteracao, dataExcluido, variacao);
     }
+
+    public String getVariacao() { return variacao; }
 }

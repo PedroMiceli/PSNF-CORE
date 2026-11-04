@@ -1,7 +1,13 @@
 package com.psnf.api.psnf.infrastructure.web.controller.anuncio.dto.response;
 
 import com.psnf.api.psnf.domain.anuncio.model.Anuncio;
+import com.psnf.api.psnf.domain.anuncio.model.ImagemAnuncio;
+import com.psnf.api.psnf.domain.anuncio.model.Valor;
+import com.psnf.api.psnf.domain.anuncio.model.Variacao;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 public record AnuncioResponse(
@@ -9,8 +15,26 @@ public record AnuncioResponse(
         String titulo,
         String descricao,
         boolean ativo,
-        UUID categoriaId
+        UUID categoriaId,
+        UUID vendedorId,
+        BigDecimal precoMenor,
+        LocalDateTime dataCadastro,
+        List<ValorResponse> valores,
+        List<ImagemResponse> imagens,
+        List<VariacaoResponse> variacoes
 ) {
+
+    public record ValorResponse(UUID id, BigDecimal valorUnidade, int quantidadeMinima) {
+        static ValorResponse from(Valor v) { return new ValorResponse(v.getId(), v.getValorUnidade(), v.getQuantidadeMinima()); }
+    }
+
+    public record ImagemResponse(UUID id, String caminho, boolean principal) {
+        static ImagemResponse from(ImagemAnuncio i) { return new ImagemResponse(i.getId(), i.getCaminho(), i.isPrincipal()); }
+    }
+
+    public record VariacaoResponse(UUID id, String variacao) {
+        static VariacaoResponse from(Variacao v) { return new VariacaoResponse(v.getId(), v.getVariacao()); }
+    }
 
     public static AnuncioResponse from(Anuncio anuncio) {
         return new AnuncioResponse(
@@ -18,7 +42,13 @@ public record AnuncioResponse(
                 anuncio.getTitulo(),
                 anuncio.getDescricao(),
                 anuncio.isAtivo(),
-                anuncio.getCategoria()
+                anuncio.getCategoria(),
+                anuncio.getVendedor(),
+                anuncio.getMenorValor(),
+                anuncio.getDataCadastro(),
+                anuncio.getValores().stream().map(ValorResponse::from).toList(),
+                anuncio.getImagens().stream().map(ImagemResponse::from).toList(),
+                anuncio.getVariacoes().stream().map(VariacaoResponse::from).toList()
         );
     }
 }

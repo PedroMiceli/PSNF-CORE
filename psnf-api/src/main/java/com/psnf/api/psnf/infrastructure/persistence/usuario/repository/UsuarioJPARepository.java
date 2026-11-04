@@ -12,7 +12,8 @@ import java.util.UUID;
 @Repository
 public interface UsuarioJPARepository extends JpaRepository<UsuarioJpa, UUID> {
 
-    @Query("SELECT c.nome FROM UsuarioJpa c WHERE c.id = :id")
+    @Query("SELECT u.nome FROM UsuarioJpa u WHERE u.id = :id")
     Optional<String> buscarNomePorId(@Param("id") UUID id);
 
+    boolean existsByEmailIgnoreCase(String email);
 }

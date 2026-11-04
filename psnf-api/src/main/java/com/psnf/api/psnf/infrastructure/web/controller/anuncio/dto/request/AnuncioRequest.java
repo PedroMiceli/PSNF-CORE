@@ -16,10 +16,8 @@ public record AnuncioRequest(
         @NotNull(message = "Categoria é obrigatória")
         UUID categoriaId,
         @NotEmpty(message = "É necessário informar ao menos um valor")
-        @Valid
-        List<ValorRequest> valores,
+        List<@Valid ValorRequest> valores,
         @NotEmpty(message = "É necessário informar ao menos uma imagem")
-        @Valid
-        List<ImagemAnuncioRequest> imagens,
-        List<VariacaoRequest> variacoes
+        List<@Valid ImagemAnuncioRequest> imagens,
+        List<@Valid VariacaoRequest> variacoes
 ) {}

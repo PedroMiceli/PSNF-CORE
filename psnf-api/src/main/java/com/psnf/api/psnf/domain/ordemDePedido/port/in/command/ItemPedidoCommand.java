@@ -1,10 +1,18 @@
 package com.psnf.api.psnf.domain.ordemDePedido.port.in.command;
 
-import java.math.BigDecimal;
 import java.util.UUID;
 
 public record ItemPedidoCommand(
         UUID anuncioId,
-        int quantidade,
-        BigDecimal valorUnidade
-) {}
+        UUID variacaoId,
+        int quantidade
+) {
+    public ItemPedidoCommand {
+        if (anuncioId == null) {
+            throw new IllegalArgumentException("Anúncio do item é obrigatório");
+        }
+        if (quantidade <= 0) {
+            throw new IllegalArgumentException("Quantidade deve ser maior que zero");
+        }
+    }
+}

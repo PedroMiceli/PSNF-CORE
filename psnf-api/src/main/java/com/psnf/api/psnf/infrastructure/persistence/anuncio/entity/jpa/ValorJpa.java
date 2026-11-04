@@ -1,32 +1,26 @@
 package com.psnf.api.psnf.infrastructure.persistence.anuncio.entity.jpa;
 
 import com.psnf.api.psnf.infrastructure.persistence.shared.BaseEntity;
-import jakarta.persistence.Entity;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
-import java.util.UUID;
 
 @Entity
+@Table(name = "valor_anuncio")
 @NoArgsConstructor
 @Setter
 @Getter
 public class ValorJpa extends BaseEntity {
 
-    BigDecimal valorUnidade;
-    int quantidadeMinima;
+    @Column(nullable = false, precision = 19, scale = 2)
+    private BigDecimal valorUnidade;
 
-    @ManyToOne
+    private int quantidadeMinima;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "anuncio_id", nullable = false)
     private AnuncioJpa anuncio;
-
-    public ValorJpa(UUID id, BigDecimal valorUnidade, int quantidadeMinima) {
-        this.setId(id);
-        this.valorUnidade = valorUnidade;
-        this.quantidadeMinima = quantidadeMinima;
-    }
 }

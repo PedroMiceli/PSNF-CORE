@@ -1,0 +1,24 @@
+package com.psnf.api.psnf.application.usuario;
+
+import com.psnf.api.psnf.domain.usuario.model.Usuario;
+import com.psnf.api.psnf.domain.usuario.port.in.AtualizarUsuarioUseCase;
+import com.psnf.api.psnf.domain.usuario.port.in.command.AtualizarUsuarioCommand;
+import com.psnf.api.psnf.domain.usuario.port.out.UsuarioRepositoryPort;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+@RequiredArgsConstructor
+public class AtualizarUsuarioService implements AtualizarUsuarioUseCase {
+
+    private final UsuarioRepositoryPort usuarioRepositoryPort;
+
+    @Override
+    @Transactional
+    public Usuario atualizarUsuario(AtualizarUsuarioCommand command) {
+        Usuario usuario = usuarioRepositoryPort.buscarPorId(command.usuarioId());
+        usuario.atualizarDados(command.nome(), command.telefone(), command.imagem());
+        return usuarioRepositoryPort.save(usuario);
+    }
+}

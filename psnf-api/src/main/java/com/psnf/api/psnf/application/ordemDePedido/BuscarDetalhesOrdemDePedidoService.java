@@ -5,6 +5,7 @@ import com.psnf.api.psnf.domain.ordemDePedido.port.in.BuscarDetalhesOrdemDePedid
 import com.psnf.api.psnf.domain.ordemDePedido.port.out.OrdemDePedidoRepositoryPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
@@ -15,7 +16,10 @@ public class BuscarDetalhesOrdemDePedidoService implements BuscarDetalhesOrdemDe
     private final OrdemDePedidoRepositoryPort ordemDePedidoRepositoryPort;
 
     @Override
-    public OrdemDePedido buscarPorId(UUID ordemDePedidoId) {
-        return ordemDePedidoRepositoryPort.buscarPorId(ordemDePedidoId);
+    @Transactional(readOnly = true)
+    public OrdemDePedido buscarPorId(UUID ordemDePedidoId, UUID usuarioId) {
+        OrdemDePedido ordem = ordemDePedidoRepositoryPort.buscarPorId(ordemDePedidoId);
+        ordem.garantirParticipante(usuarioId);
+        return ordem;
     }
 }
