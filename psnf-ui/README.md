@@ -4,13 +4,18 @@ Protótipo do front-end da PSNF em **React + TypeScript + Vite**, para testar a 
 
 ## Como rodar
 
-Pré-requisitos: Node 20+ e a `psnf-api` rodando em `http://localhost:8080` (com o Postgres).
+Pré-requisitos: **Node 22** (mínimo 20.19 — exigência do Vite 8; há um `.nvmrc`) e a `psnf-api` rodando em `http://localhost:8080` (com o Postgres).
 
 ```bash
 cd psnf-ui
+nvm use          # usa o Node do .nvmrc (22)
 npm install
 npm run dev
 ```
+
+> **Erro `does not provide an export named 'styleText'`?** O Node está desatualizado (ex.: 18).
+> Instale o 22 com `nvm install 22 && nvm use 22`, apague `node_modules` e rode `npm install` de novo.
+> O `npm run dev` já verifica a versão antes de iniciar e avisa se ela não for suportada.
 
 Abra http://localhost:5173.
 

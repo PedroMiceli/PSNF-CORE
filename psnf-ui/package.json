@@ -4,7 +4,9 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "predev": "node scripts/verificar-node.cjs",
     "dev": "vite",
+    "prebuild": "node scripts/verificar-node.cjs",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit"
@@ -20,5 +22,8 @@
     "@vitejs/plugin-react": "^6.2.1",
     "typescript": "~5.9.3",
     "vite": "^8.3.5"
+  },
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
   }
 }
