@@ -24,8 +24,10 @@ services:
 
   # Object storage S3-compatível para os uploads (imagens, NF...).
   # API S3: http://localhost:9000 | Console web: http://localhost:9001 (minioadmin / minioadmin)
+  # A MinIO Inc. removeu a imagem "minio/minio" do Docker Hub; usamos o "pgsty/minio" (Silo),
+  # fork comunitário mantido do mesmo servidor MinIO: mesmo comando, variáveis e portas.
   minio:
-    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
+    image: pgsty/minio:RELEASE.2026-08-04T00-00-00Z
     container_name: psnf-minio
     command: server /data --console-address ":9001"
     environment:
