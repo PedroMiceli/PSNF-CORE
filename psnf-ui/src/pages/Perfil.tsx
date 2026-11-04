@@ -2,7 +2,8 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { api } from '../api/endpoints';
 import type { EnderecoInput } from '../api/types';
 import { useAcao, useApi } from '../api/useApi';
-import { Campo, Carregando, ErroBox } from '../components/ui';
+import { ACEITA_IMAGENS, UploadArquivo } from '../components/UploadArquivo';
+import { Campo, Carregando, ErroBox, ImagemAnuncio } from '../components/ui';
 import { useUsuario } from '../context/UsuarioContext';
 
 const enderecoVazio: EnderecoInput = { logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', estado: '', cep: '', uf: '' };
@@ -57,7 +58,14 @@ export function Perfil() {
           <Campo label="Nome" erro={salvar.erro?.campos?.nome}><input value={dados.nome} onChange={(e) => setDados({ ...dados, nome: e.target.value })} /></Campo>
           <Campo label="Telefone"><input value={dados.telefone} onChange={(e) => setDados({ ...dados, telefone: e.target.value })} /></Campo>
         </div>
-        <Campo label="Imagem (URL)"><input value={dados.imagem} onChange={(e) => setDados({ ...dados, imagem: e.target.value })} /></Campo>
+        <div className="foto-perfil">
+          {dados.imagem ? <ImagemAnuncio caminho={dados.imagem} alt="Foto do perfil" className="avatar" /> : <div className="avatar avatar-vazio">👤</div>}
+          <div>
+            <UploadArquivo accept={ACEITA_IMAGENS} compacto rotulo={dados.imagem ? 'Trocar foto' : 'Enviar foto'}
+              onEnviado={(a) => setDados((d) => ({ ...d, imagem: a.caminho }))} />
+            <p className="dica">A foto é salva ao clicar em "Salvar".</p>
+          </div>
+        </div>
         <button className="btn primario" disabled={salvar.enviando}>Salvar</button>
       </form>
 

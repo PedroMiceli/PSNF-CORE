@@ -22,7 +22,9 @@ const BASE = '/api';
 
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   const headers: Record<string, string> = {};
-  if (body !== undefined) headers['Content-Type'] = 'application/json';
+  const ehForm = body instanceof FormData;
+  // FormData: o navegador define o Content-Type multipart com o boundary
+  if (body !== undefined && !ehForm) headers['Content-Type'] = 'application/json';
   if (usuarioAtualId) headers['X-Usuario-Id'] = usuarioAtualId;
 
   let res: Response;
@@ -30,7 +32,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
     res = await fetch(BASE + path, {
       method,
       headers,
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body: body === undefined ? undefined : ehForm ? body : JSON.stringify(body),
     });
   } catch {
     throw new ApiError(0, 'Não foi possível conectar à API. Ela está rodando em localhost:8080?');
@@ -69,4 +71,19 @@ export const http = {
   put: <T>(path: string, body: unknown) => request<T>('PUT', path, body),
   patch: <T>(path: string, body?: unknown) => request<T>('PATCH', path, body),
   delete: <T>(path: string) => request<T>('DELETE', path),
+  upload: <T>(path: string, campo: string, arquivo: File) => {
+    const form = new FormData();
+    form.append(campo, arquivo);
+    return request<T>('POST', path, form);
+  },
 };
+
+/**
+ * Converte o "caminho" salvo na API em uma URL que o navegador consegue abrir.
+ * Arquivos enviados ao storage ficam em /arquivos/... e passam pelo proxy /api.
+ */
+export function urlArquivo(caminho: string | null | undefined): string | undefined {
+  if (!caminho) return undefined;
+  if (caminho.startsWith('/arquivos/')) return BASE + caminho;
+  return caminho;
+}

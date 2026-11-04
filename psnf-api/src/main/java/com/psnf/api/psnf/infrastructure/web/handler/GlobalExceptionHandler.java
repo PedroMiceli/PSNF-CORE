@@ -15,6 +15,9 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
+import software.amazon.awssdk.core.exception.SdkException;
 
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -72,6 +75,22 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleServicoIndisponivel(DataAccessResourceFailureException ex) {
         logger.error("Serviço externo indisponível", ex);
         return erro(HttpStatus.SERVICE_UNAVAILABLE, "Serviço temporariamente indisponível, tente novamente mais tarde");
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<Map<String, String>> handleUploadGrande(MaxUploadSizeExceededException ex) {
+        return erro(HttpStatus.CONTENT_TOO_LARGE, "Arquivo muito grande: o limite é 10 MB");
+    }
+
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    public ResponseEntity<Map<String, String>> handleSemArquivo(MissingServletRequestPartException ex) {
+        return erro(HttpStatus.BAD_REQUEST, "Envie o arquivo no campo '" + ex.getRequestPartName() + "' (multipart/form-data)");
+    }
+
+    @ExceptionHandler(SdkException.class)
+    public ResponseEntity<Map<String, String>> handleStorage(SdkException ex) {
+        logger.error("Falha no storage de arquivos (MinIO/S3)", ex);
+        return erro(HttpStatus.SERVICE_UNAVAILABLE, "Armazenamento de arquivos indisponível. O MinIO está rodando?");
     }
 
     private ResponseEntity<Map<String, String>> erro(HttpStatus status, String mensagem) {

@@ -5,6 +5,13 @@ Protótipo do front-end da PSNF em **React + TypeScript + Vite**, para testar a 
 ## Como rodar
 
 Pré-requisitos: **Node 22** (mínimo 20.19 — exigência do Vite 8; há um `.nvmrc`) e a `psnf-api` rodando em `http://localhost:8080` (com o Postgres).
+Para o **upload de arquivos** (fotos, NF, anexos) suba também o MinIO, na raiz do repositório:
+
+```bash
+docker compose up -d minio
+```
+
+Console do MinIO: http://localhost:9001 (usuário e senha `minioadmin`).
 
 ```bash
 cd psnf-ui
@@ -33,12 +40,12 @@ No canto superior direito, o seletor **Logado como** troca entre:
 ## Roteiro de teste sugerido
 
 1. **Categorias**: cadastre uma categoria.
-2. **Meus anúncios → Novo anúncio** (como vendedor): faixas de preço, imagens (URLs) e variações.
+2. **Meus anúncios → Novo anúncio** (como vendedor): faixas de preço, fotos (upload ou URL) e variações.
 3. No anúncio, clique em **Gerar ordem de pedido**, escolha as variações e quantidades e ajuste o valor negociado.
 4. Troque para **Comprador Mock** → **Ordens de pedido → Minhas compras** → abra a ordem e registre os pagamentos (PIX, boleto ou transferência).
-5. Troque para o vendedor → anexe a **nota fiscal** → **Pedido despachado**.
+5. Troque para o vendedor → anexe a **nota fiscal** (PDF/XML) → **Pedido despachado**.
 6. Troque para o comprador → **Confirmar entrega**.
-7. Use **Incidentes e mensagens** a qualquer momento.
+7. Use **Incidentes e mensagens** a qualquer momento (é possível anexar fotos).
 
 ## Estrutura
 
@@ -54,5 +61,11 @@ src/
 ## Ainda não existe na API (aparece desabilitado ou omitido)
 
 - Chat entre comprador e vendedor (botão "Iniciar chat").
-- Upload de imagens e NF: hoje são apenas caminhos/URLs.
 - Status mais detalhados das telas do Excalidraw (rascunho, aguardando aceite, em preparação...).
+
+## Upload de arquivos
+
+Os arquivos vão para `POST /api/arquivos` (MinIO em desenvolvimento, S3 em produção) e a API devolve um
+`caminho` (`/arquivos/{uuid}.{ext}`), que é o que fica salvo no anúncio, na NF, na mensagem ou no perfil.
+O componente `UploadArquivo` cuida da seleção/arrastar-e-soltar e dos erros (tipo não suportado, tamanho, storage fora do ar).
+Limites: imagens JPG/PNG/WEBP/GIF até 5 MB; PDF/XML até 10 MB (o tipo é detectado pelo conteúdo do arquivo).

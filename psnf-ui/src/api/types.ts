@@ -141,6 +141,14 @@ export interface NovaOrdemInput {
   itens: { anuncioId: UUID; variacaoId?: UUID | null; quantidade: number; valorUnidade: number }[];
 }
 
+export interface ArquivoEnviado {
+  nome: string;
+  caminho: string;
+  nomeOriginal: string;
+  contentType: string;
+  tamanho: number;
+}
+
 export interface PagamentoInput {
   tipoPagamento: TipoPagamento;
   valor: number;
