@@ -5,10 +5,16 @@
 ###  1. Suba a API (Postgres rodando). Os usuários mock são criados automaticamente:
 ###       VENDEDOR  = {{vendedorId}}   (usuário logado padrão, sem header)
 ###       COMPRADOR = {{compradorId}}  (use o header X-Usuario-Id para agir como ele)
-###  2. No topo do editor selecione o ambiente "local" (http-client.env.json).
-###  3. Execute as requisições DE CIMA PARA BAIXO (ou "Run All Requests in File").
+###  2. Execute as requisições DE CIMA PARA BAIXO (ou "Run All Requests in File").
 ###     Cada resposta guarda os ids necessários nas variáveis seguintes.
+###  As variáveis abaixo já bastam; não é preciso selecionar ambiente.
+###  (Se a API rodar em outra porta, altere o @baseUrl.)
 ### =====================================================================================
+
+@baseUrl = http://localhost:8080
+@vendedorId = 3c288400-f58f-4d28-905c-f7dba388d6c9
+@compradorId = 7f1e2a5b-9c3d-4e8f-a6b7-1d2c3e4f5a6b
+@terceiroId = 00000000-0000-0000-0000-000000000001
 
 
 ### =============================== 1. CATEGORIA =======================================
@@ -37,7 +43,7 @@ GET {{baseUrl}}/categorias
 ### 2.1 Usuário logado (vendedor mock — sem header)
 GET {{baseUrl}}/usuarios/me
 
-> {% client.test("200 - é o vendedor mock", () => client.assert(response.body.id === request.environment.get("vendedorId"))); %}
+> {% client.test("200 - é o vendedor mock", () => client.assert(response.body.id === "3c288400-f58f-4d28-905c-f7dba388d6c9")); %}
 
 ### 2.2 Buscar o comprador mock por id
 GET {{baseUrl}}/usuarios/{{compradorId}}
