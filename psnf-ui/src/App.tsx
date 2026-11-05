@@ -4,7 +4,6 @@ import { Vazio } from './components/ui';
 import { UsuarioProvider } from './context/UsuarioContext';
 import { AnuncioDetalhe } from './pages/AnuncioDetalhe';
 import { AnuncioForm } from './pages/AnuncioForm';
-import { Categorias } from './pages/Categorias';
 import { MeusAnuncios } from './pages/MeusAnuncios';
 import { NovaOrdem } from './pages/NovaOrdem';
 import { OrdemDetalhe } from './pages/OrdemDetalhe';
@@ -26,7 +25,6 @@ export function App() {
             <Route path="ordens" element={<Ordens />} />
             <Route path="ordens/nova" element={<NovaOrdem />} />
             <Route path="ordens/:id" element={<OrdemDetalhe />} />
-            <Route path="categorias" element={<Categorias />} />
             <Route path="perfil" element={<Perfil />} />
             <Route path="*" element={<Vazio>Página não encontrada.</Vazio>} />
           </Route>

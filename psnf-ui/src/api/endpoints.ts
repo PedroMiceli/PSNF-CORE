@@ -25,9 +25,8 @@ export const api = {
   removerEndereco: (id: UUID) => http.delete<Usuario>(`/usuarios/me/enderecos/${id}`),
   anunciosDoUsuario: (id: UUID) => http.get<Anuncio[]>(`/usuarios/${id}/anuncios`),
 
-  // categorias
+  // categorias (fixas, somente leitura)
   categorias: () => http.get<Categoria[]>('/categorias'),
-  cadastrarCategoria: (nome: string) => http.post<Categoria>('/categorias', { nome }),
 
   // anúncios
   /** Vitrine/pesquisa: anúncios ativos, paginados; a busca de texto é feita no PostgreSQL. */

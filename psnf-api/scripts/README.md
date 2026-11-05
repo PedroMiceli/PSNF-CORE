@@ -6,13 +6,15 @@ com a API no ar (e o MinIO, para as imagens: `docker compose up -d minio`).
 
 | Script | O que faz |
 |---|---|
-| `popular-categorias.sh` | cadastra 34 categorias |
-| `popular-anuncios.py` | cria as categorias que faltarem, 6 fornecedores e 175 anúncios (faixas de preço, variações e 2 imagens cada) |
+| `popular-anuncios.py` | cria 6 fornecedores e 175 anúncios nas categorias da plataforma (faixas de preço, variações e 2 imagens cada) |
 
 ```bash
-./psnf-api/scripts/popular-categorias.sh
 python3 psnf-api/scripts/popular-anuncios.py
 ```
+
+As **categorias são fixas** e não são criadas por script nem por usuários: a API as carrega ao iniciar,
+a partir de `psnf-api/src/main/resources/db/categorias.sql`. Para incluir uma categoria, adicione-a
+nesse arquivo e reinicie a API.
 
 Opções do `popular-anuncios.py`:
 

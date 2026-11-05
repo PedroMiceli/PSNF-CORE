@@ -14,7 +14,6 @@ export function Layout() {
             <NavLink to="/" end>Vitrine</NavLink>
             <NavLink to="/meus-anuncios">Meus anúncios</NavLink>
             <NavLink to="/ordens">Ordens de pedido</NavLink>
-            <NavLink to="/categorias">Categorias</NavLink>
             <NavLink to="/perfil">Perfil</NavLink>
           </nav>
           <label className={`troca-usuario papel-${papel}`} title="Simula o login (header X-Usuario-Id)">

@@ -39,13 +39,12 @@ No canto superior direito, o seletor **Logado como** troca entre:
 
 ## Roteiro de teste sugerido
 
-1. **Categorias**: cadastre uma categoria.
-2. **Meus anúncios → Novo anúncio** (como vendedor): faixas de preço, fotos (upload ou URL) e variações.
-3. No anúncio, clique em **Gerar ordem de pedido**, escolha as variações e quantidades e ajuste o valor negociado.
-4. Troque para **Comprador Mock** → **Ordens de pedido → Minhas compras** → abra a ordem e registre os pagamentos (PIX, boleto ou transferência).
-5. Troque para o vendedor → anexe a **nota fiscal** (PDF/XML) → **Pedido despachado**.
-6. Troque para o comprador → **Confirmar entrega**.
-7. Use **Incidentes e mensagens** a qualquer momento (é possível anexar fotos).
+1. **Meus anúncios → Novo anúncio** (como vendedor): faixas de preço, fotos (upload ou URL) e variações.
+2. No anúncio, clique em **Gerar ordem de pedido**, escolha as variações e quantidades e ajuste o valor negociado.
+3. Troque para **Comprador Mock** → **Ordens de pedido → Minhas compras** → abra a ordem e registre os pagamentos (PIX, boleto ou transferência).
+4. Troque para o vendedor → anexe a **nota fiscal** (PDF/XML) → **Pedido despachado**.
+5. Troque para o comprador → **Confirmar entrega**.
+6. Use **Incidentes e mensagens** a qualquer momento (é possível anexar fotos).
 
 ## Estrutura
 
@@ -55,7 +54,7 @@ src/
   context/      UsuarioContext.tsx (usuário logado simulado)
   components/   Layout, componentes de UI e formatação
   pages/        Vitrine, AnuncioDetalhe, AnuncioForm, MeusAnuncios,
-                NovaOrdem, Ordens, OrdemDetalhe, Categorias, Perfil
+                NovaOrdem, Ordens, OrdemDetalhe, Perfil
 ```
 
 ## Ainda não existe na API (aparece desabilitado ou omitido)
