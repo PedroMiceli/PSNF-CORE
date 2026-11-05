@@ -194,3 +194,35 @@ h4 { margin: 1.2rem 0 .5rem; font-size: .9rem; color: var(--suave); text-transfo
 .contagem strong { color: var(--texto); }
 .grid-cards.atualizando { opacity: .55; transition: opacity .15s; }
 .paginacao { display: flex; align-items: center; justify-content: center; gap: 1rem; margin-top: 1.5rem; color: var(--suave); }
+
+/* ---------------------------------------------------------------- vitrine (categorias | busca + anúncios) */
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0; }
+.vitrine { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 1.5rem; align-items: start; }
+.vitrine-categorias { background: var(--card); border: 1px solid var(--borda); border-radius: var(--raio); padding: 1rem .6rem;
+  position: sticky; top: 76px; max-height: calc(100vh - 96px); overflow-y: auto; }
+.vitrine-categorias h2 { font-size: 1rem; margin: 0 .5rem .6rem; }
+.vitrine-categorias ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.vitrine-categorias button { width: 100%; text-align: left; background: none; border: 0; border-radius: 8px; padding: .45rem .6rem;
+  font: inherit; font-size: .9rem; color: var(--texto); cursor: pointer; }
+.vitrine-categorias button:hover { background: #f1f5f9; }
+.vitrine-categorias button.ativo { background: #eff6ff; color: var(--primaria); font-weight: 700; }
+.vitrine-conteudo { min-width: 0; }
+.vitrine-busca { display: flex; align-items: center; gap: .6rem; background: var(--card); border: 1px solid #d1d5db; border-radius: var(--raio);
+  padding: 0 1rem; margin-bottom: 1rem; }
+.vitrine-busca:focus-within { border-color: var(--primaria); box-shadow: 0 0 0 3px #bfdbfe; }
+.vitrine-busca input { flex: 1; border: 0; outline: none; background: transparent; padding: .85rem 0; font: inherit; font-size: 1rem; min-width: 0; }
+.grid-vitrine { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+.grid-vitrine.atualizando { opacity: .55; transition: opacity .15s; }
+
+@media (max-width: 1000px) {
+  .grid-vitrine { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 760px) {
+  /* celular: categorias viram uma faixa rolável acima da busca */
+  .vitrine { grid-template-columns: minmax(0, 1fr); gap: .8rem; }
+  .vitrine-categorias { position: static; max-height: none; padding: .6rem; overflow-x: auto; }
+  .vitrine-categorias h2 { display: none; }
+  .vitrine-categorias ul { flex-direction: row; gap: .4rem; }
+  .vitrine-categorias button { white-space: nowrap; border: 1px solid var(--borda); border-radius: 999px; padding: .35rem .8rem; }
+  .grid-vitrine { grid-template-columns: minmax(0, 1fr); }
+}
