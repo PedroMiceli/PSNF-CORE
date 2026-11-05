@@ -8,7 +8,7 @@ import java.util.List;
 public class EnderecoCommandMapper {
 
     public static Endereco toDomain(EnderecoCommand c) {
-        return Endereco.criar(c.logradouro(), c.numero(), c.complemento(), c.bairro(), c.cidade(), c.estado(), c.cep(), c.uf());
+        return Endereco.criar(c.logradouro(), c.numero(), c.complemento(), c.bairro(), c.cidade(), c.cep(), c.uf());
     }
 
     public static List<Endereco> toDomain(List<EnderecoCommand> enderecos) {

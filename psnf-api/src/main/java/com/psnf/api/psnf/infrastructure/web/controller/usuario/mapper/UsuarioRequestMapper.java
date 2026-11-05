@@ -29,6 +29,6 @@ public class UsuarioRequestMapper {
     }
 
     public static EnderecoCommand toCommand(EnderecoRequest r) {
-        return new EnderecoCommand(r.logradouro(), r.numero(), r.complemento(), r.bairro(), r.cidade(), r.estado(), r.cep(), r.uf());
+        return new EnderecoCommand(r.logradouro(), r.numero(), r.complemento(), r.bairro(), r.cidade(), r.cep(), r.uf());
     }
 }

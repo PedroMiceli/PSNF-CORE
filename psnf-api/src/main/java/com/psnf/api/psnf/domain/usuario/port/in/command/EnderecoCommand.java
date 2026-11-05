@@ -6,7 +6,6 @@ public record EnderecoCommand(
         String complemento,
         String bairro,
         String cidade,
-        String estado,
         String cep,
         String uf
 ) {
@@ -19,6 +18,9 @@ public record EnderecoCommand(
         }
         if (cep == null || cep.isBlank()) {
             throw new IllegalArgumentException("CEP é obrigatório");
+        }
+        if (uf == null || uf.isBlank()) {
+            throw new IllegalArgumentException("UF é obrigatória");
         }
     }
 }
