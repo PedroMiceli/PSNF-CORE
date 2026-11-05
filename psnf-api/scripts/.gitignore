@@ -1,0 +1,3 @@
+# cache local do popular-anuncios.py (ids dos fornecedores por URL da API)
+.fornecedores-cache.json
+__pycache__/
