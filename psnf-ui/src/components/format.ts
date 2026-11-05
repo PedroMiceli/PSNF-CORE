@@ -8,6 +8,12 @@ export const formatarData = (iso: string | null | undefined) => {
   return iso.length === 10 ? d.toLocaleDateString('pt-BR') : d.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
 };
 
+/** Siglas das 27 unidades federativas (as mesmas validadas pela API). */
+export const UFS = [
+  'AC', 'AL', 'AM', 'AP', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MG', 'MS', 'MT', 'PA',
+  'PB', 'PE', 'PI', 'PR', 'RJ', 'RN', 'RO', 'RR', 'RS', 'SC', 'SE', 'SP', 'TO',
+] as const;
+
 export const STATUS_LABEL: Record<string, string> = {
   AGUARDANDO_PAGAMENTO: 'Aguardando pagamento',
   PAGO: 'Pago',

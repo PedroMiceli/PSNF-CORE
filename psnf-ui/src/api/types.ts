@@ -9,9 +9,8 @@ export interface Endereco {
   complemento?: string | null;
   bairro?: string | null;
   cidade: string;
-  estado?: string | null;
   cep: string;
-  uf?: string | null;
+  uf: string;
 }
 export type EnderecoInput = Omit<Endereco, 'id'>;
 

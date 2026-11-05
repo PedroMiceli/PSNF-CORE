@@ -18,8 +18,8 @@ public class EnderecoJpa extends BaseEntity {
     private String complemento;
     private String bairro;
     private String cidade;
-    private String estado;
     private String cep;
+    @Column(length = 2)
     private String uf;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

@@ -3,10 +3,11 @@ import { api } from '../api/endpoints';
 import type { EnderecoInput } from '../api/types';
 import { useAcao, useApi } from '../api/useApi';
 import { ACEITA_IMAGENS, UploadArquivo } from '../components/UploadArquivo';
+import { UFS } from '../components/format';
 import { Campo, Carregando, ErroBox, ImagemAnuncio } from '../components/ui';
 import { useUsuario } from '../context/UsuarioContext';
 
-const enderecoVazio: EnderecoInput = { logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', estado: '', cep: '', uf: '' };
+const enderecoVazio: EnderecoInput = { logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', cep: '', uf: '' };
 
 export function Perfil() {
   const usuario = useApi(() => api.usuarioLogado(), []);
@@ -76,7 +77,12 @@ export function Perfil() {
           <ul className="lista">
             {u.enderecos.map((e) => (
               <li key={e.id}>
-                {e.logradouro}, {e.numero} {e.complemento && `- ${e.complemento}`} · {e.bairro} · {e.cidade}/{e.uf} · CEP {e.cep}
+                {[
+                  [e.logradouro, e.numero].filter(Boolean).join(', ') + (e.complemento ? ` - ${e.complemento}` : ''),
+                  e.bairro,
+                  `${e.cidade}/${e.uf}`,
+                  `CEP ${e.cep}`,
+                ].filter(Boolean).join(' · ')}
                 <button className="btn pequeno perigo direita" disabled={endereco.enviando} onClick={() => removerEndereco(e.id)}>Remover</button>
               </li>
             ))}
@@ -85,7 +91,14 @@ export function Perfil() {
         <form onSubmit={adicionarEndereco} className="sub-form">
           <h4>Adicionar endereço</h4>
           <div className="linha-form">{campoEnd('logradouro', 'Logradouro', 'Rua...')}{campoEnd('numero', 'Número')}{campoEnd('complemento', 'Complemento')}</div>
-          <div className="linha-form">{campoEnd('bairro', 'Bairro')}{campoEnd('cidade', 'Cidade')}{campoEnd('estado', 'Estado')}{campoEnd('uf', 'UF', 'SP')}{campoEnd('cep', 'CEP', '00000-000')}</div>
+          <div className="linha-form">{campoEnd('bairro', 'Bairro')}{campoEnd('cidade', 'Cidade')}
+            <Campo label="UF" erro={endereco.erro?.campos?.uf}>
+              <select value={novoEnd.uf} onChange={(e) => setNovoEnd({ ...novoEnd, uf: e.target.value })}>
+                <option value="">Selecione...</option>
+                {UFS.map((uf) => <option key={uf} value={uf}>{uf}</option>)}
+              </select>
+            </Campo>
+            {campoEnd('cep', 'CEP', '00000-000')}</div>
           <button className="btn" disabled={endereco.enviando}>Adicionar</button>
         </form>
       </div>

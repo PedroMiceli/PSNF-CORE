@@ -14,7 +14,6 @@ public class EnderecoJpaMapper {
         jpa.setComplemento(endereco.getComplemento());
         jpa.setBairro(endereco.getBairro());
         jpa.setCidade(endereco.getCidade());
-        jpa.setEstado(endereco.getEstado());
         jpa.setCep(endereco.getCep());
         jpa.setUf(endereco.getUf());
         jpa.setUsuario(usuario);
@@ -32,7 +31,6 @@ public class EnderecoJpaMapper {
                 jpa.getComplemento(),
                 jpa.getBairro(),
                 jpa.getCidade(),
-                jpa.getEstado(),
                 jpa.getCep(),
                 jpa.getUf()
         );

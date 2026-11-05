@@ -11,7 +11,6 @@ public record EnderecoResponse(
         String complemento,
         String bairro,
         String cidade,
-        String estado,
         String cep,
         String uf
 ) {
@@ -23,7 +22,6 @@ public record EnderecoResponse(
                 endereco.getComplemento(),
                 endereco.getBairro(),
                 endereco.getCidade(),
-                endereco.getEstado(),
                 endereco.getCep(),
                 endereco.getUf()
         );
