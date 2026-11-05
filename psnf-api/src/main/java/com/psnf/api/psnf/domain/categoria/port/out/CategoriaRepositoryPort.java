@@ -7,11 +7,7 @@ import java.util.UUID;
 
 public interface CategoriaRepositoryPort {
 
-    Categoria save(Categoria categoria);
-
     List<Categoria> buscarTodas();
 
     boolean existePorId(UUID categoriaId);
-
-    boolean existePorNome(String nome);
 }

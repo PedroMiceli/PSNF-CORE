@@ -17,11 +17,6 @@ public class CategoriaRepositoryAdapter implements CategoriaRepositoryPort {
     private final CategoriaJpaRepository categoriaJpaRepository;
 
     @Override
-    public Categoria save(Categoria categoria) {
-        return CategoriaJpaMapper.toDomain(categoriaJpaRepository.saveAndFlush(CategoriaJpaMapper.toEntity(categoria)));
-    }
-
-    @Override
     public List<Categoria> buscarTodas() {
         return categoriaJpaRepository.findAllByOrderByNomeAsc().stream().map(CategoriaJpaMapper::toDomain).toList();
     }
@@ -29,10 +24,5 @@ public class CategoriaRepositoryAdapter implements CategoriaRepositoryPort {
     @Override
     public boolean existePorId(UUID categoriaId) {
         return categoriaJpaRepository.existsById(categoriaId);
-    }
-
-    @Override
-    public boolean existePorNome(String nome) {
-        return categoriaJpaRepository.existsByNomeIgnoreCase(nome);
     }
 }

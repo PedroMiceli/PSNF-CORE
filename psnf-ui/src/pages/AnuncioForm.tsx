@@ -80,7 +80,7 @@ export function AnuncioForm() {
           <Campo label="Descrição" erro={erroCampo('descricao')}>
             <textarea rows={4} value={form.descricao} onChange={(e) => set('descricao', e.target.value)} />
           </Campo>
-          <Campo label="Categoria" erro={erroCampo('categoriaId')} dica={categorias.data?.length ? undefined : 'Cadastre uma categoria primeiro'}>
+          <Campo label="Categoria" erro={erroCampo('categoriaId')} dica={categorias.data?.length ? undefined : 'Nenhuma categoria disponível. Verifique se a API está no ar.'}>
             <select value={form.categoriaId} onChange={(e) => set('categoriaId', e.target.value)}>
               <option value="">Selecione...</option>
               {categorias.data?.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}

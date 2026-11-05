@@ -9,7 +9,7 @@ Uso (com a API rodando; para as imagens, também o MinIO):
     API_URL=http://localhost:8081 python3 psnf-api/scripts/popular-anuncios.py
 
 O que ele faz:
-  1. cria as categorias que faltarem;
+  1. busca as categorias da plataforma (fixas: são carregadas pela própria API, ninguém as cria);
   2. cria os fornecedores (usuários vendedores) que ainda não existirem;
   3. cadastra cada anúncio com faixas de preço por quantidade, variações e imagens.
 
@@ -367,14 +367,17 @@ def slug(texto):
 
 
 # ------------------------------------------------------------------------------ etapas
-def garantir_categorias():
+def buscar_categorias():
+    """As categorias são fixas (resources/db/categorias.sql na API). Produtos de uma categoria que não
+    exista na plataforma são pulados, com aviso."""
     existentes = {c["nome"].lower(): c["id"] for c in chamar("GET", "/categorias")}
     ids = {}
     for nome in CATALOGO:
-        if nome.lower() not in existentes:
-            existentes[nome.lower()] = chamar("POST", "/categorias", {"nome": nome})["id"]
-            print(f"  + categoria criada: {nome}")
-        ids[nome] = existentes[nome.lower()]
+        if nome.lower() in existentes:
+            ids[nome] = existentes[nome.lower()]
+        else:
+            print(f"  ! categoria '{nome}' não existe na plataforma: seus {len(CATALOGO[nome])} anúncios serão pulados")
+    print(f"  {len(ids)} de {len(CATALOGO)} categorias do catálogo encontradas")
     return ids
 
 
@@ -492,7 +495,7 @@ def main():
         sys.exit(f"Erro: a API não respondeu em {API}. Ela está rodando?")
 
     print("Categorias:")
-    categorias = garantir_categorias()
+    categorias = buscar_categorias()
     print("Fornecedores:")
     fornecedores = garantir_fornecedores()
 
@@ -509,6 +512,9 @@ def main():
         matiz = ci / len(CATALOGO)
         for pi, (titulo, preco, variacoes, detalhe) in enumerate(produtos):
             n += 1
+            if categoria not in categorias:
+                pulados += 1
+                continue
             vendedor = fornecedores[(ci + pi) % len(fornecedores)]
             if titulo in ja_anunciados.get(vendedor, set()):
                 pulados += 1

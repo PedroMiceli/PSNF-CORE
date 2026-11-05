@@ -16,7 +16,5 @@ public interface CategoriaJpaRepository extends JpaRepository<CategoriaJpa, UUID
     @Query("SELECT c.nome FROM CategoriaJpa c WHERE c.id = :id")
     Optional<String> buscarNomePorId(@Param("id") UUID id);
 
-    boolean existsByNomeIgnoreCase(String nome);
-
     List<CategoriaJpa> findAllByOrderByNomeAsc();
 }
