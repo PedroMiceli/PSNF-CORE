@@ -2,9 +2,12 @@ package com.psnf.api.psnf.infrastructure.persistence.anuncio.adapter;
 
 import com.psnf.api.psnf.domain.anuncio.exception.AnuncioNaoEncontradoException;
 import com.psnf.api.psnf.domain.anuncio.model.Anuncio;
+import com.psnf.api.psnf.domain.anuncio.port.in.command.PesquisarAnunciosQuery;
 import com.psnf.api.psnf.domain.anuncio.port.out.AnuncioRepositoryPort;
+import com.psnf.api.psnf.domain.shared.model.Pagina;
 import com.psnf.api.psnf.infrastructure.persistence.anuncio.adapter.mapper.AnuncioJpaMapper;
 import com.psnf.api.psnf.infrastructure.persistence.anuncio.entity.jpa.AnuncioJpa;
+import com.psnf.api.psnf.infrastructure.persistence.anuncio.repository.AnuncioBuscaRepository;
 import com.psnf.api.psnf.infrastructure.persistence.anuncio.repository.AnuncioJPARepository;
 import com.psnf.api.psnf.infrastructure.persistence.categoria.repository.CategoriaJpaRepository;
 import com.psnf.api.psnf.infrastructure.persistence.usuario.repository.UsuarioJPARepository;
@@ -12,7 +15,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
@@ -21,6 +28,7 @@ public class AnuncioRepositoryAdapter implements AnuncioRepositoryPort {
     private final AnuncioJPARepository anuncioJPARepository;
     private final CategoriaJpaRepository categoriaJpaRepository;
     private final UsuarioJPARepository usuarioJPARepository;
+    private final AnuncioBuscaRepository anuncioBuscaRepository;
 
     @Override
     public Anuncio save(Anuncio anuncio) {
@@ -48,10 +56,13 @@ public class AnuncioRepositoryAdapter implements AnuncioRepositoryPort {
     }
 
     @Override
-    public List<Anuncio> buscarAtivos(UUID categoriaId) {
-        List<AnuncioJpa> anuncios = categoriaId == null
-                ? anuncioJPARepository.findByAtivoTrueOrderByDataCadastroDesc()
-                : anuncioJPARepository.findByAtivoTrueAndCategoriaIdOrderByDataCadastroDesc(categoriaId);
-        return anuncios.stream().map(AnuncioJpaMapper::toDomain).toList();
+    public Pagina<Anuncio> pesquisar(PesquisarAnunciosQuery query) {
+        Pagina<UUID> ids = anuncioBuscaRepository.pesquisarIds(query);
+        // carrega só os anúncios da página e devolve na ordem de relevância calculada pelo banco
+        Map<UUID, AnuncioJpa> porId = anuncioJPARepository.findAllById(ids.itens()).stream()
+                .collect(Collectors.toMap(AnuncioJpa::getId, Function.identity()));
+        return new Pagina<>(
+                ids.itens().stream().map(porId::get).filter(Objects::nonNull).map(AnuncioJpaMapper::toDomain).toList(),
+                ids.pagina(), ids.tamanho(), ids.total());
     }
 }

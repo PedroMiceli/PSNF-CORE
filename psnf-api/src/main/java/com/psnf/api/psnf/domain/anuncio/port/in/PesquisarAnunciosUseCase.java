@@ -1,11 +1,14 @@
 package com.psnf.api.psnf.domain.anuncio.port.in;
 
-import com.psnf.api.psnf.domain.anuncio.model.AnuncioResumo;
+import com.psnf.api.psnf.domain.anuncio.model.Anuncio;
+import com.psnf.api.psnf.domain.anuncio.port.in.command.PesquisarAnunciosQuery;
+import com.psnf.api.psnf.domain.shared.model.Pagina;
 
-import java.util.List;
-import java.util.UUID;
-
+/**
+ * Vitrine e pesquisa por texto dos anúncios ativos.
+ * Sem termo: mais recentes primeiro. Com termo: mais relevantes primeiro.
+ */
 public interface PesquisarAnunciosUseCase {
 
-    List<AnuncioResumo> pesquisar(String termo, UUID categoriaId);
+    Pagina<Anuncio> pesquisar(PesquisarAnunciosQuery query);
 }

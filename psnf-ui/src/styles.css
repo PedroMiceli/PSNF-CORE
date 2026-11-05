@@ -188,3 +188,9 @@ h4 { margin: 1.2rem 0 .5rem; font-size: .9rem; color: var(--suave); text-transfo
 .foto-perfil { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; }
 .avatar { width: 84px; height: 84px; border-radius: 50%; object-fit: cover; border: 1px solid var(--borda); display: flex; }
 .avatar-vazio { align-items: center; justify-content: center; font-size: 2rem; background: #f1f5f9; }
+
+/* vitrine: contagem e paginação */
+.contagem { color: var(--suave); margin: -.4rem 0 1rem; font-size: .92rem; }
+.contagem strong { color: var(--texto); }
+.grid-cards.atualizando { opacity: .55; transition: opacity .15s; }
+.paginacao { display: flex; align-items: center; justify-content: center; gap: 1rem; margin-top: 1.5rem; color: var(--suave); }

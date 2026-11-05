@@ -1,12 +1,12 @@
 import { http } from './client';
 import type {
   ArquivoEnviado, Anuncio, AnuncioInput, Categoria, EnderecoInput, NovaOrdemInput, OrdemDePedido,
-  OrdemDePedidoResumo, PagamentoInput, Usuario, UUID,
+  OrdemDePedidoResumo, Pagina, PagamentoInput, Usuario, UUID,
 } from './types';
 
-const q = (params: Record<string, string | undefined | null>) => {
+const q = (params: Record<string, string | number | undefined | null>) => {
   const s = new URLSearchParams();
-  Object.entries(params).forEach(([k, v]) => v && s.set(k, v));
+  Object.entries(params).forEach(([k, v]) => v != null && v !== '' && s.set(k, String(v)));
   const str = s.toString();
   return str ? `?${str}` : '';
 };
@@ -30,7 +30,9 @@ export const api = {
   cadastrarCategoria: (nome: string) => http.post<Categoria>('/categorias', { nome }),
 
   // anúncios
-  anunciosAtivos: (categoriaId?: UUID) => http.get<Anuncio[]>(`/anuncios${q({ categoriaId })}`),
+  /** Vitrine/pesquisa: anúncios ativos, paginados; a busca de texto é feita no PostgreSQL. */
+  pesquisarAnuncios: (filtro: { termo?: string; categoriaId?: UUID; pagina?: number; tamanho?: number }) =>
+    http.get<Pagina<Anuncio>>(`/anuncios${q(filtro)}`),
   anuncio: (id: UUID) => http.get<Anuncio>(`/anuncios/${id}`),
   meusAnuncios: () => http.get<Anuncio[]>('/anuncios/meus'),
   criarAnuncio: (body: AnuncioInput) => http.post<Anuncio>('/anuncios', body),

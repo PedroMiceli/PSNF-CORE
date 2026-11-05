@@ -378,6 +378,17 @@ def garantir_categorias():
     return ids
 
 
+def todos_anuncios_ativos():
+    """Percorre todas as páginas da vitrine (GET /anuncios é paginado, no máximo 100 por página)."""
+    pagina = 0
+    while True:
+        resultado = chamar("GET", f"/anuncios?pagina={pagina}&tamanho=100")
+        yield from resultado["itens"]
+        pagina += 1
+        if pagina >= resultado["totalPaginas"]:
+            return
+
+
 CACHE = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".fornecedores-cache.json")
 
 
@@ -418,7 +429,7 @@ def garantir_fornecedores():
     precisa_vitrine = any(f.get("email") not in por_email for f in FORNECEDORES if "id" not in f)
     if precisa_vitrine:
         vistos = set(por_email.values())
-        for anuncio in chamar("GET", "/anuncios"):
+        for anuncio in todos_anuncios_ativos():
             vid = anuncio["vendedorId"]
             if vid not in vistos:
                 vistos.add(vid)

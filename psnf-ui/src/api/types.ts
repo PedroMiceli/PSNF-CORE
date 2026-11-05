@@ -2,6 +2,15 @@
 
 export type UUID = string;
 
+/** Resposta paginada da API (pagina começa em 0). */
+export interface Pagina<T> {
+  itens: T[];
+  pagina: number;
+  tamanho: number;
+  total: number;
+  totalPaginas: number;
+}
+
 export interface Endereco {
   id: UUID;
   logradouro: string;

@@ -2,10 +2,11 @@ package com.psnf.api.psnf.infrastructure.web.controller.anuncio;
 
 import com.psnf.api.psnf.domain.anuncio.model.Anuncio;
 import com.psnf.api.psnf.domain.anuncio.port.in.*;
+import com.psnf.api.psnf.domain.anuncio.port.in.command.PesquisarAnunciosQuery;
 import com.psnf.api.psnf.infrastructure.web.controller.UsuarioAutenticadoUtil;
+import com.psnf.api.psnf.infrastructure.web.controller.dto.PaginaResponse;
 import com.psnf.api.psnf.infrastructure.web.controller.anuncio.dto.request.AnuncioRequest;
 import com.psnf.api.psnf.infrastructure.web.controller.anuncio.dto.response.AnuncioResponse;
-import com.psnf.api.psnf.infrastructure.web.controller.anuncio.dto.response.AnuncioResumoResponse;
 import com.psnf.api.psnf.infrastructure.web.controller.anuncio.mapper.AnuncioRequestMapper;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +28,6 @@ public class AnuncioController {
     private final BuscarAnuncioPorIdUseCase buscarAnuncioPorIdUseCase;
     private final ListarAnunciosPorVendedorUseCase listarAnunciosPorVendedorUseCase;
     private final PesquisarAnunciosUseCase pesquisarAnunciosUseCase;
-    private final ListarAnunciosAtivosUseCase listarAnunciosAtivosUseCase;
 
     @PostMapping
     public ResponseEntity<AnuncioResponse> salvar(@RequestBody @Valid AnuncioRequest request) {
@@ -40,13 +40,20 @@ public class AnuncioController {
     }
 
     /**
-     * Vitrine: anúncios ativos (direto do banco). Ex.: GET /anuncios?categoriaId=...
+     * Vitrine e pesquisa: anúncios ativos, paginados. A busca de texto é feita no PostgreSQL.
+     * Ex.: GET /anuncios?termo=carrinho&categoriaId=...&pagina=0&tamanho=24
+     * Sem termo: mais recentes primeiro. Com termo: mais relevantes primeiro.
      */
     @GetMapping
-    public ResponseEntity<List<AnuncioResponse>> listarAtivos(@RequestParam(required = false) UUID categoriaId) {
-        return ResponseEntity.ok(listarAnunciosAtivosUseCase.listarAtivos(categoriaId).stream()
-                .map(AnuncioResponse::from)
-                .toList());
+    public ResponseEntity<PaginaResponse<AnuncioResponse>> pesquisar(
+            @RequestParam(required = false) String termo,
+            @RequestParam(required = false) UUID categoriaId,
+            @RequestParam(defaultValue = "0") int pagina,
+            @RequestParam(defaultValue = "" + PesquisarAnunciosQuery.TAMANHO_PADRAO) int tamanho
+    ) {
+        return ResponseEntity.ok(PaginaResponse.from(
+                pesquisarAnunciosUseCase.pesquisar(new PesquisarAnunciosQuery(termo, categoriaId, pagina, tamanho)),
+                AnuncioResponse::from));
     }
 
     @GetMapping("/{id}")
@@ -78,19 +85,6 @@ public class AnuncioController {
         return ResponseEntity.ok(listarAnunciosPorVendedorUseCase
                 .listarPorVendedor(UsuarioAutenticadoUtil.obterUsuarioLogadoId()).stream()
                 .map(AnuncioResponse::from)
-                .toList());
-    }
-
-    /**
-     * Pesquisa no Elasticsearch. Ex.: GET /anuncios/pesquisa?termo=camiseta&categoriaId=...
-     */
-    @GetMapping("/pesquisa")
-    public ResponseEntity<List<AnuncioResumoResponse>> pesquisar(
-            @RequestParam(required = false) String termo,
-            @RequestParam(required = false) UUID categoriaId
-    ) {
-        return ResponseEntity.ok(pesquisarAnunciosUseCase.pesquisar(termo, categoriaId).stream()
-                .map(AnuncioResumoResponse::from)
                 .toList());
     }
 }

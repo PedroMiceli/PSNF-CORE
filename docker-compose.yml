@@ -1,27 +1,5 @@
 version: '3.8'
 services:
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:9.4.2
-    container_name: psnf-elasticsearch
-    environment:
-      - discovery.type=single-node
-      - xpack.security.enabled=false
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-    ports:
-      - "9200:9200"
-    volumes:
-      - esdata:/usr/share/elasticsearch/data
-
-  kibana:
-    image: docker.elastic.co/kibana/kibana:9.4.2
-    container_name: psnf-kibana
-    ports:
-      - "5601:5601"
-    environment:
-      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
-    depends_on:
-      - elasticsearch
-
   # Object storage S3-compatível para os uploads (imagens, NF...).
   # API S3: http://localhost:9000 | Console web: http://localhost:9001 (minioadmin / minioadmin)
   # A MinIO Inc. removeu a imagem "minio/minio" do Docker Hub; usamos o "pgsty/minio" (Silo),
@@ -40,5 +18,4 @@ services:
       - miniodata:/data
 
 volumes:
-  esdata:
   miniodata:
