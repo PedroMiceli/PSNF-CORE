@@ -1,22 +1,23 @@
 package com.psnf.api.psnf.application.anuncio;
 
-import com.psnf.api.psnf.domain.anuncio.model.AnuncioResumo;
+import com.psnf.api.psnf.domain.anuncio.model.Anuncio;
 import com.psnf.api.psnf.domain.anuncio.port.in.PesquisarAnunciosUseCase;
-import com.psnf.api.psnf.domain.anuncio.port.out.AnuncioIndexPort;
+import com.psnf.api.psnf.domain.anuncio.port.in.command.PesquisarAnunciosQuery;
+import com.psnf.api.psnf.domain.anuncio.port.out.AnuncioRepositoryPort;
+import com.psnf.api.psnf.domain.shared.model.Pagina;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
-import java.util.UUID;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
 public class PesquisarAnunciosService implements PesquisarAnunciosUseCase {
 
-    private final AnuncioIndexPort anuncioIndexPort;
+    private final AnuncioRepositoryPort anuncioRepositoryPort;
 
     @Override
-    public List<AnuncioResumo> pesquisar(String termo, UUID categoriaId) {
-        return anuncioIndexPort.pesquisar(termo, categoriaId);
+    @Transactional(readOnly = true)
+    public Pagina<Anuncio> pesquisar(PesquisarAnunciosQuery query) {
+        return anuncioRepositoryPort.pesquisar(query);
     }
 }

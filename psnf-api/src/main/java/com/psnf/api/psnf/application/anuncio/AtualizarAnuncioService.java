@@ -1,6 +1,5 @@
 package com.psnf.api.psnf.application.anuncio;
 
-import com.psnf.api.psnf.application.anuncio.event.AnuncioSalvoEvent;
 import com.psnf.api.psnf.domain.anuncio.model.Anuncio;
 import com.psnf.api.psnf.domain.anuncio.port.in.AtualizarAnuncioUseCase;
 import com.psnf.api.psnf.domain.anuncio.port.in.command.AtualizarAnuncioCommand;
@@ -10,7 +9,6 @@ import com.psnf.api.psnf.domain.categoria.exception.CategoriaNaoEncontradaExcept
 import com.psnf.api.psnf.domain.categoria.port.out.CategoriaRepositoryPort;
 import com.psnf.api.psnf.domain.shared.exception.AcessoNegadoException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,7 +18,6 @@ public class AtualizarAnuncioService implements AtualizarAnuncioUseCase {
 
     private final AnuncioRepositoryPort anuncioRepositoryPort;
     private final CategoriaRepositoryPort categoriaRepositoryPort;
-    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     @Transactional
@@ -43,8 +40,6 @@ public class AtualizarAnuncioService implements AtualizarAnuncioUseCase {
                 CadastrarAnuncioCommandMapper.toVariacoes(command.variacoes())
         );
 
-        Anuncio anuncioSalvo = anuncioRepositoryPort.save(anuncio);
-        eventPublisher.publishEvent(new AnuncioSalvoEvent(anuncioSalvo.getId()));
-        return anuncioSalvo;
+        return anuncioRepositoryPort.save(anuncio);
     }
 }

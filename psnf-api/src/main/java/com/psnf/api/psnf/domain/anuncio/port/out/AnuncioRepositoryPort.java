@@ -1,6 +1,8 @@
 package com.psnf.api.psnf.domain.anuncio.port.out;
 
 import com.psnf.api.psnf.domain.anuncio.model.Anuncio;
+import com.psnf.api.psnf.domain.anuncio.port.in.command.PesquisarAnunciosQuery;
+import com.psnf.api.psnf.domain.shared.model.Pagina;
 
 import java.util.List;
 import java.util.UUID;
@@ -13,6 +15,6 @@ public interface AnuncioRepositoryPort {
 
     List<Anuncio> buscarPorVendedor(UUID vendedorId);
 
-    /** @param categoriaId opcional (null = todas as categorias) */
-    List<Anuncio> buscarAtivos(UUID categoriaId);
+    /** Pesquisa paginada nos anúncios ativos (busca de texto feita no próprio PostgreSQL). */
+    Pagina<Anuncio> pesquisar(PesquisarAnunciosQuery query);
 }
