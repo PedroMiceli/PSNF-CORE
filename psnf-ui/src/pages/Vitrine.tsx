@@ -38,73 +38,91 @@ export function Vitrine() {
   const nomeCategoria = (id: string) => categorias.data?.find((c) => c.id === id)?.nome ?? '';
   const resultado = anuncios.data;
 
+  const escolherCategoria = (id: string) => {
+    setCategoriaId(id);
+    window.scrollTo({ top: 0 });
+  };
+
   return (
-    <section>
-      <div className="titulo-pagina">
-        <h1>Vitrine</h1>
-        <input className="busca" type="search" placeholder="Buscar produtos (ex.: carrinho, cabo usb)..." value={busca}
-          onChange={(e) => setBusca(e.target.value)} aria-label="Buscar produtos" />
+    <section className="vitrine">
+      <h1 className="sr-only">Vitrine</h1>
+
+      {/* coluna da esquerda: categorias */}
+      <aside className="vitrine-categorias" aria-label="Categorias">
+        <h2>Categorias</h2>
+        <ul>
+          <li>
+            <button className={categoriaId === '' ? 'ativo' : ''} aria-current={categoriaId === '' ? 'true' : undefined}
+              onClick={() => escolherCategoria('')}>Todas</button>
+          </li>
+          {categorias.data?.map((c) => (
+            <li key={c.id}>
+              <button className={categoriaId === c.id ? 'ativo' : ''} aria-current={categoriaId === c.id ? 'true' : undefined}
+                onClick={() => escolherCategoria(c.id)}>{c.nome}</button>
+            </li>
+          ))}
+        </ul>
+      </aside>
+
+      {/* conteúdo: barra de pesquisa no topo e os anúncios no meio */}
+      <div className="vitrine-conteudo">
+        <div className="vitrine-busca">
+          <span aria-hidden="true">🔍</span>
+          <input type="search" placeholder="Buscar produtos (ex.: carrinho, cabo usb)..." value={busca}
+            onChange={(e) => setBusca(e.target.value)} aria-label="Buscar produtos" />
+        </div>
+
+        <ErroBox erro={anuncios.error ?? categorias.error} />
+        {resultado && (
+          <p className="contagem">
+            {resultado.total === 0 ? 'Nenhum anúncio encontrado' : `${resultado.total.toLocaleString('pt-BR')} anúncio(s)`}
+            {termo && <> para <strong>“{termo}”</strong></>}
+            {categoriaId && <> em <strong>{nomeCategoria(categoriaId)}</strong></>}
+          </p>
+        )}
+
+        {anuncios.loading && !resultado ? (
+          <Carregando />
+        ) : !resultado?.itens.length ? (
+          <Vazio>
+            {termo || categoriaId
+              ? 'Tente outro termo ou outra categoria.'
+              : <>Nenhum anúncio ativo. <Link to="/anuncios/novo">Cadastre um anúncio</Link> como vendedor.</>}
+          </Vazio>
+        ) : (
+          <>
+            <div className={`grid-vitrine ${anuncios.loading ? 'atualizando' : ''}`}>
+              {resultado.itens.map((a) => {
+                const principal = a.imagens.find((i) => i.principal) ?? a.imagens[0];
+                return (
+                  <Link key={a.id} to={`/anuncios/${a.id}`} className="card-anuncio">
+                    <ImagemAnuncio caminho={principal?.caminho} alt={a.titulo} className="card-img" />
+                    <div className="card-corpo">
+                      <span className="card-categoria">{nomeCategoria(a.categoriaId)}</span>
+                      <h3>{a.titulo}</h3>
+                      <p className="card-preco">
+                        <small>a partir de</small> {formatarMoeda(a.precoMenor)}
+                      </p>
+                      <p className="card-meta">
+                        {a.valores.length} faixa(s) de preço · {a.variacoes.length} variação(ões)
+                      </p>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+            {resultado.totalPaginas > 1 && (
+              <nav className="paginacao" aria-label="Páginas">
+                <button className="btn" disabled={pagina === 0 || anuncios.loading}
+                  onClick={() => { setPagina(pagina - 1); window.scrollTo({ top: 0 }); }}>← Anterior</button>
+                <span>Página {pagina + 1} de {resultado.totalPaginas}</span>
+                <button className="btn" disabled={pagina + 1 >= resultado.totalPaginas || anuncios.loading}
+                  onClick={() => { setPagina(pagina + 1); window.scrollTo({ top: 0 }); }}>Próxima →</button>
+              </nav>
+            )}
+          </>
+        )}
       </div>
-
-      <div className="chips">
-        <button className={`chip ${categoriaId === '' ? 'ativo' : ''}`} onClick={() => setCategoriaId('')}>Todas</button>
-        {categorias.data?.map((c) => (
-          <button key={c.id} className={`chip ${categoriaId === c.id ? 'ativo' : ''}`} onClick={() => setCategoriaId(c.id)}>
-            {c.nome}
-          </button>
-        ))}
-      </div>
-
-      <ErroBox erro={anuncios.error ?? categorias.error} />
-      {resultado && (
-        <p className="contagem">
-          {resultado.total === 0 ? 'Nenhum anúncio encontrado' : `${resultado.total.toLocaleString('pt-BR')} anúncio(s)`}
-          {termo && <> para <strong>“{termo}”</strong></>}
-          {categoriaId && <> em <strong>{nomeCategoria(categoriaId)}</strong></>}
-        </p>
-      )}
-
-      {anuncios.loading && !resultado ? (
-        <Carregando />
-      ) : !resultado?.itens.length ? (
-        <Vazio>
-          {termo || categoriaId
-            ? 'Tente outro termo ou outra categoria.'
-            : <>Nenhum anúncio ativo. <Link to="/anuncios/novo">Cadastre um anúncio</Link> como vendedor.</>}
-        </Vazio>
-      ) : (
-        <>
-          <div className={`grid-cards ${anuncios.loading ? 'atualizando' : ''}`}>
-            {resultado.itens.map((a) => {
-              const principal = a.imagens.find((i) => i.principal) ?? a.imagens[0];
-              return (
-                <Link key={a.id} to={`/anuncios/${a.id}`} className="card-anuncio">
-                  <ImagemAnuncio caminho={principal?.caminho} alt={a.titulo} className="card-img" />
-                  <div className="card-corpo">
-                    <span className="card-categoria">{nomeCategoria(a.categoriaId)}</span>
-                    <h3>{a.titulo}</h3>
-                    <p className="card-preco">
-                      <small>a partir de</small> {formatarMoeda(a.precoMenor)}
-                    </p>
-                    <p className="card-meta">
-                      {a.valores.length} faixa(s) de preço · {a.variacoes.length} variação(ões)
-                    </p>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-          {resultado.totalPaginas > 1 && (
-            <nav className="paginacao" aria-label="Páginas">
-              <button className="btn" disabled={pagina === 0 || anuncios.loading}
-                onClick={() => { setPagina(pagina - 1); window.scrollTo({ top: 0 }); }}>← Anterior</button>
-              <span>Página {pagina + 1} de {resultado.totalPaginas}</span>
-              <button className="btn" disabled={pagina + 1 >= resultado.totalPaginas || anuncios.loading}
-                onClick={() => { setPagina(pagina + 1); window.scrollTo({ top: 0 }); }}>Próxima →</button>
-            </nav>
-          )}
-        </>
-      )}
     </section>
   );
 }
