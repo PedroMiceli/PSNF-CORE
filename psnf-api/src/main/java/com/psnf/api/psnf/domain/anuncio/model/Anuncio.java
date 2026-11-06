@@ -25,6 +25,8 @@ public class Anuncio extends BaseDomain {
     private List<Valor> valores;
     private List<ImagemAnuncio> imagens;
     private List<Variacao> variacoes;
+    private InformacoesProduto informacoes = InformacoesProduto.VAZIO;
+    private List<Caracteristica> caracteristicas = new ArrayList<>();
 
     private Anuncio(UUID id, LocalDateTime dataCadastro, LocalDateTime dataAlteracao, LocalDateTime dataExcluido, String titulo, String descricao, boolean ativo, UUID categoria, UUID vendedor, List<Valor> valores, List<ImagemAnuncio> imagens, List<Variacao> variacoes) {
         super(id, dataCadastro, dataAlteracao, dataExcluido);
@@ -47,8 +49,12 @@ public class Anuncio extends BaseDomain {
         return anuncio;
     }
 
-    public static Anuncio restaurar(UUID id, LocalDateTime dataCadastro, LocalDateTime dataAlteracao, LocalDateTime dataExcluido, String titulo, String descricao, boolean ativo, UUID categoria, UUID vendedor, List<Valor> valores, List<ImagemAnuncio> imagens, List<Variacao> variacoes) {
-        return new Anuncio(id, dataCadastro, dataAlteracao, dataExcluido, titulo, descricao, ativo, categoria, vendedor, valores, imagens, variacoes);
+    public static Anuncio restaurar(UUID id, LocalDateTime dataCadastro, LocalDateTime dataAlteracao, LocalDateTime dataExcluido, String titulo, String descricao, boolean ativo, UUID categoria, UUID vendedor, List<Valor> valores, List<ImagemAnuncio> imagens, List<Variacao> variacoes,
+                                    InformacoesProduto informacoes, List<Caracteristica> caracteristicas) {
+        Anuncio anuncio = new Anuncio(id, dataCadastro, dataAlteracao, dataExcluido, titulo, descricao, ativo, categoria, vendedor, valores, imagens, variacoes);
+        anuncio.informacoes = InformacoesProduto.ouVazio(informacoes);
+        anuncio.caracteristicas = copia(caracteristicas);
+        return anuncio;
     }
 
     /******************************************* REGRAS *******************************************/
@@ -61,6 +67,24 @@ public class Anuncio extends BaseDomain {
         this.imagens = copia(imagens);
         this.variacoes = copia(variacoes);
         validar();
+    }
+
+    /**
+     * Informações complementares do produto (todas opcionais) e ficha técnica.
+     * Substitui as anteriores; null limpa.
+     */
+    public void definirDetalhes(InformacoesProduto informacoes, List<Caracteristica> caracteristicas) {
+        List<Caracteristica> lista = copia(caracteristicas);
+        if (lista.size() > Caracteristica.MAXIMO_POR_ANUNCIO) {
+            throw new RegraDeNegocioException("A ficha técnica aceita no máximo " + Caracteristica.MAXIMO_POR_ANUNCIO + " características");
+        }
+        this.informacoes = InformacoesProduto.ouVazio(informacoes);
+        this.caracteristicas = lista;
+    }
+
+    /** Informações que vão para o item da ordem de pedido (com SKU/GTIN da variação, se houver). */
+    public InformacoesProduto informacoesParaVenda(Variacao variacao) {
+        return variacao == null ? informacoes : informacoes.comCodigosDaVariacao(variacao.getSku(), variacao.getGtin());
     }
 
     public void ativar() { this.ativo = true; }
@@ -139,6 +163,8 @@ public class Anuncio extends BaseDomain {
     public List<ImagemAnuncio> getImagens() { return List.copyOf(imagens); }
     public List<Variacao> getVariacoes() { return List.copyOf(variacoes); }
     public List<Valor> getValores() { return List.copyOf(valores); }
+    public InformacoesProduto getInformacoes() { return informacoes; }
+    public List<Caracteristica> getCaracteristicas() { return List.copyOf(caracteristicas); }
     public String getTitulo() { return titulo; }
     public String getDescricao() { return descricao; }
     public boolean isAtivo() { return ativo; }

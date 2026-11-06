@@ -16,6 +16,12 @@ public class VariacaoJpa extends BaseEntity {
     @Column(nullable = false)
     private String variacao;
 
+    @Column(length = 60)
+    private String sku;
+
+    @Column(length = 14)
+    private String gtin;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "anuncio_id", nullable = false)
     private AnuncioJpa anuncio;

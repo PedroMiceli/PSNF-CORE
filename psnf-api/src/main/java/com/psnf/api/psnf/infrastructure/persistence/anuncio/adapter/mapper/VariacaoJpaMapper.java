@@ -10,11 +10,13 @@ public class VariacaoJpaMapper {
         VariacaoJpa jpa = new VariacaoJpa();
         jpa.restaurarBase(variacao.getId(), variacao.getDataCadastro(), variacao.getDataAlteracao(), variacao.getDataExcluido());
         jpa.setVariacao(variacao.getVariacao());
+        jpa.setSku(variacao.getSku());
+        jpa.setGtin(variacao.getGtin());
         jpa.setAnuncio(anuncioJpa);
         return jpa;
     }
 
     public static Variacao toDomain(VariacaoJpa jpa) {
-        return Variacao.restaurar(jpa.getId(), jpa.getDataCadastro(), jpa.getDataAlteracao(), jpa.getDataExcluido(), jpa.getVariacao());
+        return Variacao.restaurar(jpa.getId(), jpa.getDataCadastro(), jpa.getDataAlteracao(), jpa.getDataExcluido(), jpa.getVariacao(), jpa.getSku(), jpa.getGtin());
     }
 }

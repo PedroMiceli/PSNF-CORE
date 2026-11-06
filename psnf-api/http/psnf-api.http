@@ -158,14 +158,36 @@ Content-Type: application/json
     { "caminho": "carrinho-2.png" }
   ],
   "variacoes": [
-    { "variacao": "BRANCO - P" },
+    { "variacao": "BRANCO - P", "sku": "CAR-MET-BP", "gtin": "7891234567895" },
     { "variacao": "BRANCO - M" },
     { "variacao": "AZUL - P" }
+  ],
+  "informacoes": {
+    "sku": "CAR-MET",
+    "gtin": "7891000315507",
+    "marca": "Metalúrgica Exemplo",
+    "condicao": "NOVO",
+    "ncm": "87168000",
+    "origem": 0,
+    "unidadeComercial": "un",
+    "pesoLiquidoKg": 12.5,
+    "pesoBrutoKg": 14.0,
+    "comprimentoCm": 90, "larguraCm": 60, "alturaCm": 100,
+    "garantiaMeses": 12,
+    "garantiaResponsavel": "FABRICANTE"
+  },
+  "caracteristicas": [
+    { "nome": "Material", "valor": "Aço carbono com pintura epóxi" },
+    { "nome": "Capacidade", "valor": "200 kg" }
   ]
 }
 
 > {%
     client.test("201 - anúncio criado", () => client.assert(response.status === 201, "status " + response.status));
+    client.test("NCM formatado", () => client.assert(response.body.informacoes.ncm === "8716.80.00"));
+    client.test("unidade em maiúsculas", () => client.assert(response.body.informacoes.unidadeComercial === "UN"));
+    client.test("ficha técnica", () => client.assert(response.body.caracteristicas.length === 2));
+    client.test("SKU da variação", () => client.assert(response.body.variacoes[0].sku === "CAR-MET-BP"));
     client.global.set("anuncioId", response.body.id);
     client.global.set("variacaoId", response.body.variacoes[0].id);
 %}
@@ -253,6 +275,63 @@ GET {{baseUrl}}/anuncios?tamanho=500
 
 > {% client.test("400", () => client.assert(response.status === 400, "status " + response.status)); %}
 
+### 3.12 [400] Informações do produto com formato inválido (erros por campo)
+POST {{baseUrl}}/anuncios
+Content-Type: application/json
+
+{
+  "titulo": "Produto inválido",
+  "descricao": "Teste",
+  "categoriaId": "{{categoriaId}}",
+  "valores": [ { "valorUnidade": 1.00, "quantidadeMinima": 1 } ],
+  "imagens": [ { "caminho": "x.png" } ],
+  "informacoes": { "ncm": "123", "origem": 9 }
+}
+
+> {%
+    client.test("400", () => client.assert(response.status === 400, "status " + response.status));
+    client.test("erro no NCM", () => client.assert(!!response.body["informacoes.ncm"]));
+    client.test("erro na origem", () => client.assert(!!response.body["informacoes.origem"]));
+%}
+
+### 3.13 [400] GTIN com dígito verificador errado
+POST {{baseUrl}}/anuncios
+Content-Type: application/json
+
+{
+  "titulo": "Produto inválido",
+  "descricao": "Teste",
+  "categoriaId": "{{categoriaId}}",
+  "valores": [ { "valorUnidade": 1.00, "quantidadeMinima": 1 } ],
+  "imagens": [ { "caminho": "x.png" } ],
+  "informacoes": { "gtin": "7891000315508" }
+}
+
+> {% client.test("400", () => client.assert(response.status === 400, "status " + response.status)); %}
+
+### 3.14 Buscar NCM pela descrição (a API consulta a BrasilAPI; só códigos de 8 dígitos)
+GET {{baseUrl}}/ncm?busca=parafuso
+
+> {%
+    client.test("200", () => client.assert(response.status === 200));
+    client.test("só códigos completos", () => client.assert(response.body.every(n => /^\d{4}\.\d{2}\.\d{2}$/.test(n.codigo))));
+%}
+
+### 3.15 Consultar NCM pelo código (com ou sem pontos)
+GET {{baseUrl}}/ncm/8716.80.00
+
+> {% client.test("200", () => client.assert(response.status === 200 && response.body.codigo === "8716.80.00")); %}
+
+### 3.16 [404] NCM inexistente
+GET {{baseUrl}}/ncm/99999999
+
+> {% client.test("404", () => client.assert(response.status === 404, "status " + response.status)); %}
+
+### 3.17 [400] Busca de NCM com menos de 3 caracteres
+GET {{baseUrl}}/ncm?busca=pa
+
+> {% client.test("400", () => client.assert(response.status === 400, "status " + response.status)); %}
+
 
 ### ====================== 4. ORDEM DE PEDIDO — FLUXO COMPLETO ==========================
 ### Vendedor cria a ordem após negociar no chat -> comprador paga -> vendedor envia NF
@@ -275,6 +354,9 @@ Content-Type: application/json
     client.test("201 - ordem criada", () => client.assert(response.status === 201, "status " + response.status));
     client.test("total 2550", () => client.assert(response.body.valorTotal == 2550));
     client.test("status AGUARDANDO_PAGAMENTO", () => client.assert(response.body.status === "AGUARDANDO_PAGAMENTO"));
+    const item = response.body.itens.find(i => i.anuncioId === client.global.get("anuncioId"));
+    client.test("item recebe as informações do produto", () => client.assert(item.informacoes.ncm === "8716.80.00"));
+    client.test("com o SKU/GTIN da variação", () => client.assert(item.informacoes.sku === "CAR-MET-BP" && item.informacoes.gtin === "7891234567895"));
     client.global.set("ordemId", response.body.id);
 %}
 

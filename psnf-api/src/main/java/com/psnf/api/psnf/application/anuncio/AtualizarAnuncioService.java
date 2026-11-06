@@ -40,6 +40,7 @@ public class AtualizarAnuncioService implements AtualizarAnuncioUseCase {
                 CadastrarAnuncioCommandMapper.toVariacoes(command.variacoes())
         );
 
+        anuncio.definirDetalhes(command.informacoes(), command.caracteristicas());
         return anuncioRepositoryPort.save(anuncio);
     }
 }

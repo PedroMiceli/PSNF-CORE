@@ -1,6 +1,6 @@
 import { http } from './client';
 import type {
-  ArquivoEnviado, Anuncio, EnderecoConsultado, AnuncioInput, Categoria, EnderecoInput, NovaOrdemInput, OrdemDePedido,
+  ArquivoEnviado, Anuncio, EnderecoConsultado, AnuncioInput, Categoria, EnderecoInput, Ncm, NovaOrdemInput, OrdemDePedido,
   OrdemDePedidoResumo, Pagina, PagamentoInput, Usuario, UUID,
 } from './types';
 
@@ -26,6 +26,10 @@ export const api = {
   /** Busca o endereço pelo CEP (a API consulta a BrasilAPI). */
   consultarCep: (cep: string) => http.get<EnderecoConsultado>(`/cep/${cep.replace(/\D/g, '')}`),
   anunciosDoUsuario: (id: UUID) => http.get<Anuncio[]>(`/usuarios/${id}/anuncios`),
+
+  // tabela NCM (a API consulta a BrasilAPI)
+  pesquisarNcm: (busca: string) => http.get<Ncm[]>(`/ncm${q({ busca })}`),
+  consultarNcm: (codigo: string) => http.get<Ncm>(`/ncm/${codigo.replace(/\D/g, '')}`),
 
   // categorias (fixas, somente leitura)
   categorias: () => http.get<Categoria[]>('/categorias'),
