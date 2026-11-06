@@ -34,9 +34,11 @@ export function Vazio({ children }: { children: ReactNode }) {
   return <div className="vazio">{children}</div>;
 }
 
-export function Campo({ label, erro, children, dica }: { label: string; erro?: string; dica?: string; children: ReactNode }) {
+export function Campo({ label, erro, children, dica, className }: {
+  label: string; erro?: string; dica?: string; className?: string; children: ReactNode;
+}) {
   return (
-    <label className={`campo ${erro ? 'campo-erro' : ''}`}>
+    <label className={`campo ${erro ? 'campo-erro' : ''} ${className ?? ''}`}>
       <span className="campo-label">{label}</span>
       {children}
       {dica && !erro && <span className="campo-dica">{dica}</span>}

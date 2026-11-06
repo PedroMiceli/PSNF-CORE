@@ -3,6 +3,7 @@ package com.psnf.api.psnf.infrastructure.web.handler;
 import com.psnf.api.psnf.domain.shared.exception.AcessoNegadoException;
 import com.psnf.api.psnf.domain.shared.exception.RecursoNaoEncontradoException;
 import com.psnf.api.psnf.domain.shared.exception.RegraDeNegocioException;
+import com.psnf.api.psnf.domain.usuario.exception.ConsultaCepIndisponivelException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessResourceFailureException;
@@ -91,6 +92,11 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleStorage(SdkException ex) {
         logger.error("Falha no storage de arquivos (MinIO/S3)", ex);
         return erro(HttpStatus.SERVICE_UNAVAILABLE, "Armazenamento de arquivos indisponível. O MinIO está rodando?");
+    }
+
+    @ExceptionHandler(ConsultaCepIndisponivelException.class)
+    public ResponseEntity<Map<String, String>> handleCepIndisponivel(ConsultaCepIndisponivelException ex) {
+        return erro(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage());
     }
 
     private ResponseEntity<Map<String, String>> erro(HttpStatus status, String mensagem) {
