@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api/endpoints';
 import { useAcao, useApi } from '../api/useApi';
 import { DetalhesProduto } from '../components/DetalhesProduto';
 import { formatarMoeda } from '../components/format';
 import { acoes, Badge, BADGE_INATIVO, Botao, Carregando, chip, cx, dica, ErroBox, ImagemAnuncio, Voltar } from '../components/ui';
+import { useChat } from '../context/ChatContext';
 import { useUsuario } from '../context/UsuarioContext';
 
 export function AnuncioDetalhe() {
@@ -14,6 +15,8 @@ export function AnuncioDetalhe() {
   const anuncio = useApi(() => api.anuncio(id), [id]);
   const vendedor = useApi(async () => (anuncio.data ? api.usuario(anuncio.data.vendedorId) : null), [anuncio.data?.vendedorId]);
   const acao = useAcao();
+  const { iniciarNegociacao } = useChat();
+  const [iniciando, setIniciando] = useState(false);
   const [imagemSelecionada, setImagemSelecionada] = useState<string | null>(null);
 
   if (anuncio.loading) return <Carregando />;
@@ -83,17 +86,29 @@ export function AnuncioDetalhe() {
 
           <ErroBox erro={acao.erro} />
           {ehDono ? (
-            <div className={acoes}>
-              <Botao variante="primario" onClick={() => navigate(`/ordens/nova?anuncio=${a.id}`)}>Gerar ordem de pedido</Botao>
-              <Botao onClick={() => navigate(`/anuncios/${a.id}/editar`)}>Editar</Botao>
-              <Botao disabled={acao.enviando} onClick={alternarStatus}>{a.ativo ? 'Desativar' : 'Ativar'}</Botao>
+            <div>
+              <div className={acoes}>
+                <Botao onClick={() => navigate(`/anuncios/${a.id}/editar`)}>Editar</Botao>
+                <Botao disabled={acao.enviando} onClick={alternarStatus}>{a.ativo ? 'Desativar' : 'Ativar'}</Botao>
+              </div>
+              <p className={dica}>
+                Compradores interessados iniciam uma negociação por aqui. Acompanhe as conversas em{' '}
+                <Link to="/negociacoes">Negociações</Link> e gere a ordem de pedido direto pelo chat.
+              </p>
             </div>
           ) : (
             <div>
-              <Botao variante="primario" disabled title="O chat ainda não existe na API">Iniciar chat</Botao>
+              <Botao variante="primario" disabled={iniciando || !a.ativo} onClick={async () => {
+                setIniciando(true);
+                acao.setErro(await iniciarNegociacao(a.id));
+                setIniciando(false);
+              }}>
+                💬 {iniciando ? 'Abrindo...' : 'Iniciar negociação'}
+              </Botao>
               <p className={dica}>
-                O chat ainda não foi implementado. No fluxo previsto, comprador e vendedor negociam no chat e o
-                <strong> vendedor</strong> gera a ordem de pedido para o comprador.
+                {a.ativo
+                  ? <>Converse com o fornecedor sobre quantidades, valores e entrega. Fechado o acordo, o <strong>vendedor</strong> gera a ordem de pedido para você.</>
+                  : 'Este anúncio está inativo e não aceita novas negociações.'}
               </p>
             </div>
           )}

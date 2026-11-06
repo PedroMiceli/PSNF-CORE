@@ -1,6 +1,6 @@
 import { http } from './client';
 import type {
-  ArquivoEnviado, Anuncio, EnderecoConsultado, AnuncioInput, Categoria, EnderecoInput, Ncm, NovaOrdemInput, OrdemDePedido,
+  ArquivoEnviado, Anuncio, EnderecoConsultado, AnuncioInput, Categoria, EnderecoInput, Ncm, Negociacao, NegociacaoResumo, NovaOrdemInput, OrdemDePedido,
   OrdemDePedidoResumo, Pagina, PagamentoInput, Usuario, UUID,
 } from './types';
 
@@ -44,6 +44,13 @@ export const api = {
   atualizarAnuncio: (id: UUID, body: AnuncioInput) => http.put<Anuncio>(`/anuncios/${id}`, body),
   ativarAnuncio: (id: UUID) => http.patch<Anuncio>(`/anuncios/${id}/ativar`),
   desativarAnuncio: (id: UUID) => http.patch<Anuncio>(`/anuncios/${id}/desativar`),
+
+  // negociações (chat entre comprador e vendedor sobre um anúncio)
+  /** O comprador logado inicia (ou reabre) a negociação do anúncio. */
+  iniciarNegociacao: (anuncioId: UUID) => http.post<Negociacao>('/negociacoes', { anuncioId }),
+  negociacoes: () => http.get<NegociacaoResumo[]>('/negociacoes'),
+  negociacao: (id: UUID) => http.get<Negociacao>(`/negociacoes/${id}`),
+  enviarMensagemNegociacao: (id: UUID, texto: string) => http.post<Negociacao>(`/negociacoes/${id}/mensagens`, { texto }),
 
   // ordens de pedido
   criarOrdem: (body: NovaOrdemInput) => http.post<OrdemDePedido>('/ordens-de-pedido', body),

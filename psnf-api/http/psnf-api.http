@@ -333,6 +333,74 @@ GET {{baseUrl}}/ncm?busca=pa
 > {% client.test("400", () => client.assert(response.status === 400, "status " + response.status)); %}
 
 
+### ========================= 3B. NEGOCIAÇÃO (CHAT) ===================================
+### O comprador inicia a negociação a partir do anúncio; a primeira mensagem (ABORDAGEM)
+### apresenta o produto de interesse. Depois comprador e vendedor trocam mensagens.
+
+### 3B.1 Comprador inicia a negociação do anúncio
+POST {{baseUrl}}/negociacoes
+Content-Type: application/json
+X-Usuario-Id: {{compradorId}}
+
+{ "anuncioId": "{{anuncioId}}" }
+
+> {%
+    client.test("201 ou 200 (já existia)", () => client.assert(response.status === 201 || response.status === 200, "status " + response.status));
+    client.test("começa com a abordagem", () => client.assert(response.body.mensagens[0].tipo === "ABORDAGEM"));
+    client.test("vendedor do anúncio (Vendedor Mock)", () => client.assert(response.body.vendedor.id === "3c288400-f58f-4d28-905c-f7dba388d6c9"));
+    client.global.set("negociacaoId", response.body.id);
+%}
+
+### 3B.2 Iniciar de novo reabre a mesma negociação (200)
+POST {{baseUrl}}/negociacoes
+Content-Type: application/json
+X-Usuario-Id: {{compradorId}}
+
+{ "anuncioId": "{{anuncioId}}" }
+
+> {%
+    client.test("200 - mesma negociação", () => client.assert(response.status === 200 && response.body.id === client.global.get("negociacaoId")));
+%}
+
+### 3B.3 Vendedor responde
+POST {{baseUrl}}/negociacoes/{{negociacaoId}}/mensagens
+Content-Type: application/json
+
+{ "texto": "Olá! Temos pronta entrega. Qual a quantidade?" }
+
+> {% client.test("200 - mensagem registrada", () => client.assert(response.status === 200 && response.body.mensagens.at(-1).tipo === "TEXTO")); %}
+
+### 3B.4 Negociações do vendedor logado (conversa mais recente primeiro)
+GET {{baseUrl}}/negociacoes
+
+> {%
+    client.test("200", () => client.assert(response.status === 200));
+    client.test("papel VENDEDOR", () => client.assert(response.body.some(n => n.id === client.global.get("negociacaoId") && n.papel === "VENDEDOR")));
+%}
+
+### 3B.5 Detalhes da negociação (como comprador)
+GET {{baseUrl}}/negociacoes/{{negociacaoId}}
+X-Usuario-Id: {{compradorId}}
+
+> {% client.test("200", () => client.assert(response.status === 200 && response.body.mensagens.length >= 2)); %}
+
+### 3B.6 [422] Vendedor não negocia o próprio anúncio
+POST {{baseUrl}}/negociacoes
+Content-Type: application/json
+
+{ "anuncioId": "{{anuncioId}}" }
+
+> {% client.test("422", () => client.assert(response.status === 422, "status " + response.status)); %}
+
+### 3B.7 [400] Mensagem vazia
+POST {{baseUrl}}/negociacoes/{{negociacaoId}}/mensagens
+Content-Type: application/json
+
+{ "texto": "   " }
+
+> {% client.test("400", () => client.assert(response.status === 400, "status " + response.status)); %}
+
+
 ### ====================== 4. ORDEM DE PEDIDO — FLUXO COMPLETO ==========================
 ### Vendedor cria a ordem após negociar no chat -> comprador paga -> vendedor envia NF
 ### e despacha -> comprador confirma a entrega.

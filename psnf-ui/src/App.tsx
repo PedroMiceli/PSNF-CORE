@@ -5,6 +5,7 @@ import { UsuarioProvider } from './context/UsuarioContext';
 import { AnuncioDetalhe } from './pages/AnuncioDetalhe';
 import { AnuncioForm } from './pages/AnuncioForm';
 import { MeusAnuncios } from './pages/MeusAnuncios';
+import { Negociacoes } from './pages/Negociacoes';
 import { NovaOrdem } from './pages/NovaOrdem';
 import { OrdemDetalhe } from './pages/OrdemDetalhe';
 import { Ordens } from './pages/Ordens';
@@ -22,6 +23,7 @@ export function App() {
             <Route path="anuncios/:id" element={<AnuncioDetalhe />} />
             <Route path="anuncios/:id/editar" element={<AnuncioForm />} />
             <Route path="meus-anuncios" element={<MeusAnuncios />} />
+            <Route path="negociacoes" element={<Negociacoes />} />
             <Route path="ordens" element={<Ordens />} />
             <Route path="ordens/nova" element={<NovaOrdem />} />
             <Route path="ordens/:id" element={<OrdemDetalhe />} />

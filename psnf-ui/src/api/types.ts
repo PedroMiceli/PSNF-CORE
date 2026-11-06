@@ -221,3 +221,50 @@ export interface PagamentoInput {
   chavePix?: string;
   boleto?: string;
 }
+
+/* ------------------------------------------------------------------ negociação (chat) */
+
+export type TipoMensagemNegociacao = 'ABORDAGEM' | 'TEXTO';
+
+export interface ParticipanteNegociacao {
+  id: UUID;
+  nome: string;
+  email: string;
+  telefone: string | null;
+  imagem: string | null;
+  cidade: string | null;
+  uf: string | null;
+  membroDesde: string;
+}
+
+export interface MensagemNegociacao {
+  id: UUID;
+  autorId: UUID;
+  texto: string;
+  tipo: TipoMensagemNegociacao;
+  dataCadastro: string;
+}
+
+export interface Negociacao {
+  id: UUID;
+  dataCadastro: string;
+  anuncio: { id: UUID; titulo: string; imagem: string | null; precoMenor: number | null; quantidadeMinima: number; ativo: boolean };
+  comprador: ParticipanteNegociacao;
+  vendedor: ParticipanteNegociacao;
+  mensagens: MensagemNegociacao[];
+}
+
+export interface NegociacaoResumo {
+  id: UUID;
+  /** papel do usuário logado nesta conversa */
+  papel: 'COMPRADOR' | 'VENDEDOR';
+  anuncioId: UUID;
+  tituloAnuncio: string;
+  imagemAnuncio: string | null;
+  outroParticipanteId: UUID;
+  outroParticipanteNome: string;
+  ultimaMensagem: string | null;
+  ultimaMensagemAutorId: UUID | null;
+  ultimaMensagemEm: string;
+  quantidadeMensagens: number;
+}
