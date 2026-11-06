@@ -3,6 +3,13 @@ package com.psnf.api.psnf.domain.negociacao.model;
 import com.psnf.api.psnf.domain.anuncio.model.Anuncio;
 import com.psnf.api.psnf.domain.usuario.model.Usuario;
 
-/** Negociação com o anúncio e os participantes carregados (o que a tela do chat precisa mostrar). */
-public record NegociacaoDetalhes(Negociacao negociacao, Anuncio anuncio, Usuario comprador, Usuario vendedor) {
+import java.util.List;
+
+/**
+ * Negociação com os anúncios e os participantes carregados (o que a tela do chat precisa mostrar).
+ *
+ * @param anuncio  o anúncio de abordagem
+ * @param anuncios todos os anúncios da negociação (o de abordagem primeiro)
+ */
+public record NegociacaoDetalhes(Negociacao negociacao, Anuncio anuncio, List<Anuncio> anuncios, Usuario comprador, Usuario vendedor) {
 }

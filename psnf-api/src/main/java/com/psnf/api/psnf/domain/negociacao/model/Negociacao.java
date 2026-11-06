@@ -23,16 +23,22 @@ public class Negociacao extends BaseDomain {
     private final UUID compradorId;
     private final UUID vendedorId;
     private final List<MensagemNegociacao> mensagens;
+    /** outros anúncios do mesmo vendedor incluídos na conversa (além do anúncio de abordagem) */
+    private final List<AnuncioNegociacao> anunciosAdicionais;
     private LocalDateTime ultimaMensagemEm;
+
+    /** limite de produtos numa mesma negociação */
+    public static final int MAXIMO_ANUNCIOS = 30;
 
     private Negociacao(UUID id, LocalDateTime dataCadastro, LocalDateTime dataAlteracao, LocalDateTime dataExcluido,
                        UUID anuncioId, UUID compradorId, UUID vendedorId, List<MensagemNegociacao> mensagens,
-                       LocalDateTime ultimaMensagemEm) {
+                       List<AnuncioNegociacao> anunciosAdicionais, LocalDateTime ultimaMensagemEm) {
         super(id, dataCadastro, dataAlteracao, dataExcluido);
         this.anuncioId = anuncioId;
         this.compradorId = compradorId;
         this.vendedorId = vendedorId;
         this.mensagens = new ArrayList<>(mensagens == null ? List.of() : mensagens);
+        this.anunciosAdicionais = new ArrayList<>(anunciosAdicionais == null ? List.of() : anunciosAdicionais);
         this.ultimaMensagemEm = ultimaMensagemEm;
     }
 
@@ -50,15 +56,17 @@ public class Negociacao extends BaseDomain {
             throw new RegraDeNegocioException("Este anúncio está inativo e não aceita novas negociações");
         }
         Negociacao n = new Negociacao(null, LocalDateTime.now(), null, null,
-                anuncio.getId(), compradorId, anuncio.getVendedor(), List.of(), null);
-        n.adicionar(MensagemNegociacao.criar(compradorId, textoAbordagem(anuncio.getTitulo(), nomeVendedor), TipoMensagemNegociacao.ABORDAGEM));
+                anuncio.getId(), compradorId, anuncio.getVendedor(), List.of(), List.of(), null);
+        n.adicionar(MensagemNegociacao.criar(compradorId, textoAbordagem(anuncio.getTitulo(), nomeVendedor),
+                TipoMensagemNegociacao.ABORDAGEM, anuncio.getId()));
         return n;
     }
 
     public static Negociacao restaurar(UUID id, LocalDateTime dataCadastro, LocalDateTime dataAlteracao, LocalDateTime dataExcluido,
                                        UUID anuncioId, UUID compradorId, UUID vendedorId, List<MensagemNegociacao> mensagens,
-                                       LocalDateTime ultimaMensagemEm) {
-        return new Negociacao(id, dataCadastro, dataAlteracao, dataExcluido, anuncioId, compradorId, vendedorId, mensagens, ultimaMensagemEm);
+                                       List<AnuncioNegociacao> anunciosAdicionais, LocalDateTime ultimaMensagemEm) {
+        return new Negociacao(id, dataCadastro, dataAlteracao, dataExcluido, anuncioId, compradorId, vendedorId, mensagens,
+                anunciosAdicionais, ultimaMensagemEm);
     }
 
     static String textoAbordagem(String tituloAnuncio, String nomeVendedor) {
@@ -72,6 +80,54 @@ public class Negociacao extends BaseDomain {
         MensagemNegociacao m = MensagemNegociacao.criar(autorId, texto, TipoMensagemNegociacao.TEXTO);
         adicionar(m);
         return m;
+    }
+
+    /**
+     * Inclui outro anúncio do mesmo vendedor na negociação (comprador ou vendedor podem incluir).
+     * Fica registrado no chat com uma mensagem automática que mostra o produto.
+     */
+    public void adicionarAnuncio(UUID usuarioId, Anuncio anuncio) {
+        garantirParticipante(usuarioId);
+        if (!anuncio.pertenceA(vendedorId)) {
+            throw new RegraDeNegocioException("Só é possível incluir anúncios do vendedor desta negociação");
+        }
+        if (!anuncio.isAtivo()) {
+            throw new RegraDeNegocioException("O anúncio \"" + anuncio.getTitulo() + "\" está inativo");
+        }
+        if (contemAnuncio(anuncio.getId())) {
+            throw new RegraDeNegocioException("O anúncio \"" + anuncio.getTitulo() + "\" já está nesta negociação");
+        }
+        if (getAnuncioIds().size() >= MAXIMO_ANUNCIOS) {
+            throw new RegraDeNegocioException("Uma negociação aceita no máximo " + MAXIMO_ANUNCIOS + " produtos");
+        }
+        anunciosAdicionais.add(AnuncioNegociacao.criar(anuncio.getId(), usuarioId));
+        adicionar(MensagemNegociacao.criar(usuarioId, "Adicionou o produto \"" + anuncio.getTitulo() + "\" à negociação.",
+                TipoMensagemNegociacao.ANUNCIO_ADICIONADO, anuncio.getId()));
+    }
+
+    /** Retira um anúncio incluído depois. O anúncio de abordagem não pode ser retirado. */
+    public void removerAnuncio(UUID usuarioId, Anuncio anuncio) {
+        garantirParticipante(usuarioId);
+        if (anuncio.getId().equals(anuncioId)) {
+            throw new RegraDeNegocioException("O produto que iniciou a negociação não pode ser retirado");
+        }
+        if (!anunciosAdicionais.removeIf(a -> a.getAnuncioId().equals(anuncio.getId()))) {
+            throw new RegraDeNegocioException("O anúncio \"" + anuncio.getTitulo() + "\" não está nesta negociação");
+        }
+        adicionar(MensagemNegociacao.criar(usuarioId, "Retirou o produto \"" + anuncio.getTitulo() + "\" da negociação.",
+                TipoMensagemNegociacao.ANUNCIO_REMOVIDO, anuncio.getId()));
+    }
+
+    public boolean contemAnuncio(UUID id) {
+        return anuncioId.equals(id) || anunciosAdicionais.stream().anyMatch(a -> a.getAnuncioId().equals(id));
+    }
+
+    /** Todos os produtos da negociação: o de abordagem primeiro, depois os incluídos, na ordem em que entraram. */
+    public List<UUID> getAnuncioIds() {
+        List<UUID> ids = new ArrayList<>();
+        ids.add(anuncioId);
+        anunciosAdicionais.forEach(a -> ids.add(a.getAnuncioId()));
+        return ids;
     }
 
     private void adicionar(MensagemNegociacao m) {
@@ -108,5 +164,6 @@ public class Negociacao extends BaseDomain {
     public UUID getCompradorId() { return compradorId; }
     public UUID getVendedorId() { return vendedorId; }
     public List<MensagemNegociacao> getMensagens() { return List.copyOf(mensagens); }
+    public List<AnuncioNegociacao> getAnunciosAdicionais() { return List.copyOf(anunciosAdicionais); }
     public LocalDateTime getUltimaMensagemEm() { return ultimaMensagemEm; }
 }

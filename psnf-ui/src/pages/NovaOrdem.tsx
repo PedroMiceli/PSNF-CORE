@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../api/endpoints';
-import type { Anuncio, Usuario } from '../api/types';
+import type { Anuncio, Negociacao, Usuario } from '../api/types';
 import { useAcao, useApi } from '../api/useApi';
 import { formatarMoeda } from '../components/format';
 import { acoes, Botao, Campo, Carregando, controle, cx, dica, ErroBox, InputMoeda, linhaForm, Painel, tabela, Vazio, Voltar } from '../components/ui';
@@ -46,14 +46,24 @@ export function NovaOrdem() {
   const [compradorId, setCompradorId] = useState(params.get('comprador') ?? '');
   const [comprador, setComprador] = useState<Usuario | null>(null);
   const [itens, setItens] = useState<ItemForm[]>([]);
+  // vindo do chat (?negociacao=): comprador e produtos já combinados na conversa
+  const idNegociacao = params.get('negociacao');
+  const negociacao = useApi(async () => (idNegociacao ? api.negociacao(idNegociacao) : null), [idNegociacao]);
 
   const ativos = useMemo(() => (meus.data ?? []).filter((a) => a.ativo), [meus.data]);
   const porId = (id: string) => ativos.find((a) => a.id === id);
 
-  // primeiro item: o anúncio vindo da tela de detalhe (?anuncio=) ou vazio
+  // itens iniciais: todos os produtos da negociação (?negociacao=), o anúncio da tela de detalhe (?anuncio=) ou vazio
   useEffect(() => {
-    if (meus.data && itens.length === 0) setItens([novoItem(porId(params.get('anuncio') ?? ''))]);
-  }, [meus.data]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!meus.data || itens.length > 0 || negociacao.loading) return;
+    const n = negociacao.data;
+    if (n) {
+      const daNegociacao = n.anuncios.map((a) => porId(a.id)).filter((a): a is Anuncio => !!a);
+      setItens(daNegociacao.length ? daNegociacao.map((a) => novoItem(a)) : [novoItem()]);
+      return;
+    }
+    setItens([novoItem(porId(params.get('anuncio') ?? ''))]);
+  }, [meus.data, negociacao.loading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const verificarComprador = async (id = compradorId) => {
     setComprador(null);
@@ -62,11 +72,11 @@ export function NovaOrdem() {
     if (u) setComprador(u);
   };
 
-  // vindo do chat (?comprador=): já confere o comprador da negociação
+  // vindo do chat: já confere o comprador da negociação
   useEffect(() => {
-    const id = params.get('comprador');
-    if (id) void verificarComprador(id);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    const id = negociacao.data?.comprador.id ?? params.get('comprador');
+    if (id) { setCompradorId(id); void verificarComprador(id); }
+  }, [negociacao.data]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const atualizar = (i: number, campo: keyof ItemForm, valor: string) =>
     setItens((lista) => lista.map((it, j) => {
@@ -96,7 +106,7 @@ export function NovaOrdem() {
     if (ordem) navigate(`/ordens/${ordem.id}`);
   };
 
-  if (meus.loading) return <Carregando />;
+  if (meus.loading || negociacao.loading) return <Carregando />;
 
   const celula = cx(tabela.td, 'px-2 py-1.5');
   return (
@@ -107,7 +117,8 @@ export function NovaOrdem() {
         Após negociar com o comprador no chat, monte a ordem com as quantidades e os <strong>valores acordados</strong>.
         O valor unitário vem preenchido com a faixa de preço do anúncio, mas pode ser alterado.
       </p>
-      <ErroBox erro={meus.error ?? acao.erro} />
+      <ErroBox erro={meus.error ?? negociacao.error ?? acao.erro} />
+      {negociacao.data && <AvisoNegociacao n={negociacao.data} incluidos={itens.filter((i) => i.anuncioId).length} ativos={ativos} />}
 
       {ativos.length === 0 ? (
         <Vazio>Você não tem anúncios ativos. <Link to="/anuncios/novo">Cadastre um anúncio</Link> primeiro.</Vazio>
@@ -195,5 +206,21 @@ export function NovaOrdem() {
         </form>
       )}
     </section>
+  );
+}
+
+/** Resumo do que veio da negociação (e o que ficou de fora, como produtos inativos). */
+function AvisoNegociacao({ n, incluidos, ativos }: { n: Negociacao; incluidos: number; ativos: Anuncio[] }) {
+  const foraDaOrdem = n.anuncios.filter((a) => !ativos.some((x) => x.id === a.id));
+  return (
+    <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm">
+      💬 Montada a partir da negociação com <strong>{n.comprador.nome}</strong>: {n.anuncios.length} produto(s) combinado(s)
+      no chat{incluidos ? ', já incluídos abaixo' : ''}. Ajuste as quantidades, variações e valores acordados.
+      {foraDaOrdem.length > 0 && (
+        <p className="m-0 mt-1 text-laranja">
+          ⚠ Ficaram de fora por estarem inativos: {foraDaOrdem.map((a) => a.titulo).join(', ')}.
+        </p>
+      )}
+    </div>
   );
 }

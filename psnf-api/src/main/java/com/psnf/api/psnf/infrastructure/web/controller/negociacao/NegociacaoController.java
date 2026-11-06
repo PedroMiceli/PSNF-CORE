@@ -3,6 +3,7 @@ package com.psnf.api.psnf.infrastructure.web.controller.negociacao;
 import com.psnf.api.psnf.domain.negociacao.port.in.ConsultarNegociacaoUseCase;
 import com.psnf.api.psnf.domain.negociacao.port.in.EnviarMensagemNegociacaoUseCase;
 import com.psnf.api.psnf.domain.negociacao.port.in.IniciarNegociacaoUseCase;
+import com.psnf.api.psnf.domain.negociacao.port.in.VincularAnuncioNegociacaoUseCase;
 import com.psnf.api.psnf.infrastructure.web.controller.UsuarioAutenticadoUtil;
 import com.psnf.api.psnf.infrastructure.web.controller.negociacao.dto.IniciarNegociacaoRequest;
 import com.psnf.api.psnf.infrastructure.web.controller.negociacao.dto.MensagemNegociacaoRequest;
@@ -29,6 +30,7 @@ public class NegociacaoController {
     private final IniciarNegociacaoUseCase iniciarNegociacaoUseCase;
     private final ConsultarNegociacaoUseCase consultarNegociacaoUseCase;
     private final EnviarMensagemNegociacaoUseCase enviarMensagemNegociacaoUseCase;
+    private final VincularAnuncioNegociacaoUseCase vincularAnuncioNegociacaoUseCase;
 
     /** 201 quando a negociação é criada; 200 quando o comprador já tinha uma para este anúncio. */
     @PostMapping
@@ -53,6 +55,18 @@ public class NegociacaoController {
     @PostMapping("/{id}/mensagens")
     public ResponseEntity<NegociacaoResponse> enviarMensagem(@PathVariable UUID id, @RequestBody @Valid MensagemNegociacaoRequest request) {
         return ResponseEntity.ok(NegociacaoResponse.from(enviarMensagemNegociacaoUseCase.enviar(id, usuarioLogado(), request.texto())));
+    }
+
+    /** Inclui outro anúncio do mesmo vendedor na negociação (comprador ou vendedor). */
+    @PostMapping("/{id}/anuncios")
+    public ResponseEntity<NegociacaoResponse> adicionarAnuncio(@PathVariable UUID id, @RequestBody @Valid IniciarNegociacaoRequest request) {
+        return ResponseEntity.ok(NegociacaoResponse.from(vincularAnuncioNegociacaoUseCase.adicionar(id, usuarioLogado(), request.anuncioId())));
+    }
+
+    /** Retira um anúncio incluído depois (o de abordagem fica). */
+    @DeleteMapping("/{id}/anuncios/{anuncioId}")
+    public ResponseEntity<NegociacaoResponse> removerAnuncio(@PathVariable UUID id, @PathVariable UUID anuncioId) {
+        return ResponseEntity.ok(NegociacaoResponse.from(vincularAnuncioNegociacaoUseCase.remover(id, usuarioLogado(), anuncioId)));
     }
 
     private UUID usuarioLogado() {
