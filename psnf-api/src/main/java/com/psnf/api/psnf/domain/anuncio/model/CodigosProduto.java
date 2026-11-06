@@ -18,9 +18,10 @@ public final class CodigosProduto {
         return t;
     }
 
-    /** SKU: código interno do vendedor (vai como "código do produto" na NF). */
+    /** SKU: código interno do vendedor (vai como "código do produto" na NF), sempre em maiúsculas. */
     public static String sku(String valor) {
-        return texto(valor, 60, "SKU");
+        String sku = texto(valor, 60, "SKU");
+        return sku == null ? null : sku.toUpperCase(java.util.Locale.ROOT);
     }
 
     /**

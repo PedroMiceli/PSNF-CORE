@@ -1,8 +1,8 @@
-import { useState, type ButtonHTMLAttributes, type HTMLAttributes, type ReactNode } from 'react';
+import { useState, type ButtonHTMLAttributes, type HTMLAttributes, type InputHTMLAttributes, type ReactNode } from 'react';
 import { Link, type LinkProps } from 'react-router-dom';
 import { urlArquivo, type ApiError } from '../api/client';
 import type { StatusOrdem } from '../api/types';
-import { STATUS_LABEL } from './format';
+import { digitosParaValor, formatarMoeda, STATUS_LABEL } from './format';
 
 /** Junta classes ignorando valores vazios: cx('a', cond && 'b'). */
 export const cx = (...classes: (string | false | null | undefined)[]) => classes.filter(Boolean).join(' ');
@@ -35,6 +35,22 @@ export const chip = 'inline-block rounded-full border border-borda bg-white px-3
 
 /** Texto de ajuda cinza. */
 export const dica = 'mt-1 mb-3 text-sm text-suave';
+
+/**
+ * Campo de valor em reais: mostra "R$ 8,90" e devolve "8.90" (texto com ponto, pronto para Number()).
+ * Os dígitos entram pela direita: para R$ 8,90 digite 8, 9, 0.
+ */
+export function InputMoeda({ valor, onValor, className, ...props }: Omit<InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange' | 'type'> & {
+  valor: string; onValor: (valor: string) => void;
+}) {
+  const texto = valor === '' || isNaN(Number(valor)) ? '' : formatarMoeda(Number(valor));
+  return (
+    <input {...props} className={cx(controle, 'text-right', className)} inputMode="numeric" placeholder={props.placeholder ?? 'R$ 0,00'}
+      value={texto} onChange={(e) => onValor(digitosParaValor(e.target.value))}
+      // o cursor fica sempre no fim: os dígitos entram pela direita
+      onFocus={(e) => { const el = e.currentTarget; requestAnimationFrame(() => el.setSelectionRange(el.value.length, el.value.length)); }} />
+  );
+}
 
 /* ------------------------------------------------------------------ botões */
 

@@ -3,6 +3,7 @@ import { api } from '../api/endpoints';
 import type { EnderecoInput } from '../api/types';
 import { useAcao, useApi } from '../api/useApi';
 import { ACEITA_IMAGENS, UploadArquivo } from '../components/UploadArquivo';
+import { mascaraTelefone, telefoneValido } from '../components/format';
 import { EnderecoForm } from '../components/EnderecoForm';
 import { Botao, Campo, Carregando, controle, cx, dica, ErroBox, ImagemAnuncio, linhaForm, painel, Painel } from '../components/ui';
 
@@ -11,9 +12,10 @@ export function Perfil() {
   const salvar = useAcao();
   const endereco = useAcao();
   const [dados, setDados] = useState({ nome: '', telefone: '', imagem: '' });
+  const [tentouSalvar, setTentouSalvar] = useState(false);
 
   useEffect(() => {
-    if (usuario.data) setDados({ nome: usuario.data.nome, telefone: usuario.data.telefone ?? '', imagem: usuario.data.imagem ?? '' });
+    if (usuario.data) setDados({ nome: usuario.data.nome, telefone: mascaraTelefone(usuario.data.telefone ?? ''), imagem: usuario.data.imagem ?? '' });
   }, [usuario.data]);
 
   if (usuario.loading) return <Carregando />;
@@ -22,7 +24,10 @@ export function Perfil() {
 
   const salvarDados = async (e: FormEvent) => {
     e.preventDefault();
-    const r = await salvar.executar(() => api.atualizarUsuario(dados));
+    setTentouSalvar(true);
+    if (dados.telefone && !telefoneValido(dados.telefone)) return;
+    // a API guarda só os dígitos; a máscara é apenas visual
+    const r = await salvar.executar(() => api.atualizarUsuario({ ...dados, telefone: dados.telefone.replace(/\D/g, '') }));
     if (r) usuario.setData(r);
   };
   const adicionarEndereco = async (novo: EnderecoInput) => {
@@ -47,8 +52,10 @@ export function Perfil() {
           <Campo label="Nome" erro={salvar.erro?.campos?.nome}>
             <input className={controle} value={dados.nome} onChange={(e) => setDados({ ...dados, nome: e.target.value })} />
           </Campo>
-          <Campo label="Telefone">
-            <input className={controle} value={dados.telefone} onChange={(e) => setDados({ ...dados, telefone: e.target.value })} />
+          <Campo label="Telefone" erro={dados.telefone && !telefoneValido(dados.telefone) && tentouSalvar
+            ? 'Informe o DDD e o número (ex.: (11) 99999-0001)' : salvar.erro?.campos?.telefone}>
+            <input className={controle} value={dados.telefone} inputMode="tel" autoComplete="tel" placeholder="(11) 99999-0001"
+              onChange={(e) => setDados({ ...dados, telefone: mascaraTelefone(e.target.value) })} />
           </Campo>
         </div>
         <div className="mb-4 flex items-center gap-4">

@@ -21,3 +21,27 @@ export const STATUS_LABEL: Record<string, string> = {
   ENTREGUE: 'Entregue',
   CANCELADO: 'Cancelado',
 };
+
+/* ------------------------------------------------------------------ máscaras */
+
+/** "11999990001" -> "(11) 99999-0001"; fixo com 10 dígitos -> "(11) 3333-0001". Aceita digitação parcial. */
+export const mascaraTelefone = (valor: string) => {
+  const d = valor.replace(/\D/g, '').slice(0, 11);
+  if (d.length <= 2) return d.length ? `(${d}` : '';
+  const ddd = `(${d.slice(0, 2)}) `;
+  const resto = d.slice(2);
+  const corte = d.length === 11 ? 5 : 4; // celular tem 9 dígitos depois do DDD
+  return resto.length <= corte ? ddd + resto : `${ddd}${resto.slice(0, corte)}-${resto.slice(corte)}`;
+};
+
+/** Telefone completo tem DDD + 8 (fixo) ou 9 (celular) dígitos. */
+export const telefoneValido = (valor: string) => [10, 11].includes(valor.replace(/\D/g, '').length);
+
+/**
+ * Máscara de dinheiro digitada da direita para a esquerda (como em app de banco):
+ * "8" -> R$ 0,08, "89" -> R$ 0,89, "890" -> R$ 8,90. Devolve o valor com ponto ("8.90") ou '' se vazio.
+ */
+export const digitosParaValor = (texto: string) => {
+  const d = texto.replace(/\D/g, '').slice(0, 13);
+  return d ? (Number(d) / 100).toFixed(2) : '';
+};
