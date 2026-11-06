@@ -685,6 +685,11 @@ X-Usuario-Id: {{compradorId}}
 
 > {% client.test("403", () => client.assert(response.status === 403, "status " + response.status)); %}
 
+### 6.10b [403] Só o comprador exclui pagamentos (o vendedor tenta)
+DELETE {{baseUrl}}/ordens-de-pedido/{{ordemId}}/pagamentos/00000000-0000-0000-0000-000000000000
+
+> {% client.test("403", () => client.assert(response.status === 403, "status " + response.status)); %}
+
 ### 6.11 [404] Anúncio inexistente
 GET {{baseUrl}}/anuncios/{{terceiroId}}
 

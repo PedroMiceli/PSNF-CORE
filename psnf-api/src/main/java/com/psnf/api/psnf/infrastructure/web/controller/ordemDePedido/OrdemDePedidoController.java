@@ -68,6 +68,12 @@ public class OrdemDePedidoController {
                 OrdemDePedidoRequestMapper.toCommand(id, usuarioLogado(), request))));
     }
 
+    /** O comprador exclui um pagamento registrado por engano (antes do envio do pedido). */
+    @DeleteMapping("/{id}/pagamentos/{pagamentoId}")
+    public ResponseEntity<OrdemDePedidoResponse> removerPagamento(@PathVariable UUID id, @PathVariable UUID pagamentoId) {
+        return ResponseEntity.ok(OrdemDePedidoResponse.from(registrarPagamentoUseCase.removerPagamento(id, usuarioLogado(), pagamentoId)));
+    }
+
     @PostMapping("/{id}/notas-fiscais")
     public ResponseEntity<OrdemDePedidoResponse> adicionarNotaFiscal(@PathVariable UUID id, @RequestBody @Valid NotaFiscalRequest request) {
         return ResponseEntity.ok(OrdemDePedidoResponse.from(adicionarNotaFiscalUseCase.adicionarNotaFiscal(

@@ -1,4 +1,4 @@
-import { useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { urlArquivo } from '../api/client';
 import { api } from '../api/endpoints';
@@ -118,7 +118,8 @@ export function OrdemDetalhe() {
       <DadosNotaFiscal ordem={o} aberto={souVendedor && ['PAGO', 'ENVIADO', 'ENTREGUE'].includes(o.status)} />
 
       <div className={grade2}>
-        <Pagamentos ordem={o} podePagar={souComprador && o.status === 'AGUARDANDO_PAGAMENTO'} enviando={acao.enviando} executar={executar} />
+        <Pagamentos ordem={o} podePagar={souComprador && o.status === 'AGUARDANDO_PAGAMENTO'}
+          podeExcluir={souComprador && ['AGUARDANDO_PAGAMENTO', 'PAGO'].includes(o.status)} enviando={acao.enviando} executar={executar} />
         <NotasFiscais ordem={o} podeAdicionar={souVendedor && ['PAGO', 'ENVIADO', 'ENTREGUE'].includes(o.status)} enviando={acao.enviando} executar={executar} />
       </div>
 
@@ -217,21 +218,62 @@ function Acoes({ ordem, souComprador, souVendedor, enviando, executar }: {
   );
 }
 
-function Pagamentos({ ordem, podePagar, enviando, executar }: { ordem: OrdemDePedido; podePagar: boolean; enviando: boolean; executar: Exec }) {
+type CampoPagamento = 'valor' | 'chavePix' | 'boleto' | 'codigoBanco' | 'agencia' | 'conta';
+
+/** Campos obrigatórios de cada forma de pagamento (os mesmos que a API exige). */
+const OBRIGATORIOS: Record<TipoPagamento, [CampoPagamento, string][]> = {
+  PIX: [['chavePix', 'Informe a chave PIX']],
+  BOLETO: [['boleto', 'Informe o código do boleto']],
+  TRANSFERENCIA: [['codigoBanco', 'Informe o banco'], ['agencia', 'Informe a agência'], ['conta', 'Informe a conta']],
+};
+
+function Pagamentos({ ordem, podePagar, podeExcluir, enviando, executar }: {
+  ordem: OrdemDePedido; podePagar: boolean; podeExcluir: boolean; enviando: boolean; executar: Exec;
+}) {
   const [tipo, setTipo] = useState<TipoPagamento>('PIX');
   const [valor, setValor] = useState(ordem.valorRestante.toFixed(2));
-  const [extra, setExtra] = useState({ chavePix: '', boleto: '', codigoBanco: '', agencia: '', conta: '', nomeReferencia: '' });
-  const set = (k: keyof typeof extra) => (e: { target: { value: string } }) => setExtra({ ...extra, [k]: e.target.value });
+  const vazio = { chavePix: '', boleto: '', codigoBanco: '', agencia: '', conta: '', nomeReferencia: '' };
+  const [extra, setExtra] = useState(vazio);
+  const [erros, setErros] = useState<Partial<Record<CampoPagamento, string>>>({});
+  const set = (k: keyof typeof extra) => (e: { target: { value: string } }) => {
+    setExtra({ ...extra, [k]: e.target.value });
+    setErros((atual) => ({ ...atual, [k]: undefined })); // some o aviso ao começar a preencher
+  };
+
+  // o valor sugerido acompanha o restante (ex.: depois de excluir um pagamento)
+  useEffect(() => { setValor(ordem.valorRestante.toFixed(2)); }, [ordem.valorRestante]);
+
+  const validar = () => {
+    const e: Partial<Record<CampoPagamento, string>> = {};
+    const v = Number(valor);
+    if (!valor || v <= 0) e.valor = 'Informe o valor do pagamento';
+    else if (v > ordem.valorRestante) e.valor = `O valor não pode passar do restante (${formatarMoeda(ordem.valorRestante)})`;
+    OBRIGATORIOS[tipo].forEach(([campo, msg]) => { if (!extra[campo as keyof typeof extra].trim()) e[campo] = msg; });
+    setErros(e);
+    return Object.keys(e).length === 0;
+  };
 
   const pagar = async (e: FormEvent) => {
     e.preventDefault();
+    if (!validar()) return;
     const ok = await executar(() => api.pagar(ordem.id, { tipoPagamento: tipo, valor: Number(valor), ...extra }));
-    if (ok) setExtra({ chavePix: '', boleto: '', codigoBanco: '', agencia: '', conta: '', nomeReferencia: '' });
+    if (ok) { setExtra(vazio); setErros({}); }
   };
 
-  const campo = (k: keyof typeof extra, rotulo: string, placeholder?: string) => (
-    <Campo label={rotulo}><input className={controle} value={extra[k]} onChange={set(k)} placeholder={placeholder} /></Campo>
+  const excluir = (p: OrdemDePedido['pagamentos'][number]) => {
+    if (window.confirm(`Excluir o pagamento de ${formatarMoeda(p.valor)} (${p.tipoPagamento})?`)) {
+      void executar(() => api.removerPagamento(ordem.id, p.id));
+    }
+  };
+
+  const campo = (k: Exclude<CampoPagamento, 'valor'> | 'nomeReferencia', rotulo: string, placeholder?: string) => (
+    <Campo label={rotulo + (k !== 'nomeReferencia' ? ' *' : '')} erro={k !== 'nomeReferencia' ? erros[k] : undefined}>
+      <input className={controle} value={extra[k]} onChange={set(k)} placeholder={placeholder}
+        aria-required={k !== 'nomeReferencia'} />
+    </Campo>
   );
+
+  const avisos = Object.values(erros).filter(Boolean);
 
   return (
     <Painel>
@@ -243,28 +285,45 @@ function Pagamentos({ ordem, podePagar, enviando, executar }: { ordem: OrdemDePe
               <Badge>{p.tipoPagamento}</Badge> {formatarMoeda(p.valor)}
               {p.nomeReferencia && <small className="text-suave">· {p.nomeReferencia}</small>}
               <small className="ml-auto text-suave">{formatarData(p.dataCadastro)}</small>
+              {podeExcluir && (
+                <Botao variante="perigo" tamanho="pequeno" disabled={enviando} onClick={() => excluir(p)}
+                  aria-label={`Excluir pagamento de ${formatarMoeda(p.valor)}`}>Excluir</Botao>
+              )}
             </li>
           ))}
         </ul>
       )}
+      {podeExcluir && ordem.pagamentos.length > 0 && (
+        <p className={cx(dica, 'mb-0')}>Registrou algo errado? Exclua o pagamento e registre de novo (permitido até o envio do pedido).</p>
+      )}
       {podePagar && (
-        <form onSubmit={pagar} className={subForm}>
-          <h4>Registrar pagamento</h4>
+        <form onSubmit={pagar} className={subForm} noValidate>
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h4 className="m-0">Registrar pagamento</h4>
+            <span className="rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-sm text-laranja">
+              Falta pagar <strong className="text-base">{formatarMoeda(ordem.valorRestante)}</strong>
+            </span>
+          </div>
+          {avisos.length > 0 && (
+            <div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-vermelho" role="alert">
+              Preencha os campos obrigatórios: {avisos.join(' · ')}.
+            </div>
+          )}
           <div className={linhaForm}>
             <Campo label="Forma de pagamento">
-              <select className={controle} value={tipo} onChange={(e) => setTipo(e.target.value as TipoPagamento)}>
+              <select className={controle} value={tipo} onChange={(e) => { setTipo(e.target.value as TipoPagamento); setErros({}); }}>
                 <option value="PIX">PIX</option>
                 <option value="BOLETO">Boleto</option>
                 <option value="TRANSFERENCIA">Transferência</option>
               </select>
             </Campo>
-            <Campo label="Valor" dica={`Restante: ${formatarMoeda(ordem.valorRestante)}`}>
-              <InputMoeda valor={valor} onValor={setValor} />
+            <Campo label="Valor *" erro={erros.valor}>
+              <InputMoeda valor={valor} onValor={(v) => { setValor(v); setErros((a) => ({ ...a, valor: undefined })); }} />
             </Campo>
           </div>
           <div className={linhaForm}>
-            {tipo === 'PIX' && campo('chavePix', 'Chave PIX')}
-            {tipo === 'BOLETO' && campo('boleto', 'Código do boleto')}
+            {tipo === 'PIX' && campo('chavePix', 'Chave PIX', 'CPF, CNPJ, e-mail, telefone ou chave aleatória')}
+            {tipo === 'BOLETO' && campo('boleto', 'Código do boleto', 'Linha digitável')}
             {tipo === 'TRANSFERENCIA' && (
               <>
                 {campo('codigoBanco', 'Banco', '001')}
