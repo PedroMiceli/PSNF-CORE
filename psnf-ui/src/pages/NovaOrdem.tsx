@@ -4,7 +4,7 @@ import { api } from '../api/endpoints';
 import type { Anuncio, Usuario } from '../api/types';
 import { useAcao, useApi } from '../api/useApi';
 import { formatarMoeda } from '../components/format';
-import { Campo, Carregando, ErroBox, Vazio } from '../components/ui';
+import { acoes, Botao, Campo, Carregando, controle, cx, dica, ErroBox, linhaForm, Painel, tabela, Vazio, Voltar } from '../components/ui';
 
 interface ItemForm {
   anuncioId: string;
@@ -92,11 +92,12 @@ export function NovaOrdem() {
 
   if (meus.loading) return <Carregando />;
 
+  const celula = cx(tabela.td, 'px-2 py-1.5');
   return (
-    <section className="formulario">
-      <Link to="/ordens" className="voltar">← Ordens de pedido</Link>
+    <section className="max-w-[960px]">
+      <Voltar to="/ordens">Ordens de pedido</Voltar>
       <h1>Gerar ordem de pedido</h1>
-      <p className="dica">
+      <p className={dica}>
         Após negociar com o comprador no chat, monte a ordem com as quantidades e os <strong>valores acordados</strong>.
         O valor unitário vem preenchido com a faixa de preço do anúncio, mas pode ser alterado.
       </p>
@@ -106,73 +107,84 @@ export function NovaOrdem() {
         <Vazio>Você não tem anúncios ativos. <Link to="/anuncios/novo">Cadastre um anúncio</Link> primeiro.</Vazio>
       ) : (
         <form onSubmit={criar}>
-          <div className="painel">
+          <Painel>
             <h3>Comprador</h3>
-            <div className="linha-form">
+            <div className={linhaForm}>
               <Campo label="Código do comprador" erro={acao.erro?.campos?.compradorId}>
-                <input value={compradorId} placeholder="Informe o código do comprador"
+                <input className={controle} value={compradorId} placeholder="Informe o código do comprador"
                   onChange={(e) => { setCompradorId(e.target.value); setComprador(null); }} />
               </Campo>
-              <button type="button" className="btn pequeno" disabled={!compradorId.trim() || verificacao.enviando}
-                onClick={verificarComprador}>Verificar</button>
+              <Botao tamanho="pequeno" className="mb-3" disabled={!compradorId.trim() || verificacao.enviando}
+                onClick={verificarComprador}>Verificar</Botao>
             </div>
-            {comprador && <p className="ok">✔ {comprador.nome} — {comprador.email}</p>}
-            {verificacao.erro && <p className="campo-msg">{verificacao.erro.message}</p>}
-          </div>
+            {comprador && <p className="font-semibold text-verde">✔ {comprador.nome} — {comprador.email}</p>}
+            {verificacao.erro && <p className="text-xs text-vermelho">{verificacao.erro.message}</p>}
+          </Painel>
 
-          <div className="painel">
+          <Painel>
             <h3>Itens</h3>
-            <table className="tabela tabela-form">
-              <thead>
-                <tr><th>Anúncio</th><th>Variação</th><th>Quantidade</th><th>Valor unitário (R$)</th><th>Subtotal</th><th></th></tr>
-              </thead>
-              <tbody>
-                {itens.map((it, i) => {
-                  const anuncio = porId(it.anuncioId);
-                  return (
-                    <tr key={i}>
-                      <td>
-                        <select value={it.anuncioId} onChange={(e) => atualizar(i, 'anuncioId', e.target.value)}>
-                          <option value="">Selecione...</option>
-                          {ativos.map((a) => <option key={a.id} value={a.id}>{a.titulo}</option>)}
-                        </select>
-                      </td>
-                      <td>
-                        <select value={it.variacaoId} disabled={!anuncio?.variacoes.length} onChange={(e) => atualizar(i, 'variacaoId', e.target.value)}>
-                          <option value="">{anuncio?.variacoes.length ? 'Sem variação' : '—'}</option>
-                          {anuncio?.variacoes.map((v) => <option key={v.id} value={v.id}>{v.variacao}</option>)}
-                        </select>
-                      </td>
-                      <td><input type="number" min={1} value={it.quantidade} onChange={(e) => atualizar(i, 'quantidade', e.target.value)} /></td>
-                      <td><input type="number" step="0.01" min={0} value={it.valorUnidade} onChange={(e) => atualizar(i, 'valorUnidade', e.target.value)} /></td>
-                      <td className="num">{formatarMoeda((Number(it.quantidade) || 0) * (Number(it.valorUnidade) || 0))}</td>
-                      <td>
-                        <button type="button" className="btn pequeno perigo" disabled={itens.length === 1}
-                          onClick={() => setItens(itens.filter((_, j) => j !== i))}>Remover</button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-              <tfoot>
-                <tr>
-                  <td colSpan={4}>
-                    <button type="button" className="btn pequeno" onClick={() => setItens([...itens, novoItem()])}>+ Adicionar produto</button>
-                  </td>
-                  <td className="num total">{formatarMoeda(total)}</td>
-                  <td></td>
-                </tr>
-              </tfoot>
-            </table>
+            <div className="overflow-x-auto">
+              <table className={tabela.tabela}>
+                <thead>
+                  <tr>
+                    {['Anúncio', 'Variação', 'Quantidade', 'Valor unitário (R$)', 'Subtotal', ''].map((t, i) => <th key={i} className={tabela.th}>{t}</th>)}
+                  </tr>
+                </thead>
+                <tbody>
+                  {itens.map((it, i) => {
+                    const anuncio = porId(it.anuncioId);
+                    return (
+                      <tr key={i}>
+                        <td className={celula}>
+                          <select className={cx(controle, 'min-w-[220px]')} value={it.anuncioId} onChange={(e) => atualizar(i, 'anuncioId', e.target.value)}>
+                            <option value="">Selecione...</option>
+                            {ativos.map((a) => <option key={a.id} value={a.id}>{a.titulo}</option>)}
+                          </select>
+                        </td>
+                        <td className={celula}>
+                          <select className={cx(controle, 'min-w-[150px]')} value={it.variacaoId} disabled={!anuncio?.variacoes.length}
+                            onChange={(e) => atualizar(i, 'variacaoId', e.target.value)}>
+                            <option value="">{anuncio?.variacoes.length ? 'Sem variação' : '—'}</option>
+                            {anuncio?.variacoes.map((v) => <option key={v.id} value={v.id}>{v.variacao}</option>)}
+                          </select>
+                        </td>
+                        <td className={celula}>
+                          <input className={cx(controle, 'min-w-[90px]')} type="number" min={1} value={it.quantidade}
+                            onChange={(e) => atualizar(i, 'quantidade', e.target.value)} />
+                        </td>
+                        <td className={celula}>
+                          <input className={cx(controle, 'min-w-[90px]')} type="number" step="0.01" min={0} value={it.valorUnidade}
+                            onChange={(e) => atualizar(i, 'valorUnidade', e.target.value)} />
+                        </td>
+                        <td className={cx(celula, tabela.num)}>{formatarMoeda((Number(it.quantidade) || 0) * (Number(it.valorUnidade) || 0))}</td>
+                        <td className={celula}>
+                          <Botao variante="perigo" tamanho="pequeno" disabled={itens.length === 1}
+                            onClick={() => setItens(itens.filter((_, j) => j !== i))}>Remover</Botao>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td colSpan={4} className={celula}>
+                      <Botao tamanho="pequeno" onClick={() => setItens([...itens, novoItem()])}>+ Adicionar produto</Botao>
+                    </td>
+                    <td className={cx(celula, tabela.num, 'text-[1.05rem] font-extrabold')}>{formatarMoeda(total)}</td>
+                    <td className={celula}></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
             {acao.erro?.campos && Object.keys(acao.erro.campos).some((k) => k.startsWith('itens')) && (
-              <p className="campo-msg">Revise os itens: anúncio, quantidade e valor unitário são obrigatórios.</p>
+              <p className="mt-2 text-xs text-vermelho">Revise os itens: anúncio, quantidade e valor unitário são obrigatórios.</p>
             )}
-          </div>
+          </Painel>
 
-          <div className="acoes">
-            <button type="submit" className="btn primario" disabled={acao.enviando}>
+          <div className={acoes}>
+            <Botao type="submit" variante="primario" disabled={acao.enviando}>
               {acao.enviando ? 'Enviando...' : 'Enviar para o comprador'}
-            </button>
+            </Botao>
           </div>
         </form>
       )}

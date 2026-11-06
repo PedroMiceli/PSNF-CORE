@@ -2,6 +2,7 @@ import { useRef, useState, type DragEvent } from 'react';
 import { ApiError } from '../api/client';
 import { api } from '../api/endpoints';
 import type { ArquivoEnviado } from '../api/types';
+import { cx } from './ui';
 
 export const ACEITA_IMAGENS = 'image/jpeg,image/png,image/webp,image/gif';
 export const ACEITA_DOCUMENTOS = 'application/pdf,application/xml,text/xml,.xml';
@@ -49,9 +50,14 @@ export function UploadArquivo({ accept, multiple, rotulo = 'Escolher arquivo', c
   };
 
   return (
-    <div className="upload">
+    <div className="mt-1.5 mb-3">
       <div
-        className={`upload-area ${compacto ? 'compacto' : ''} ${arrastando ? 'arrastando' : ''}`}
+        className={cx(
+          'cursor-pointer rounded-card border-2 border-dashed border-slate-300 bg-slate-50 text-center text-suave transition-colors',
+          'hover:border-primaria hover:bg-blue-50 focus:border-primaria focus:bg-blue-50 focus:outline-none',
+          compacto ? 'inline-block px-3.5 py-2 text-sm' : 'p-5',
+          arrastando && 'border-primaria bg-blue-100',
+        )}
         onClick={() => input.current?.click()}
         onDragOver={(e) => { e.preventDefault(); setArrastando(true); }}
         onDragLeave={() => setArrastando(false)}
@@ -63,11 +69,11 @@ export function UploadArquivo({ accept, multiple, rotulo = 'Escolher arquivo', c
         {enviando > 0 ? (
           <span>⏳ Enviando {enviando} arquivo(s)...</span>
         ) : (
-          <span>📎 {rotulo}{!compacto && <small> ou arraste aqui</small>}</span>
+          <span>📎 {rotulo}{!compacto && <small className="ml-1"> ou arraste aqui</small>}</span>
         )}
         <input ref={input} type="file" accept={accept} multiple={multiple} hidden onChange={(e) => void enviar(e.target.files)} />
       </div>
-      {erros.map((e) => <p key={e} className="campo-msg">{e}</p>)}
+      {erros.map((e) => <p key={e} className="text-xs text-vermelho">{e}</p>)}
     </div>
   );
 }
