@@ -48,7 +48,7 @@ class OrdemDePedidoTest {
     @Test
     void calculaValorTotal() {
         assertEquals(new BigDecimal("100.00"), ordem.getValorTotal());
-        assertEquals(EnumStatusOrdemDePedido.AGUARDANDO_PAGAMENTO, ordem.getStatus());
+        assertEquals(EnumStatusOrdemDePedido.AGUARDANDO_CONFIRMACAO, ordem.getStatus());
     }
 
     @Test
@@ -57,45 +57,91 @@ class OrdemDePedidoTest {
                 List.of(ItemPedido.criar(UUID.randomUUID(), "X", null, 1, BigDecimal.ONE))));
     }
 
+    /** aceita a ordem e cadastra a forma de pagamento (já salva, com id) cobrindo o total */
+    private Pagamento aceitarECadastrarTudo() {
+        ordem.aceitar(comprador.getId());
+        Pagamento p = pixSalvo("100.00");
+        ordem.registrarPagamento(vendedor.getId(), p);
+        return p;
+    }
+
+    @Test
+    void comecaAguardandoConfirmacaoDoComprador() {
+        assertEquals(EnumStatusOrdemDePedido.AGUARDANDO_CONFIRMACAO, ordem.getStatus());
+        // antes do aceite, o vendedor não cadastra pagamentos
+        assertThrows(RegraDeNegocioException.class, () -> ordem.registrarPagamento(vendedor.getId(), pix("10.00")));
+        assertThrows(AcessoNegadoException.class, () -> ordem.aceitar(vendedor.getId()));
+        ordem.aceitar(comprador.getId());
+        assertEquals(EnumStatusOrdemDePedido.ACEITO, ordem.getStatus());
+        assertThrows(RegraDeNegocioException.class, () -> ordem.aceitar(comprador.getId()));
+    }
+
     @Test
     void fluxoCompletoAteEntrega() {
-        ordem.registrarPagamento(comprador.getId(), pix("60.00"));
+        ordem.aceitar(comprador.getId());
+        Pagamento pix = pixSalvo("60.00");
+        Pagamento boleto = Pagamento.restaurar(UUID.randomUUID(), LocalDateTime.now(), null, null, EnumTipoPagamento.BOLETO,
+                new BigDecimal("40.00"), null, null, null, null, null, "34191.79001", LocalDate.now().plusDays(10));
+        ordem.registrarPagamento(vendedor.getId(), pix);
+        assertEquals(EnumStatusOrdemDePedido.ACEITO, ordem.getStatus()); // ainda falta cadastrar 40
+        ordem.registrarPagamento(vendedor.getId(), boleto);
         assertEquals(EnumStatusOrdemDePedido.AGUARDANDO_PAGAMENTO, ordem.getStatus());
+        assertEquals(BigDecimal.ZERO.compareTo(ordem.getValorRestante()), 0);
+        assertEquals(BigDecimal.ZERO.compareTo(ordem.getValorPago()), 0);
 
-        ordem.registrarPagamento(comprador.getId(), pix("40.00"));
+        ordem.anexarComprovante(comprador.getId(), pix.getId(), "/arquivos/comprovante-pix.pdf");
+        assertEquals(EnumStatusOrdemDePedido.AGUARDANDO_PAGAMENTO, ordem.getStatus()); // falta o do boleto
+        assertEquals(new BigDecimal("60.00"), ordem.getValorPago());
+        ordem.anexarComprovante(comprador.getId(), boleto.getId(), "/arquivos/comprovante-boleto.png");
         assertEquals(EnumStatusOrdemDePedido.PAGO, ordem.getStatus());
 
         ordem.adicionarNotaFiscal(vendedor.getId(), NotaFiscal.criar("nf.pdf"));
         ordem.enviar(vendedor.getId(), LocalDate.now().plusDays(3));
         assertEquals(EnumStatusOrdemDePedido.ENVIADO, ordem.getStatus());
-
         ordem.confirmarEntrega(comprador.getId());
         assertEquals(EnumStatusOrdemDePedido.ENTREGUE, ordem.getStatus());
-        assertEquals(1, ordem.getNotasFiscais().size());
     }
 
     @Test
     void naoAceitaPagamentoMaiorQueRestante() {
-        assertThrows(RegraDeNegocioException.class, () -> ordem.registrarPagamento(comprador.getId(), pix("100.01")));
+        ordem.aceitar(comprador.getId());
+        assertThrows(RegraDeNegocioException.class, () -> ordem.registrarPagamento(vendedor.getId(), pix("100.01")));
     }
 
     @Test
-    void apenasCompradorPagaEApenasVendedorEnvia() {
-        assertThrows(AcessoNegadoException.class, () -> ordem.registrarPagamento(vendedor.getId(), pix("10")));
-        ordem.registrarPagamento(comprador.getId(), pix("100.00"));
+    void vendedorCadastraPagamentoECompradorAnexaComprovante() {
+        ordem.aceitar(comprador.getId());
+        assertThrows(AcessoNegadoException.class, () -> ordem.registrarPagamento(comprador.getId(), pix("10")));
+        Pagamento p = aceitarDepois();
+        assertThrows(AcessoNegadoException.class, () -> ordem.anexarComprovante(vendedor.getId(), p.getId(), "/arquivos/x.pdf"));
+        assertThrows(IllegalArgumentException.class, () -> ordem.anexarComprovante(comprador.getId(), p.getId(), " "));
         assertThrows(AcessoNegadoException.class, () -> ordem.enviar(comprador.getId(), null));
     }
 
+    private Pagamento aceitarDepois() {
+        Pagamento p = pixSalvo("100.00");
+        ordem.registrarPagamento(vendedor.getId(), p);
+        return p;
+    }
+
     @Test
-    void naoEnviaSemPagamento() {
+    void naoEnviaSemComprovante() {
+        aceitarECadastrarTudo();
         assertThrows(RegraDeNegocioException.class, () -> ordem.enviar(vendedor.getId(), null));
     }
 
     @Test
     void naoCancelaDepoisDeEnviada() {
-        ordem.registrarPagamento(comprador.getId(), pix("100.00"));
+        Pagamento p = aceitarECadastrarTudo();
+        ordem.anexarComprovante(comprador.getId(), p.getId(), "/arquivos/c.pdf");
         ordem.enviar(vendedor.getId(), null);
         assertThrows(RegraDeNegocioException.class, () -> ordem.cancelar(comprador.getId()));
+    }
+
+    @Test
+    void compradorPodeCancelarEmVezDeAceitar() {
+        ordem.cancelar(comprador.getId());
+        assertEquals(EnumStatusOrdemDePedido.CANCELADO, ordem.getStatus());
     }
 
     @Test
@@ -119,25 +165,24 @@ class OrdemDePedidoTest {
     }
 
     @Test
-    void compradorExcluiPagamentoFeitoPorEngano() {
-        Pagamento errado = pixSalvo("100.00");
-        ordem.registrarPagamento(comprador.getId(), errado);
-        assertEquals(EnumStatusOrdemDePedido.PAGO, ordem.getStatus());
-
-        assertThrows(AcessoNegadoException.class, () -> ordem.removerPagamento(vendedor.getId(), errado.getId()));
-        ordem.removerPagamento(comprador.getId(), errado.getId());
+    void vendedorExcluiFormaDePagamentoSemComprovante() {
+        Pagamento errado = aceitarECadastrarTudo();
+        assertEquals(EnumStatusOrdemDePedido.AGUARDANDO_PAGAMENTO, ordem.getStatus());
+        assertThrows(AcessoNegadoException.class, () -> ordem.removerPagamento(comprador.getId(), errado.getId()));
+        ordem.removerPagamento(vendedor.getId(), errado.getId());
         assertTrue(ordem.getPagamentos().isEmpty());
         assertEquals(new BigDecimal("100.00"), ordem.getValorRestante());
-        assertEquals(EnumStatusOrdemDePedido.AGUARDANDO_PAGAMENTO, ordem.getStatus()); // volta a aguardar
-        assertThrows(PagamentoNaoEncontradoException.class, () -> ordem.removerPagamento(comprador.getId(), errado.getId()));
+        assertEquals(EnumStatusOrdemDePedido.ACEITO, ordem.getStatus()); // volta a cadastrar
+        assertThrows(PagamentoNaoEncontradoException.class, () -> ordem.removerPagamento(vendedor.getId(), errado.getId()));
     }
 
     @Test
-    void naoExcluiPagamentoDepoisDoEnvio() {
-        Pagamento p = pixSalvo("100.00");
-        ordem.registrarPagamento(comprador.getId(), p);
-        ordem.enviar(vendedor.getId(), null);
-        assertThrows(RegraDeNegocioException.class, () -> ordem.removerPagamento(comprador.getId(), p.getId()));
+    void naoExcluiPagamentoComComprovante() {
+        ordem.aceitar(comprador.getId());
+        Pagamento p = pixSalvo("50.00");
+        ordem.registrarPagamento(vendedor.getId(), p);
+        ordem.anexarComprovante(comprador.getId(), p.getId(), "/arquivos/c.pdf");
+        assertThrows(RegraDeNegocioException.class, () -> ordem.removerPagamento(vendedor.getId(), p.getId()));
     }
 
     @Test

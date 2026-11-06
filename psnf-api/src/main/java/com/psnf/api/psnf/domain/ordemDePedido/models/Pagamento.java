@@ -20,6 +20,9 @@ public class Pagamento extends BaseDomain {
     private final String boleto;
     /** data a que o pagamento se refere (ex.: quando foi ou será pago); informada por quem registra */
     private final LocalDate dataReferencia;
+    /** comprovante anexado pelo comprador (caminho do arquivo); null enquanto não pagou */
+    private String comprovante;
+    private LocalDateTime dataComprovante;
 
     private Pagamento(UUID id, LocalDateTime dataCadastro, LocalDateTime dataAlteracao, LocalDateTime dataExcluido,
                       EnumTipoPagamento tipoPagamento, BigDecimal valor, String agencia, String codigoBanco, String conta,
@@ -73,11 +76,35 @@ public class Pagamento extends BaseDomain {
 
     public static Pagamento restaurar(UUID id, LocalDateTime dataCadastro, LocalDateTime dataAlteracao, LocalDateTime dataExcluido,
                                       EnumTipoPagamento tipoPagamento, BigDecimal valor, String agencia, String codigoBanco, String conta,
+                                      String nomeReferencia, String chavePix, String boleto, LocalDate dataReferencia,
+                                      String comprovante, LocalDateTime dataComprovante) {
+        Pagamento p = restaurar(id, dataCadastro, dataAlteracao, dataExcluido, tipoPagamento, valor, agencia, codigoBanco, conta,
+                nomeReferencia, chavePix, boleto, dataReferencia);
+        p.comprovante = comprovante;
+        p.dataComprovante = dataComprovante;
+        return p;
+    }
+
+    public static Pagamento restaurar(UUID id, LocalDateTime dataCadastro, LocalDateTime dataAlteracao, LocalDateTime dataExcluido,
+                                      EnumTipoPagamento tipoPagamento, BigDecimal valor, String agencia, String codigoBanco, String conta,
                                       String nomeReferencia, String chavePix, String boleto, LocalDate dataReferencia) {
         // pagamentos registrados antes deste campo: usa a data em que foram registrados
         LocalDate data = dataReferencia != null ? dataReferencia : dataCadastro == null ? null : dataCadastro.toLocalDate();
         return new Pagamento(id, dataCadastro, dataAlteracao, dataExcluido, tipoPagamento, valor, agencia, codigoBanco, conta, nomeReferencia,
                 chavePix, boleto, data);
+    }
+
+    /** O comprador anexa (ou troca) o comprovante deste pagamento. */
+    void anexarComprovante(String caminho) {
+        if (caminho == null || caminho.isBlank()) {
+            throw new IllegalArgumentException("Envie o arquivo do comprovante");
+        }
+        this.comprovante = caminho.strip();
+        this.dataComprovante = LocalDateTime.now();
+    }
+
+    public boolean temComprovante() {
+        return comprovante != null && !comprovante.isBlank();
     }
 
     private static void exigir(String valor, String mensagem) {
@@ -95,4 +122,6 @@ public class Pagamento extends BaseDomain {
     public String getChavePix() { return chavePix; }
     public String getBoleto() { return boleto; }
     public LocalDate getDataReferencia() { return dataReferencia; }
+    public String getComprovante() { return comprovante; }
+    public LocalDateTime getDataComprovante() { return dataComprovante; }
 }

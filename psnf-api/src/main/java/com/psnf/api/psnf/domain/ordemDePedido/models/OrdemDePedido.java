@@ -20,7 +20,7 @@ import static com.psnf.api.psnf.domain.ordemDePedido.models.enums.EnumStatusOrde
  * Aggregate root da ordem de pedido. Itens, pagamentos, notas fiscais e mensagens de incidente
  * pertencem à ordem e só são alterados através dela.
  *
- * Fluxo de status: AGUARDANDO_PAGAMENTO -> PAGO -> ENVIADO -> ENTREGUE
+ * Fluxo de status: AGUARDANDO_CONFIRMACAO -> ACEITO -> AGUARDANDO_PAGAMENTO -> PAGO -> ENVIADO -> ENTREGUE
  *                  AGUARDANDO_PAGAMENTO | PAGO -> CANCELADO
  */
 public class OrdemDePedido extends BaseDomain {
@@ -58,7 +58,7 @@ public class OrdemDePedido extends BaseDomain {
         if (itens == null || itens.isEmpty()) {
             throw new RegraDeNegocioException("A ordem de pedido precisa de ao menos um item");
         }
-        return new OrdemDePedido(null, LocalDateTime.now(), null, null, codigo, null, AGUARDANDO_PAGAMENTO, comprador, vendedor, itens, List.of(), List.of(), List.of());
+        return new OrdemDePedido(null, LocalDateTime.now(), null, null, codigo, null, AGUARDANDO_CONFIRMACAO, comprador, vendedor, itens, List.of(), List.of(), List.of());
     }
 
     public static OrdemDePedido restaurar(UUID id, LocalDateTime dataCadastro, LocalDateTime dataAlteracao, LocalDateTime dataExcluido, String codigo, LocalDate previsaoDeEntrega, EnumStatusOrdemDePedido status, Usuario comprador, Usuario vendedor, List<ItemPedido> itens, List<Pagamento> pagamentos, List<MensagemIncidente> mensagensIncidente, List<NotaFiscal> notasFiscais) {
@@ -100,34 +100,68 @@ public class OrdemDePedido extends BaseDomain {
 
     /******************************************* REGRAS *******************************************/
 
-    public void registrarPagamento(UUID usuarioId, Pagamento pagamento) {
+    /** O comprador conferiu produtos, quantidades e valores e aceita a ordem. */
+    public void aceitar(UUID usuarioId) {
         garantirComprador(usuarioId);
-        garantirStatus(AGUARDANDO_PAGAMENTO);
+        garantirStatus(AGUARDANDO_CONFIRMACAO);
+        status = ACEITO;
+    }
+
+    /**
+     * O VENDEDOR cadastra uma forma de pagamento combinada com o comprador (ex.: parte no PIX, parte no boleto),
+     * com os dados para o comprador pagar. Quando as formas cobrem o valor total, a ordem passa a aguardar pagamento.
+     */
+    public void registrarPagamento(UUID usuarioId, Pagamento pagamento) {
+        garantirVendedor(usuarioId);
+        if (status == AGUARDANDO_CONFIRMACAO) {
+            throw new RegraDeNegocioException("Aguarde o comprador aceitar a ordem para cadastrar as formas de pagamento");
+        }
+        garantirStatus(ACEITO);
         if (pagamento.getValor().compareTo(getValorRestante()) > 0) {
             throw new RegraDeNegocioException("Valor do pagamento (" + pagamento.getValor() + ") maior que o valor restante (" + getValorRestante() + ")");
         }
         pagamentos.add(pagamento);
         if (getValorRestante().compareTo(BigDecimal.ZERO) == 0) {
-            status = PAGO;
+            status = AGUARDANDO_PAGAMENTO;
         }
     }
 
     /**
-     * O comprador exclui um pagamento registrado por engano. Só antes do envio: se a ordem já estava
-     * PAGA, ela volta a aguardar pagamento.
+     * O vendedor exclui uma forma de pagamento cadastrada por engano, desde que o comprador ainda não tenha
+     * anexado o comprovante. Se a ordem já aguardava pagamento, volta para ACEITO (falta valor a cadastrar).
      */
     public Pagamento removerPagamento(UUID usuarioId, UUID pagamentoId) {
-        garantirComprador(usuarioId);
-        if (status != AGUARDANDO_PAGAMENTO && status != PAGO) {
-            throw new RegraDeNegocioException("Pagamentos só podem ser excluídos antes do envio do pedido (status atual: " + status + ")");
+        garantirVendedor(usuarioId);
+        if (status != ACEITO && status != AGUARDANDO_PAGAMENTO) {
+            throw new RegraDeNegocioException("Formas de pagamento só podem ser excluídas antes do pagamento (status atual: " + status + ")");
         }
-        Pagamento pagamento = pagamentos.stream().filter(p -> p.getId() != null && p.getId().equals(pagamentoId)).findFirst()
-                .orElseThrow(() -> new PagamentoNaoEncontradoException(pagamentoId));
+        Pagamento pagamento = buscarPagamento(pagamentoId);
+        if (pagamento.temComprovante()) {
+            throw new RegraDeNegocioException("Este pagamento já tem comprovante anexado pelo comprador e não pode ser excluído");
+        }
         pagamentos.remove(pagamento);
-        if (status == PAGO) {
-            status = AGUARDANDO_PAGAMENTO;
-        }
+        status = ACEITO;
         return pagamento;
+    }
+
+    /**
+     * O COMPRADOR anexa o comprovante de um pagamento (ou troca o que enviou). Quando todos os pagamentos
+     * têm comprovante, a ordem fica PAGA e o vendedor pode despachar.
+     */
+    public void anexarComprovante(UUID usuarioId, UUID pagamentoId, String caminho) {
+        garantirComprador(usuarioId);
+        if (status != ACEITO && status != AGUARDANDO_PAGAMENTO && status != PAGO) {
+            throw new RegraDeNegocioException("Comprovantes só podem ser anexados antes do envio do pedido (status atual: " + status + ")");
+        }
+        buscarPagamento(pagamentoId).anexarComprovante(caminho);
+        if (status == AGUARDANDO_PAGAMENTO && pagamentos.stream().allMatch(Pagamento::temComprovante)) {
+            status = PAGO;
+        }
+    }
+
+    private Pagamento buscarPagamento(UUID pagamentoId) {
+        return pagamentos.stream().filter(p -> p.getId() != null && p.getId().equals(pagamentoId)).findFirst()
+                .orElseThrow(() -> new PagamentoNaoEncontradoException(pagamentoId));
     }
 
     public void adicionarNotaFiscal(UUID usuarioId, NotaFiscal notaFiscal) {
@@ -154,7 +188,7 @@ public class OrdemDePedido extends BaseDomain {
 
     public void cancelar(UUID usuarioId) {
         garantirParticipante(usuarioId);
-        garantirStatus(AGUARDANDO_PAGAMENTO, PAGO);
+        garantirStatus(AGUARDANDO_CONFIRMACAO, ACEITO, AGUARDANDO_PAGAMENTO, PAGO);
         this.status = CANCELADO;
     }
 
@@ -169,12 +203,19 @@ public class OrdemDePedido extends BaseDomain {
         return itens.stream().map(ItemPedido::getSubtotal).reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
-    public BigDecimal getValorPago() {
+    /** soma das formas de pagamento cadastradas pelo vendedor */
+    public BigDecimal getValorCadastrado() {
         return pagamentos.stream().map(Pagamento::getValor).reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
+    /** soma dos pagamentos com comprovante anexado pelo comprador */
+    public BigDecimal getValorPago() {
+        return pagamentos.stream().filter(Pagamento::temComprovante).map(Pagamento::getValor).reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    /** valor que o vendedor ainda precisa distribuir em formas de pagamento */
     public BigDecimal getValorRestante() {
-        return getValorTotal().subtract(getValorPago());
+        return getValorTotal().subtract(getValorCadastrado());
     }
 
     private static <T> List<T> copia(List<T> lista) {

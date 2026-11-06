@@ -21,7 +21,11 @@ public record OrdemDePedidoResponse(
         UsuarioResumoResponse comprador,
         UsuarioResumoResponse vendedor,
         BigDecimal valorTotal,
+        /** soma das formas de pagamento cadastradas pelo vendedor */
+        BigDecimal valorCadastrado,
+        /** soma dos pagamentos com comprovante */
         BigDecimal valorPago,
+        /** valor que ainda falta o vendedor cadastrar em formas de pagamento */
         BigDecimal valorRestante,
         List<ItemResponse> itens,
         List<PagamentoResponse> pagamentos,
@@ -41,10 +45,12 @@ public record OrdemDePedidoResponse(
     /** Pagamento com todos os dados (chave PIX, boleto, dados bancários) para a tela de detalhes. */
     public record PagamentoResponse(UUID id, EnumTipoPagamento tipoPagamento, BigDecimal valor, String nomeReferencia,
                                     LocalDate dataReferencia, String chavePix, String boleto, String codigoBanco,
-                                    String agencia, String conta, LocalDateTime dataCadastro) {
+                                    String agencia, String conta, String comprovante, LocalDateTime dataComprovante,
+                                    LocalDateTime dataCadastro) {
         static PagamentoResponse from(Pagamento p) {
             return new PagamentoResponse(p.getId(), p.getTipoPagamento(), p.getValor(), p.getNomeReferencia(), p.getDataReferencia(),
-                    p.getChavePix(), p.getBoleto(), p.getCodigoBanco(), p.getAgencia(), p.getConta(), p.getDataCadastro());
+                    p.getChavePix(), p.getBoleto(), p.getCodigoBanco(), p.getAgencia(), p.getConta(), p.getComprovante(),
+                    p.getDataComprovante(), p.getDataCadastro());
         }
     }
 
@@ -70,6 +76,7 @@ public record OrdemDePedidoResponse(
                 UsuarioResumoResponse.from(ordem.getComprador()),
                 UsuarioResumoResponse.from(ordem.getVendedor()),
                 ordem.getValorTotal(),
+                ordem.getValorCadastrado(),
                 ordem.getValorPago(),
                 ordem.getValorRestante(),
                 ordem.getItens().stream().map(ItemResponse::from).toList(),

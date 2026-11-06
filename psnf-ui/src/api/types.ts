@@ -135,7 +135,7 @@ export interface AnuncioInput {
   caracteristicas?: Caracteristica[];
 }
 
-export type StatusOrdem = 'AGUARDANDO_PAGAMENTO' | 'PAGO' | 'ENVIADO' | 'ENTREGUE' | 'CANCELADO';
+export type StatusOrdem = 'AGUARDANDO_CONFIRMACAO' | 'ACEITO' | 'AGUARDANDO_PAGAMENTO' | 'PAGO' | 'ENVIADO' | 'ENTREGUE' | 'CANCELADO';
 export type TipoPagamento = 'PIX' | 'BOLETO' | 'TRANSFERENCIA';
 
 export interface ItemPedido {
@@ -161,6 +161,9 @@ export interface Pagamento {
   codigoBanco: string | null;
   agencia: string | null;
   conta: string | null;
+  /** comprovante anexado pelo comprador (caminho do arquivo) */
+  comprovante: string | null;
+  dataComprovante: string | null;
   /** quando foi registrado no sistema */
   dataCadastro: string;
 }
@@ -186,7 +189,11 @@ export interface OrdemDePedido {
   comprador: UsuarioResumo;
   vendedor: UsuarioResumo;
   valorTotal: number;
+  /** soma das formas de pagamento cadastradas pelo vendedor */
+  valorCadastrado: number;
+  /** soma dos pagamentos com comprovante */
   valorPago: number;
+  /** quanto falta o vendedor cadastrar em formas de pagamento */
   valorRestante: number;
   itens: ItemPedido[];
   pagamentos: Pagamento[];

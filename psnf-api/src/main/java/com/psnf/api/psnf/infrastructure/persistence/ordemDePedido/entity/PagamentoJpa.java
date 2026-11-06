@@ -9,6 +9,7 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "pagamento")
@@ -32,6 +33,10 @@ public class PagamentoJpa extends BaseEntity {
     private String boleto;
 
     private LocalDate dataReferencia;
+
+    /** comprovante anexado pelo comprador (caminho do arquivo) */
+    private String comprovante;
+    private LocalDateTime dataComprovante;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "ordem_de_pedido_id", nullable = false)

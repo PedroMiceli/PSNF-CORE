@@ -45,4 +45,12 @@ public class RegistrarPagamentoService implements RegistrarPagamentoUseCase {
         ordem.removerPagamento(usuarioId, pagamentoId);
         return ordemDePedidoRepositoryPort.save(ordem);
     }
+
+    @Override
+    @Transactional
+    public OrdemDePedido anexarComprovante(UUID ordemDePedidoId, UUID usuarioId, UUID pagamentoId, String caminho) {
+        OrdemDePedido ordem = ordemDePedidoRepositoryPort.buscarPorId(ordemDePedidoId);
+        ordem.anexarComprovante(usuarioId, pagamentoId, caminho);
+        return ordemDePedidoRepositoryPort.save(ordem);
+    }
 }
