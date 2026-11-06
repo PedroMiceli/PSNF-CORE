@@ -1,6 +1,9 @@
 package com.psnf.api.psnf.infrastructure.web.controller.anuncio.dto.request;
 
+import com.psnf.api.psnf.infrastructure.web.controller.anuncio.dto.CaracteristicaDto;
+import com.psnf.api.psnf.infrastructure.web.controller.anuncio.dto.InformacoesProdutoDto;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Size;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -19,5 +22,9 @@ public record AnuncioRequest(
         List<@Valid ValorRequest> valores,
         @NotEmpty(message = "É necessário informar ao menos uma imagem")
         List<@Valid ImagemAnuncioRequest> imagens,
-        List<@Valid VariacaoRequest> variacoes
+        List<@Valid VariacaoRequest> variacoes,
+        /* opcionais: informações complementares do produto e ficha técnica */
+        @Valid InformacoesProdutoDto informacoes,
+        @Size(max = 50, message = "A ficha técnica aceita no máximo 50 características")
+        List<@Valid CaracteristicaDto> caracteristicas
 ) {}

@@ -25,7 +25,7 @@ public class CadastrarAnuncioCommandMapper {
 
     public static List<Variacao> toVariacoes(List<CadastrarVariacaoAnuncioCommand> variacoes) {
         return variacoes.stream()
-                .map(v -> Variacao.criar(v.variacao()))
+                .map(v -> Variacao.criar(v.variacao(), v.sku(), v.gtin()))
                 .toList();
     }
 }

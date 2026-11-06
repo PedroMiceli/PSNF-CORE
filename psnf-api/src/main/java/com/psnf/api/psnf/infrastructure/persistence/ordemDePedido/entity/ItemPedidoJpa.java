@@ -1,6 +1,7 @@
 package com.psnf.api.psnf.infrastructure.persistence.ordemDePedido.entity;
 
 import com.psnf.api.psnf.infrastructure.persistence.anuncio.entity.jpa.AnuncioJpa;
+import com.psnf.api.psnf.infrastructure.persistence.anuncio.entity.jpa.InformacoesProdutoJpa;
 import com.psnf.api.psnf.infrastructure.persistence.shared.BaseEntity;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -30,6 +31,10 @@ public class ItemPedidoJpa extends BaseEntity {
     private String tituloAnuncio;
 
     private String variacao;
+
+    /** cópia das informações do produto no momento da compra (SKU, NCM, garantia...) */
+    @Embedded
+    private InformacoesProdutoJpa informacoes;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "anuncio_id", nullable = false)

@@ -1,6 +1,7 @@
 package com.psnf.api.psnf.application.ordemDePedido;
 
 import com.psnf.api.psnf.domain.anuncio.model.Anuncio;
+import com.psnf.api.psnf.domain.anuncio.model.Variacao;
 import com.psnf.api.psnf.domain.anuncio.port.out.AnuncioRepositoryPort;
 import com.psnf.api.psnf.domain.ordemDePedido.models.ItemPedido;
 import com.psnf.api.psnf.domain.ordemDePedido.models.OrdemDePedido;
@@ -57,16 +58,16 @@ public class SalvarOrdemDePedidoService implements CadastrarOrdemDePedidoUseCase
             throw new RegraDeNegocioException("O anúncio '" + anuncio.getTitulo() + "' não está ativo");
         }
 
-        String variacao = item.variacaoId() == null
-                ? null
-                : anuncio.buscarVariacao(item.variacaoId()).getVariacao();
+        Variacao variacao = item.variacaoId() == null ? null : anuncio.buscarVariacao(item.variacaoId());
 
         return ItemPedido.criar(
                 anuncio.getId(),
                 anuncio.getTitulo(),
-                variacao,
+                variacao == null ? null : variacao.getVariacao(),
                 item.quantidade(),
-                item.valorUnidade()
+                item.valorUnidade(),
+                // cópia das informações do produto (SKU, NCM, garantia...) para a ordem
+                anuncio.informacoesParaVenda(variacao)
         );
     }
 

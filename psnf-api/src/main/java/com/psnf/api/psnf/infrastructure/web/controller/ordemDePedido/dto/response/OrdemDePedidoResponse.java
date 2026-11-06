@@ -3,6 +3,7 @@ package com.psnf.api.psnf.infrastructure.web.controller.ordemDePedido.dto.respon
 import com.psnf.api.psnf.domain.ordemDePedido.models.*;
 import com.psnf.api.psnf.domain.ordemDePedido.models.enums.EnumStatusOrdemDePedido;
 import com.psnf.api.psnf.domain.ordemDePedido.models.enums.EnumTipoPagamento;
+import com.psnf.api.psnf.infrastructure.web.controller.anuncio.dto.InformacoesProdutoDto;
 import com.psnf.api.psnf.infrastructure.web.controller.usuario.dto.response.UsuarioResumoResponse;
 
 import java.math.BigDecimal;
@@ -28,11 +29,12 @@ public record OrdemDePedidoResponse(
         List<MensagemResponse> mensagensIncidente
 ) {
 
+    /** informacoes: cópia das informações do produto no momento da compra (para NF, garantia...) */
     public record ItemResponse(UUID id, UUID anuncioId, String tituloAnuncio, String variacao, int quantidade,
-                               BigDecimal valorUnidade, BigDecimal subtotal) {
+                               BigDecimal valorUnidade, BigDecimal subtotal, InformacoesProdutoDto informacoes) {
         static ItemResponse from(ItemPedido i) {
             return new ItemResponse(i.getId(), i.getAnuncioId(), i.getTituloAnuncio(), i.getVariacao(), i.getQuantidade(),
-                    i.getValorUnidade(), i.getSubtotal());
+                    i.getValorUnidade(), i.getSubtotal(), InformacoesProdutoDto.from(i.getInformacoes()));
         }
     }
 

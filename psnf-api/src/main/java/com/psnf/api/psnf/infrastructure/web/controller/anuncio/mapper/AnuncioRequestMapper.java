@@ -1,6 +1,9 @@
 package com.psnf.api.psnf.infrastructure.web.controller.anuncio.mapper;
 
+import com.psnf.api.psnf.domain.anuncio.model.Caracteristica;
+import com.psnf.api.psnf.domain.anuncio.model.InformacoesProduto;
 import com.psnf.api.psnf.domain.anuncio.port.in.command.AtualizarAnuncioCommand;
+import com.psnf.api.psnf.infrastructure.web.controller.anuncio.dto.CaracteristicaDto;
 import com.psnf.api.psnf.domain.anuncio.port.in.command.CadastrarAnuncioCommand;
 import com.psnf.api.psnf.domain.anuncio.port.in.command.CadastrarImagemAnuncioCommand;
 import com.psnf.api.psnf.domain.anuncio.port.in.command.CadastrarValorAnuncioCommand;
@@ -23,7 +26,9 @@ public class AnuncioRequestMapper {
                 request.categoriaId(),
                 valores(request),
                 imagens(request),
-                variacoes(request)
+                variacoes(request),
+                informacoes(request),
+                caracteristicas(request)
         );
     }
 
@@ -36,7 +41,9 @@ public class AnuncioRequestMapper {
                 request.categoriaId(),
                 valores(request),
                 imagens(request),
-                variacoes(request)
+                variacoes(request),
+                informacoes(request),
+                caracteristicas(request)
         );
     }
 
@@ -53,6 +60,15 @@ public class AnuncioRequestMapper {
         return request.variacoes().stream().map(AnuncioRequestMapper::toVariacaoCommand).toList();
     }
 
+    private static InformacoesProduto informacoes(AnuncioRequest request) {
+        return request.informacoes() == null ? InformacoesProduto.VAZIO : request.informacoes().toDomain();
+    }
+
+    private static List<Caracteristica> caracteristicas(AnuncioRequest request) {
+        if (request.caracteristicas() == null) return List.of();
+        return request.caracteristicas().stream().map(CaracteristicaDto::toDomain).toList();
+    }
+
     private static CadastrarValorAnuncioCommand toValorCommand(ValorRequest r) {
         return new CadastrarValorAnuncioCommand(r.valorUnidade(), r.quantidadeMinima());
     }
@@ -62,6 +78,6 @@ public class AnuncioRequestMapper {
     }
 
     private static CadastrarVariacaoAnuncioCommand toVariacaoCommand(VariacaoRequest r) {
-        return new CadastrarVariacaoAnuncioCommand(r.variacao());
+        return new CadastrarVariacaoAnuncioCommand(r.variacao(), r.sku(), r.gtin());
     }
 }

@@ -15,7 +15,7 @@ import java.util.List;
  * Relações:
  *  - N:1 Categoria
  *  - N:1 Usuario (vendedor)
- *  - 1:N Valor / ImagemAnuncio / Variacao (dono do ciclo de vida: cascade + orphanRemoval)
+ *  - 1:N Valor / ImagemAnuncio / Variacao / Caracteristica (dono do ciclo de vida: cascade + orphanRemoval)
  */
 @Entity
 @Table(name = "anuncio")
@@ -49,4 +49,12 @@ public class AnuncioJpa extends BaseEntity {
 
     @OneToMany(mappedBy = "anuncio", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<VariacaoJpa> variacoes = new ArrayList<>();
+
+    /** informações complementares do produto (colunas opcionais na própria tabela anuncio) */
+    @Embedded
+    private InformacoesProdutoJpa informacoes;
+
+    @OneToMany(mappedBy = "anuncio", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("posicao ASC")
+    private List<CaracteristicaJpa> caracteristicas = new ArrayList<>();
 }

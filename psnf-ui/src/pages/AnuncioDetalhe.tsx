@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api/endpoints';
 import { useAcao, useApi } from '../api/useApi';
+import { DetalhesProduto } from '../components/DetalhesProduto';
 import { formatarMoeda } from '../components/format';
 import { acoes, Badge, BADGE_INATIVO, Botao, Carregando, chip, cx, dica, ErroBox, ImagemAnuncio, Voltar } from '../components/ui';
 import { useUsuario } from '../context/UsuarioContext';
@@ -56,7 +57,11 @@ export function AnuncioDetalhe() {
             <>
               <h4>Variações</h4>
               <div className="mb-5 flex flex-wrap gap-2">
-                {a.variacoes.map((v) => <span key={v.id} className={chip}>{v.variacao}</span>)}
+                {a.variacoes.map((v) => (
+                  <span key={v.id} className={chip} title={[v.sku && `SKU ${v.sku}`, v.gtin && `GTIN ${v.gtin}`].filter(Boolean).join(' · ') || undefined}>
+                    {v.variacao}
+                  </span>
+                ))}
               </div>
             </>
           )}
@@ -95,6 +100,8 @@ export function AnuncioDetalhe() {
 
           <h4>Descrição do produto</h4>
           <p className="leading-relaxed whitespace-pre-wrap">{a.descricao}</p>
+
+          <DetalhesProduto anuncio={a} />
         </div>
       </div>
     </section>

@@ -67,6 +67,45 @@ export interface Imagem {
 export interface Variacao {
   id: UUID;
   variacao: string;
+  sku?: string | null;
+  gtin?: string | null;
+}
+
+export type CondicaoProduto = 'NOVO' | 'USADO' | 'RECONDICIONADO';
+export type ResponsavelGarantia = 'FABRICANTE' | 'FORNECEDOR';
+
+/** Informações complementares do produto: todas opcionais; vão para o item da ordem na compra. */
+export interface InformacoesProduto {
+  sku?: string | null;
+  gtin?: string | null;
+  marca?: string | null;
+  modelo?: string | null;
+  condicao?: CondicaoProduto | null;
+  ncm?: string | null;
+  cest?: string | null;
+  /** origem da mercadoria (tabela da NF-e, 0 a 8) */
+  origem?: number | null;
+  unidadeComercial?: string | null;
+  quantidadePorEmbalagem?: number | null;
+  pesoLiquidoKg?: number | null;
+  pesoBrutoKg?: number | null;
+  comprimentoCm?: number | null;
+  larguraCm?: number | null;
+  alturaCm?: number | null;
+  garantiaMeses?: number | null;
+  garantiaResponsavel?: ResponsavelGarantia | null;
+  certificacoes?: string | null;
+}
+
+/** Linha da ficha técnica. */
+export interface Caracteristica {
+  nome: string;
+  valor: string;
+}
+
+export interface Ncm {
+  codigo: string;
+  descricao: string;
 }
 
 export interface Anuncio {
@@ -81,6 +120,8 @@ export interface Anuncio {
   valores: Valor[];
   imagens: Imagem[];
   variacoes: Variacao[];
+  informacoes: InformacoesProduto | null;
+  caracteristicas: Caracteristica[];
 }
 
 export interface AnuncioInput {
@@ -89,7 +130,9 @@ export interface AnuncioInput {
   categoriaId: UUID;
   valores: { valorUnidade: number; quantidadeMinima: number }[];
   imagens: { caminho: string; principal: boolean }[];
-  variacoes: { variacao: string }[];
+  variacoes: { variacao: string; sku?: string | null; gtin?: string | null }[];
+  informacoes?: InformacoesProduto | null;
+  caracteristicas?: Caracteristica[];
 }
 
 export type StatusOrdem = 'AGUARDANDO_PAGAMENTO' | 'PAGO' | 'ENVIADO' | 'ENTREGUE' | 'CANCELADO';
@@ -103,6 +146,8 @@ export interface ItemPedido {
   quantidade: number;
   valorUnidade: number;
   subtotal: number;
+  /** cópia das informações do produto no momento da compra */
+  informacoes: InformacoesProduto | null;
 }
 export interface Pagamento {
   id: UUID;

@@ -1,6 +1,7 @@
 package com.psnf.api.psnf.infrastructure.persistence.ordemDePedido.adapter.mapper;
 
 import com.psnf.api.psnf.domain.ordemDePedido.models.ItemPedido;
+import com.psnf.api.psnf.infrastructure.persistence.anuncio.adapter.mapper.InformacoesProdutoJpaMapper;
 import com.psnf.api.psnf.infrastructure.persistence.anuncio.entity.jpa.AnuncioJpa;
 import com.psnf.api.psnf.infrastructure.persistence.ordemDePedido.entity.ItemPedidoJpa;
 import com.psnf.api.psnf.infrastructure.persistence.ordemDePedido.entity.OrdemDePedidoJpa;
@@ -14,6 +15,7 @@ public class ItemPedidoJpaMapper {
         jpa.setValorUnidade(item.getValorUnidade());
         jpa.setTituloAnuncio(item.getTituloAnuncio());
         jpa.setVariacao(item.getVariacao());
+        jpa.setInformacoes(InformacoesProdutoJpaMapper.toEntity(item.getInformacoes()));
         jpa.setAnuncio(anuncio);
         jpa.setOrdemDePedido(ordemDePedido);
         return jpa;
@@ -29,7 +31,8 @@ public class ItemPedidoJpaMapper {
                 jpa.getTituloAnuncio(),
                 jpa.getVariacao(),
                 jpa.getQuantidade(),
-                jpa.getValorUnidade()
+                jpa.getValorUnidade(),
+                InformacoesProdutoJpaMapper.toDomain(jpa.getInformacoes())
         );
     }
 }

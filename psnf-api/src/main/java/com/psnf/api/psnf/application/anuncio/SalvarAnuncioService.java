@@ -40,6 +40,8 @@ public class SalvarAnuncioService implements SalvarAnuncioUseCase {
                 CadastrarAnuncioCommandMapper.toVariacoes(command.variacoes())
         );
 
+        anuncio.definirDetalhes(command.informacoes(), command.caracteristicas());
+
         return anuncioRepositoryPort.save(anuncio);
     }
 }

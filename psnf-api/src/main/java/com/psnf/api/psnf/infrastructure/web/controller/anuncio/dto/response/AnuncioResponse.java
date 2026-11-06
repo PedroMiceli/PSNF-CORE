@@ -4,6 +4,8 @@ import com.psnf.api.psnf.domain.anuncio.model.Anuncio;
 import com.psnf.api.psnf.domain.anuncio.model.ImagemAnuncio;
 import com.psnf.api.psnf.domain.anuncio.model.Valor;
 import com.psnf.api.psnf.domain.anuncio.model.Variacao;
+import com.psnf.api.psnf.infrastructure.web.controller.anuncio.dto.CaracteristicaDto;
+import com.psnf.api.psnf.infrastructure.web.controller.anuncio.dto.InformacoesProdutoDto;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -21,7 +23,9 @@ public record AnuncioResponse(
         LocalDateTime dataCadastro,
         List<ValorResponse> valores,
         List<ImagemResponse> imagens,
-        List<VariacaoResponse> variacoes
+        List<VariacaoResponse> variacoes,
+        InformacoesProdutoDto informacoes,
+        List<CaracteristicaDto> caracteristicas
 ) {
 
     public record ValorResponse(UUID id, BigDecimal valorUnidade, int quantidadeMinima) {
@@ -32,8 +36,8 @@ public record AnuncioResponse(
         static ImagemResponse from(ImagemAnuncio i) { return new ImagemResponse(i.getId(), i.getCaminho(), i.isPrincipal()); }
     }
 
-    public record VariacaoResponse(UUID id, String variacao) {
-        static VariacaoResponse from(Variacao v) { return new VariacaoResponse(v.getId(), v.getVariacao()); }
+    public record VariacaoResponse(UUID id, String variacao, String sku, String gtin) {
+        static VariacaoResponse from(Variacao v) { return new VariacaoResponse(v.getId(), v.getVariacao(), v.getSku(), v.getGtin()); }
     }
 
     public static AnuncioResponse from(Anuncio anuncio) {
@@ -48,7 +52,9 @@ public record AnuncioResponse(
                 anuncio.getDataCadastro(),
                 anuncio.getValores().stream().map(ValorResponse::from).toList(),
                 anuncio.getImagens().stream().map(ImagemResponse::from).toList(),
-                anuncio.getVariacoes().stream().map(VariacaoResponse::from).toList()
+                anuncio.getVariacoes().stream().map(VariacaoResponse::from).toList(),
+                InformacoesProdutoDto.from(anuncio.getInformacoes()),
+                anuncio.getCaracteristicas().stream().map(CaracteristicaDto::from).toList()
         );
     }
 }

@@ -4,6 +4,7 @@ import { urlArquivo } from '../api/client';
 import { api } from '../api/endpoints';
 import type { OrdemDePedido, StatusOrdem, TipoPagamento } from '../api/types';
 import { useAcao, useApi } from '../api/useApi';
+import { DadosNotaFiscal, resumoItem } from '../components/DadosNotaFiscal';
 import { formatarData, formatarMoeda, STATUS_LABEL } from '../components/format';
 import { ACEITA_DOCUMENTOS, ACEITA_IMAGENS, UploadArquivo } from '../components/UploadArquivo';
 import {
@@ -93,7 +94,10 @@ export function OrdemDetalhe() {
             <tbody>
               {o.itens.map((i) => (
                 <tr key={i.id}>
-                  <td className={tabela.td}><Link to={`/anuncios/${i.anuncioId}`}>{i.tituloAnuncio}</Link></td>
+                  <td className={tabela.td}>
+                    <Link to={`/anuncios/${i.anuncioId}`}>{i.tituloAnuncio}</Link>
+                    {resumoItem(i) && <small className="block text-xs text-suave">{resumoItem(i)}</small>}
+                  </td>
                   <td className={tabela.td}>{i.variacao ?? '—'}</td>
                   <td className={cx(tabela.td, tabela.num)}>{i.quantidade}</td>
                   <td className={cx(tabela.td, tabela.num)}>{formatarMoeda(i.valorUnidade)}</td>
@@ -110,6 +114,8 @@ export function OrdemDetalhe() {
           </table>
         </div>
       </Painel>
+
+      <DadosNotaFiscal ordem={o} aberto={souVendedor && ['PAGO', 'ENVIADO', 'ENTREGUE'].includes(o.status)} />
 
       <div className={grade2}>
         <Pagamentos ordem={o} podePagar={souComprador && o.status === 'AGUARDANDO_PAGAMENTO'} enviando={acao.enviando} executar={executar} />

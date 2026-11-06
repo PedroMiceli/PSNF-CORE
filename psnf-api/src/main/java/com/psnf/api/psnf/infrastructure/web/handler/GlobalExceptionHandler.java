@@ -3,7 +3,7 @@ package com.psnf.api.psnf.infrastructure.web.handler;
 import com.psnf.api.psnf.domain.shared.exception.AcessoNegadoException;
 import com.psnf.api.psnf.domain.shared.exception.RecursoNaoEncontradoException;
 import com.psnf.api.psnf.domain.shared.exception.RegraDeNegocioException;
-import com.psnf.api.psnf.domain.usuario.exception.ConsultaCepIndisponivelException;
+import com.psnf.api.psnf.domain.shared.exception.ServicoExternoIndisponivelException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessResourceFailureException;
@@ -15,6 +15,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
@@ -66,6 +67,11 @@ public class GlobalExceptionHandler {
         return erro(HttpStatus.BAD_REQUEST, "Requisição inválida: verifique o formato dos campos enviados");
     }
 
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<Map<String, String>> handleParametroAusente(MissingServletRequestParameterException ex) {
+        return erro(HttpStatus.BAD_REQUEST, "Informe o parâmetro '" + ex.getParameterName() + "'");
+    }
+
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<Map<String, String>> handleIntegridade(DataIntegrityViolationException ex) {
         logger.warn("Violação de integridade", ex);
@@ -94,8 +100,8 @@ public class GlobalExceptionHandler {
         return erro(HttpStatus.SERVICE_UNAVAILABLE, "Armazenamento de arquivos indisponível. O MinIO está rodando?");
     }
 
-    @ExceptionHandler(ConsultaCepIndisponivelException.class)
-    public ResponseEntity<Map<String, String>> handleCepIndisponivel(ConsultaCepIndisponivelException ex) {
+    @ExceptionHandler(ServicoExternoIndisponivelException.class)
+    public ResponseEntity<Map<String, String>> handleServicoExterno(ServicoExternoIndisponivelException ex) {
         return erro(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage());
     }
 
