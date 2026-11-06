@@ -154,6 +154,14 @@ export interface Pagamento {
   tipoPagamento: TipoPagamento;
   valor: number;
   nomeReferencia: string | null;
+  /** data do pagamento informada por quem registrou (yyyy-MM-dd) */
+  dataReferencia: string | null;
+  chavePix: string | null;
+  boleto: string | null;
+  codigoBanco: string | null;
+  agencia: string | null;
+  conta: string | null;
+  /** quando foi registrado no sistema */
   dataCadastro: string;
 }
 export interface NotaFiscal {
@@ -220,6 +228,8 @@ export interface PagamentoInput {
   nomeReferencia?: string;
   chavePix?: string;
   boleto?: string;
+  /** yyyy-MM-dd; se vazio, a API usa a data de hoje */
+  dataReferencia?: string;
 }
 
 /* ------------------------------------------------------------------ negociação (chat) */

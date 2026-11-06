@@ -4,6 +4,7 @@ import com.psnf.api.psnf.domain.ordemDePedido.models.enums.EnumTipoPagamento;
 import com.psnf.api.psnf.domain.shared.model.BaseDomain;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -17,10 +18,12 @@ public class Pagamento extends BaseDomain {
     private final String nomeReferencia;
     private final String chavePix;
     private final String boleto;
+    /** data a que o pagamento se refere (ex.: quando foi ou será pago); informada por quem registra */
+    private final LocalDate dataReferencia;
 
     private Pagamento(UUID id, LocalDateTime dataCadastro, LocalDateTime dataAlteracao, LocalDateTime dataExcluido,
                       EnumTipoPagamento tipoPagamento, BigDecimal valor, String agencia, String codigoBanco, String conta,
-                      String nomeReferencia, String chavePix, String boleto) {
+                      String nomeReferencia, String chavePix, String boleto, LocalDate dataReferencia) {
         super(id, dataCadastro, dataAlteracao, dataExcluido);
         this.tipoPagamento = tipoPagamento;
         this.valor = valor;
@@ -30,10 +33,17 @@ public class Pagamento extends BaseDomain {
         this.nomeReferencia = nomeReferencia;
         this.chavePix = chavePix;
         this.boleto = boleto;
+        this.dataReferencia = dataReferencia;
     }
 
     public static Pagamento criar(EnumTipoPagamento tipoPagamento, BigDecimal valor, String agencia, String codigoBanco, String conta,
                                   String nomeReferencia, String chavePix, String boleto) {
+        return criar(tipoPagamento, valor, agencia, codigoBanco, conta, nomeReferencia, chavePix, boleto, null);
+    }
+
+    /** @param dataReferencia data do pagamento; se não informada, é a data de hoje */
+    public static Pagamento criar(EnumTipoPagamento tipoPagamento, BigDecimal valor, String agencia, String codigoBanco, String conta,
+                                  String nomeReferencia, String chavePix, String boleto, LocalDate dataReferencia) {
         if (tipoPagamento == null) {
             throw new IllegalArgumentException("Tipo de pagamento é obrigatório");
         }
@@ -49,13 +59,25 @@ public class Pagamento extends BaseDomain {
                 exigir(conta, "Conta é obrigatória para transferência");
             }
         }
-        return new Pagamento(null, LocalDateTime.now(), null, null, tipoPagamento, valor, agencia, codigoBanco, conta, nomeReferencia, chavePix, boleto);
+        LocalDateTime agora = LocalDateTime.now();
+        return new Pagamento(null, agora, null, null, tipoPagamento, valor, agencia, codigoBanco, conta, nomeReferencia, chavePix, boleto,
+                dataReferencia != null ? dataReferencia : agora.toLocalDate());
     }
 
     public static Pagamento restaurar(UUID id, LocalDateTime dataCadastro, LocalDateTime dataAlteracao, LocalDateTime dataExcluido,
                                       EnumTipoPagamento tipoPagamento, BigDecimal valor, String agencia, String codigoBanco, String conta,
                                       String nomeReferencia, String chavePix, String boleto) {
-        return new Pagamento(id, dataCadastro, dataAlteracao, dataExcluido, tipoPagamento, valor, agencia, codigoBanco, conta, nomeReferencia, chavePix, boleto);
+        return restaurar(id, dataCadastro, dataAlteracao, dataExcluido, tipoPagamento, valor, agencia, codigoBanco, conta, nomeReferencia,
+                chavePix, boleto, null);
+    }
+
+    public static Pagamento restaurar(UUID id, LocalDateTime dataCadastro, LocalDateTime dataAlteracao, LocalDateTime dataExcluido,
+                                      EnumTipoPagamento tipoPagamento, BigDecimal valor, String agencia, String codigoBanco, String conta,
+                                      String nomeReferencia, String chavePix, String boleto, LocalDate dataReferencia) {
+        // pagamentos registrados antes deste campo: usa a data em que foram registrados
+        LocalDate data = dataReferencia != null ? dataReferencia : dataCadastro == null ? null : dataCadastro.toLocalDate();
+        return new Pagamento(id, dataCadastro, dataAlteracao, dataExcluido, tipoPagamento, valor, agencia, codigoBanco, conta, nomeReferencia,
+                chavePix, boleto, data);
     }
 
     private static void exigir(String valor, String mensagem) {
@@ -72,4 +94,5 @@ public class Pagamento extends BaseDomain {
     public String getNomeReferencia() { return nomeReferencia; }
     public String getChavePix() { return chavePix; }
     public String getBoleto() { return boleto; }
+    public LocalDate getDataReferencia() { return dataReferencia; }
 }

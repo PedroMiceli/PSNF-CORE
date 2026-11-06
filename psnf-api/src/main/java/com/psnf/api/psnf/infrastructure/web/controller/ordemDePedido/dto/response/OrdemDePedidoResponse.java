@@ -38,10 +38,13 @@ public record OrdemDePedidoResponse(
         }
     }
 
+    /** Pagamento com todos os dados (chave PIX, boleto, dados bancários) para a tela de detalhes. */
     public record PagamentoResponse(UUID id, EnumTipoPagamento tipoPagamento, BigDecimal valor, String nomeReferencia,
-                                    LocalDateTime dataCadastro) {
+                                    LocalDate dataReferencia, String chavePix, String boleto, String codigoBanco,
+                                    String agencia, String conta, LocalDateTime dataCadastro) {
         static PagamentoResponse from(Pagamento p) {
-            return new PagamentoResponse(p.getId(), p.getTipoPagamento(), p.getValor(), p.getNomeReferencia(), p.getDataCadastro());
+            return new PagamentoResponse(p.getId(), p.getTipoPagamento(), p.getValor(), p.getNomeReferencia(), p.getDataReferencia(),
+                    p.getChavePix(), p.getBoleto(), p.getCodigoBanco(), p.getAgencia(), p.getConta(), p.getDataCadastro());
         }
     }
 

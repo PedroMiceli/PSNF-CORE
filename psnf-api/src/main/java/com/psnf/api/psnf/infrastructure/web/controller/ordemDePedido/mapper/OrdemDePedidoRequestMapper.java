@@ -19,7 +19,7 @@ public class OrdemDePedidoRequestMapper {
 
     public static RegistrarPagamentoCommand toCommand(UUID ordemId, UUID usuarioId, PagamentoRequest r) {
         return new RegistrarPagamentoCommand(ordemId, usuarioId, r.tipoPagamento(), r.valor(), r.agencia(),
-                r.codigoBanco(), r.conta(), r.nomeReferencia(), r.chavePix(), r.boleto());
+                r.codigoBanco(), r.conta(), r.nomeReferencia(), r.chavePix(), r.boleto(), r.dataReferencia());
     }
 
     public static AdicionarNotaFiscalCommand toCommand(UUID ordemId, UUID usuarioId, NotaFiscalRequest r) {

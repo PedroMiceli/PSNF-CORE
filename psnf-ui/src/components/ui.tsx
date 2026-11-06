@@ -47,8 +47,9 @@ export function InputMoeda({ valor, onValor, className, ...props }: Omit<InputHT
   return (
     <input {...props} className={cx(controle, 'text-right', className)} inputMode="numeric" placeholder={props.placeholder ?? 'R$ 0,00'}
       value={texto} onChange={(e) => onValor(digitosParaValor(e.target.value))}
-      // o cursor fica sempre no fim: os dígitos entram pela direita
-      onFocus={(e) => { const el = e.currentTarget; requestAnimationFrame(() => el.setSelectionRange(el.value.length, el.value.length)); }} />
+      // os dígitos entram pela direita: depois do clique o cursor vai para o fim, a não ser que o
+      // usuário tenha selecionado o texto (para apagar tudo ou substituir)
+      onMouseUp={(e) => { const el = e.currentTarget; if (el.selectionStart === el.selectionEnd) el.setSelectionRange(el.value.length, el.value.length); }} />
   );
 }
 

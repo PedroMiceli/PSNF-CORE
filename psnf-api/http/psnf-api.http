@@ -491,12 +491,15 @@ X-Usuario-Id: {{compradorId}}
   "tipoPagamento": "PIX",
   "valor": 550.00,
   "chavePix": "financeiro@comprador.com",
-  "nomeReferencia": "Entrada"
+  "nomeReferencia": "Entrada",
+  "dataReferencia": "2026-11-10"
 }
 
 > {%
     client.test("continua AGUARDANDO_PAGAMENTO", () => client.assert(response.body.status === "AGUARDANDO_PAGAMENTO"));
     client.test("restante 2000", () => client.assert(response.body.valorRestante == 2000));
+    client.test("data de referência e chave PIX na resposta", () => client.assert(
+        response.body.pagamentos.some(p => p.dataReferencia === "2026-11-10" && p.chavePix === "financeiro@comprador.com")));
 %}
 
 ### 4.7 Comprador paga o restante via transferência -> status PAGO

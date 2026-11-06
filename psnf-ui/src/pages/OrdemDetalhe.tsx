@@ -1,10 +1,12 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { urlArquivo } from '../api/client';
 import { api } from '../api/endpoints';
-import type { OrdemDePedido, StatusOrdem, TipoPagamento } from '../api/types';
+import type { OrdemDePedido, Pagamento, StatusOrdem, TipoPagamento } from '../api/types';
 import { useAcao, useApi } from '../api/useApi';
+import { CampoCopiavel } from '../components/CampoCopiavel';
 import { DadosNotaFiscal, resumoItem } from '../components/DadosNotaFiscal';
+import { Dialogo } from '../components/Dialogo';
 import { formatarData, formatarMoeda, STATUS_LABEL } from '../components/format';
 import { ACEITA_DOCUMENTOS, ACEITA_IMAGENS, UploadArquivo } from '../components/UploadArquivo';
 import {
@@ -218,7 +220,61 @@ function Acoes({ ordem, souComprador, souVendedor, enviando, executar }: {
   );
 }
 
-type CampoPagamento = 'valor' | 'chavePix' | 'boleto' | 'codigoBanco' | 'agencia' | 'conta';
+/** "yyyy-MM-dd" de hoje no fuso do navegador (toISOString usaria UTC). */
+const hojeLocal = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
+const TIPO_LABEL: Record<TipoPagamento, string> = { PIX: 'PIX', BOLETO: 'Boleto', TRANSFERENCIA: 'Transferência' };
+
+/** Todos os dados de um pagamento; chave PIX, boleto e dados bancários são copiados com um clique. */
+function DetalhesPagamento({ pagamento: p, onFechar, podeExcluir, enviando, onExcluir }: {
+  pagamento: Pagamento | null; onFechar: () => void; podeExcluir: boolean; enviando: boolean; onExcluir: (p: Pagamento) => void;
+}) {
+  return (
+    <Dialogo aberto={!!p} onFechar={onFechar} titulo={p ? `Pagamento via ${TIPO_LABEL[p.tipoPagamento]}` : ''}
+      rodape={p && (
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          {podeExcluir
+            ? <Botao variante="perigo" tamanho="pequeno" disabled={enviando} onClick={() => onExcluir(p)}>Excluir pagamento</Botao>
+            : <span />}
+          <Botao onClick={onFechar}>Fechar</Botao>
+        </div>
+      )}>
+      {p && (
+        <>
+          <div className="mb-4 flex flex-wrap items-end justify-between gap-3 rounded-lg bg-green-50 px-4 py-3">
+            <div>
+              <span className="block text-xs text-suave">Valor</span>
+              <strong className="text-2xl text-verde">{formatarMoeda(p.valor)}</strong>
+            </div>
+            <div className="text-right">
+              <span className="block text-xs text-suave">Data do pagamento</span>
+              <strong>{formatarData(p.dataReferencia ?? p.dataCadastro)}</strong>
+            </div>
+          </div>
+          {p.tipoPagamento === 'PIX' && p.chavePix && <CampoCopiavel rotulo="Chave PIX" valor={p.chavePix} />}
+          {p.tipoPagamento === 'BOLETO' && p.boleto && <CampoCopiavel rotulo="Código do boleto" valor={p.boleto} mono />}
+          {p.tipoPagamento === 'TRANSFERENCIA' && (
+            <div className="grid gap-x-3 sm:grid-cols-2">
+              {p.codigoBanco && <CampoCopiavel rotulo="Banco" valor={p.codigoBanco} mono />}
+              {p.agencia && <CampoCopiavel rotulo="Agência" valor={p.agencia} mono />}
+              {p.conta && <div className="sm:col-span-2"><CampoCopiavel rotulo="Conta" valor={p.conta} mono /></div>}
+            </div>
+          )}
+          <dl className="m-0 grid grid-cols-[max-content_minmax(0,1fr)] gap-x-4 gap-y-1.5 text-sm">
+            {p.nomeReferencia && (<><dt className="text-suave">Referência</dt><dd className="m-0 break-words">{p.nomeReferencia}</dd></>)}
+            <dt className="text-suave">Registrado em</dt><dd className="m-0">{formatarData(p.dataCadastro)}</dd>
+          </dl>
+          <p className={cx(dica, 'mb-0')}>Clique na chave, no código ou nos dados bancários para copiar.</p>
+        </>
+      )}
+    </Dialogo>
+  );
+}
+
+type CampoPagamento = 'valor' | 'dataReferencia' | 'chavePix' | 'boleto' | 'codigoBanco' | 'agencia' | 'conta';
 
 /** Campos obrigatórios de cada forma de pagamento (os mesmos que a API exige). */
 const OBRIGATORIOS: Record<TipoPagamento, [CampoPagamento, string][]> = {
@@ -231,6 +287,9 @@ function Pagamentos({ ordem, podePagar, podeExcluir, enviando, executar }: {
   ordem: OrdemDePedido; podePagar: boolean; podeExcluir: boolean; enviando: boolean; executar: Exec;
 }) {
   const [tipo, setTipo] = useState<TipoPagamento>('PIX');
+  const [detalhe, setDetalhe] = useState<Pagamento | null>(null);
+  const [dataReferencia, setDataReferencia] = useState(hojeLocal());
+  const fecharDetalhe = useCallback(() => setDetalhe(null), []);
   const [valor, setValor] = useState(ordem.valorRestante.toFixed(2));
   const vazio = { chavePix: '', boleto: '', codigoBanco: '', agencia: '', conta: '', nomeReferencia: '' };
   const [extra, setExtra] = useState(vazio);
@@ -246,6 +305,7 @@ function Pagamentos({ ordem, podePagar, podeExcluir, enviando, executar }: {
   const validar = () => {
     const e: Partial<Record<CampoPagamento, string>> = {};
     const v = Number(valor);
+    if (!dataReferencia) e.dataReferencia = 'Informe a data do pagamento';
     if (!valor || v <= 0) e.valor = 'Informe o valor do pagamento';
     else if (v > ordem.valorRestante) e.valor = `O valor não pode passar do restante (${formatarMoeda(ordem.valorRestante)})`;
     OBRIGATORIOS[tipo].forEach(([campo, msg]) => { if (!extra[campo as keyof typeof extra].trim()) e[campo] = msg; });
@@ -256,8 +316,8 @@ function Pagamentos({ ordem, podePagar, podeExcluir, enviando, executar }: {
   const pagar = async (e: FormEvent) => {
     e.preventDefault();
     if (!validar()) return;
-    const ok = await executar(() => api.pagar(ordem.id, { tipoPagamento: tipo, valor: Number(valor), ...extra }));
-    if (ok) { setExtra(vazio); setErros({}); }
+    const ok = await executar(() => api.pagar(ordem.id, { tipoPagamento: tipo, valor: Number(valor), dataReferencia, ...extra }));
+    if (ok) { setExtra(vazio); setErros({}); setDataReferencia(hojeLocal()); }
   };
 
   const excluir = (p: OrdemDePedido['pagamentos'][number]) => {
@@ -266,7 +326,7 @@ function Pagamentos({ ordem, podePagar, podeExcluir, enviando, executar }: {
     }
   };
 
-  const campo = (k: Exclude<CampoPagamento, 'valor'> | 'nomeReferencia', rotulo: string, placeholder?: string) => (
+  const campo = (k: Exclude<CampoPagamento, 'valor' | 'dataReferencia'> | 'nomeReferencia', rotulo: string, placeholder?: string) => (
     <Campo label={rotulo + (k !== 'nomeReferencia' ? ' *' : '')} erro={k !== 'nomeReferencia' ? erros[k] : undefined}>
       <input className={controle} value={extra[k]} onChange={set(k)} placeholder={placeholder}
         aria-required={k !== 'nomeReferencia'} />
@@ -281,10 +341,17 @@ function Pagamentos({ ordem, podePagar, podeExcluir, enviando, executar }: {
       {ordem.pagamentos.length === 0 ? <p className={dica}>Nenhum pagamento registrado.</p> : (
         <ul className={lista}>
           {ordem.pagamentos.map((p) => (
-            <li key={p.id} className={itemLista}>
-              <Badge>{p.tipoPagamento}</Badge> {formatarMoeda(p.valor)}
-              {p.nomeReferencia && <small className="text-suave">· {p.nomeReferencia}</small>}
-              <small className="ml-auto text-suave">{formatarData(p.dataCadastro)}</small>
+            <li key={p.id} className="flex items-center gap-1 py-1">
+              {/* a linha inteira abre os detalhes */}
+              <button type="button" onClick={() => setDetalhe(p)} title="Clique para ver todos os dados do pagamento"
+                aria-label={`Ver detalhes do pagamento de ${formatarMoeda(p.valor)}`}
+                className="group -mx-2 flex min-w-0 flex-1 cursor-pointer flex-wrap items-center gap-2 rounded-lg px-2 py-1.5 text-left hover:bg-blue-50">
+                <Badge>{TIPO_LABEL[p.tipoPagamento]}</Badge> <strong className="font-semibold">{formatarMoeda(p.valor)}</strong>
+                {p.nomeReferencia && <small className="text-suave">· {p.nomeReferencia}</small>}
+                <small className="ml-auto text-suave">📅 {formatarData(p.dataReferencia ?? p.dataCadastro)}</small>
+                <span className="text-xs font-semibold text-primaria opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100 max-sm:opacity-100"
+                  aria-hidden="true">Ver detalhes ›</span>
+              </button>
               {podeExcluir && (
                 <Botao variante="perigo" tamanho="pequeno" disabled={enviando} onClick={() => excluir(p)}
                   aria-label={`Excluir pagamento de ${formatarMoeda(p.valor)}`}>Excluir</Botao>
@@ -320,6 +387,10 @@ function Pagamentos({ ordem, podePagar, podeExcluir, enviando, executar }: {
             <Campo label="Valor *" erro={erros.valor}>
               <InputMoeda valor={valor} onValor={(v) => { setValor(v); setErros((a) => ({ ...a, valor: undefined })); }} />
             </Campo>
+            <Campo label="Data do pagamento *" erro={erros.dataReferencia}>
+              <input className={controle} type="date" value={dataReferencia} title="Quando foi (ou será) pago"
+                onChange={(e) => { setDataReferencia(e.target.value); setErros((a) => ({ ...a, dataReferencia: undefined })); }} />
+            </Campo>
           </div>
           <div className={linhaForm}>
             {tipo === 'PIX' && campo('chavePix', 'Chave PIX', 'CPF, CNPJ, e-mail, telefone ou chave aleatória')}
@@ -336,6 +407,8 @@ function Pagamentos({ ordem, podePagar, podeExcluir, enviando, executar }: {
           <Botao type="submit" variante="primario" disabled={enviando}>Registrar pagamento</Botao>
         </form>
       )}
+      <DetalhesPagamento pagamento={detalhe} onFechar={fecharDetalhe}
+        podeExcluir={podeExcluir} enviando={enviando} onExcluir={(p) => { setDetalhe(null); excluir(p); }} />
     </Painel>
   );
 }

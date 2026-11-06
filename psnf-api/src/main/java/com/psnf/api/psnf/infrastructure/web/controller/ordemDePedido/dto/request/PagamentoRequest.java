@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 public record PagamentoRequest(
         @NotNull(message = "Tipo de pagamento é obrigatório (PIX, BOLETO ou TRANSFERENCIA)")
@@ -17,6 +18,8 @@ public record PagamentoRequest(
         String conta,
         String nomeReferencia,
         String chavePix,
-        String boleto
+        String boleto,
+        /** data do pagamento (yyyy-MM-dd); se não vier, é a data de hoje */
+        LocalDate dataReferencia
 ) {
 }
