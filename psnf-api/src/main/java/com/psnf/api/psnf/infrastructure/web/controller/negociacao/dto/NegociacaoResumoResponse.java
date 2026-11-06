@@ -21,7 +21,9 @@ public record NegociacaoResumoResponse(
         String ultimaMensagem,
         UUID ultimaMensagemAutorId,
         LocalDateTime ultimaMensagemEm,
-        int quantidadeMensagens
+        int quantidadeMensagens,
+        /** mensagens da outra pessoa depois da última mensagem do usuário logado */
+        int mensagensSemResposta
 ) {
     public static NegociacaoResumoResponse from(NegociacaoDetalhes d, UUID usuarioLogado) {
         Negociacao n = d.negociacao();
@@ -33,6 +35,7 @@ public record NegociacaoResumoResponse(
                 outro.getId(), outro.getNome(),
                 ultima.map(m -> m.getTexto()).orElse(null), ultima.map(m -> m.getAutorId()).orElse(null),
                 n.getUltimaMensagemEm() != null ? n.getUltimaMensagemEm() : n.getDataCadastro(),
-                n.getMensagens().size());
+                n.getMensagens().size(),
+                n.mensagensSemResposta(usuarioLogado));
     }
 }

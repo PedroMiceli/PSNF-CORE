@@ -57,4 +57,16 @@ class NegociacaoTest {
         assertThrows(IllegalArgumentException.class, () -> n.enviarMensagem(comprador, "a".repeat(2001)));
         assertEquals(2, n.getMensagens().size());
     }
+
+    @Test
+    void contaMensagensSemRespostaDeCadaParticipante() {
+        Negociacao n = Negociacao.iniciar(anuncio(), comprador, "Vendedor");
+        assertEquals(1, n.mensagensSemResposta(vendedor)); // a abordagem
+        assertEquals(0, n.mensagensSemResposta(comprador));
+        n.enviarMensagem(comprador, "Qual o prazo?");
+        assertEquals(2, n.mensagensSemResposta(vendedor));
+        n.enviarMensagem(vendedor, "5 dias");
+        assertEquals(0, n.mensagensSemResposta(vendedor));
+        assertEquals(1, n.mensagensSemResposta(comprador));
+    }
 }

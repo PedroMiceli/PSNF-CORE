@@ -24,7 +24,7 @@ const iniciais = (nome: string) => nome.split(/\s+/).filter(Boolean).slice(0, 2)
 
 /** Janela de chat da negociação, presa no canto inferior direito (tela cheia no celular). */
 export function ChatJanela() {
-  const { aberta, inicial, fecharChat } = useChat();
+  const { aberta, inicial, fecharChat, marcarVista, recarregarLista, hubExpandido } = useChat();
   const { usuarioId } = useUsuario();
   const [neg, setNeg] = useState<Negociacao | null>(null);
   const [erro, setErro] = useState<string | null>(null);
@@ -52,6 +52,11 @@ export function ChatJanela() {
     return () => clearInterval(t);
   }, [aberta, minimizada]);
 
+  // o que está na tela já foi visto (inclui as mensagens que o próprio usuário enviou)
+  useEffect(() => {
+    if (neg && !minimizada) marcarVista(neg.id, neg.mensagens.length);
+  }, [neg, minimizada, marcarVista]);
+
   if (!aberta) return null;
 
   const souVendedor = neg?.vendedor.id === usuarioId;
@@ -61,13 +66,15 @@ export function ChatJanela() {
     <section role="dialog" aria-label="Chat da negociação"
       className={cx('fixed z-30 flex flex-col overflow-hidden border border-borda bg-white shadow-2xl',
         'sm:right-4 sm:bottom-4 sm:w-[400px] sm:rounded-card',
+        // no computador fica ao lado da barra de negociações
+        hubExpandido ? 'lg:right-[21rem]' : 'lg:right-20',
         minimizada ? 'right-2 bottom-2 left-2 rounded-card sm:left-auto' : 'inset-0 sm:inset-auto sm:h-[min(600px,calc(100vh-6rem))]')}>
       <Cabecalho neg={neg} outro={outro} souVendedor={souVendedor} minimizada={minimizada}
         onMinimizar={() => setMinimizada((m) => !m)} onFechar={fecharChat} />
       {!minimizada && (
         erro ? <p className="m-4 rounded-lg bg-red-50 p-3 text-sm text-vermelho">{erro}</p>
           : !neg ? <p className="m-4 text-sm text-suave">Carregando conversa...</p>
-            : <Conversa neg={neg} usuarioId={usuarioId} onAtualizada={setNeg} onIrParaAnuncio={() => {
+            : <Conversa neg={neg} usuarioId={usuarioId} onAtualizada={(n) => { setNeg(n); recarregarLista(); }} onIrParaAnuncio={() => {
               if (window.innerWidth < 640) setMinimizada(true); // no celular o chat cobre a tela
             }} />
       )}
