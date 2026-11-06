@@ -18,8 +18,8 @@ export const api = {
   // usuários
   usuarioLogado: () => http.get<Usuario>('/usuarios/me'),
   usuario: (id: UUID) => http.get<Usuario>(`/usuarios/${id}`),
-  cadastrarUsuario: (body: { nome: string; email: string; senha: string; telefone: string }) =>
-    http.post<Usuario>('/usuarios', body),
+  /** SOMENTE DESENVOLVIMENTO: usuários para o seletor "Logado como" (login simulado). */
+  usuariosDev: () => http.get<{ id: UUID; nome: string; email: string }[]>('/dev/usuarios'),
   atualizarUsuario: (body: { nome: string; telefone?: string; imagem?: string }) => http.put<Usuario>('/usuarios/me', body),
   adicionarEndereco: (body: EnderecoInput) => http.post<Usuario>('/usuarios/me/enderecos', body),
   removerEndereco: (id: UUID) => http.delete<Usuario>(`/usuarios/me/enderecos/${id}`),

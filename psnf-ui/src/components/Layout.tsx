@@ -23,7 +23,7 @@ export function Layout() {
               onChange={(e) => trocarUsuario(e.target.value)}
             >
               {usuarios.map((u) => (
-                <option key={u.id} value={u.id}>{u.nome}</option>
+                <option key={u.id} value={u.id} title={u.email}>{u.nome}</option>
               ))}
             </select>
           </label>

@@ -132,7 +132,7 @@ export function EnderecoForm({ enviando, erros, onSalvar }: Props) {
           </select>
         </Campo>
       </div>
-      <button className="btn" disabled={enviando || status.tipo === 'buscando'}>Adicionar</button>
+      <button className="btn primario" disabled={enviando || status.tipo === 'buscando'}>Adicionar</button>
     </form>
   );
 }

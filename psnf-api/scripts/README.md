@@ -6,11 +6,16 @@ com a API no ar (e o MinIO, para as imagens: `docker compose up -d minio`).
 
 | Script | O que faz |
 |---|---|
+| `popular-usuarios.py` | cria 12 empresas compradoras de teste, com telefone e endereço (senha `123456`) |
 | `popular-anuncios.py` | cria 6 fornecedores e 175 anúncios nas categorias da plataforma (faixas de preço, variações e 2 imagens cada) |
 
 ```bash
+python3 psnf-api/scripts/popular-usuarios.py
 python3 psnf-api/scripts/popular-anuncios.py
 ```
+
+Os usuários criados aparecem no seletor **"Logado como"** do front (lista vinda de `GET /dev/usuarios`,
+endpoint só de desenvolvimento, ativo junto com os usuários mock).
 
 As **categorias são fixas** e não são criadas por script nem por usuários: a API as carrega ao iniciar,
 a partir de `psnf-api/src/main/resources/db/categorias.sql`. Para incluir uma categoria, adicione-a
