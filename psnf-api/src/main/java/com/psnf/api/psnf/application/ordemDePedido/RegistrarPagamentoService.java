@@ -9,6 +9,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.UUID;
+
 @Service
 @RequiredArgsConstructor
 public class RegistrarPagamentoService implements RegistrarPagamentoUseCase {
@@ -32,6 +34,14 @@ public class RegistrarPagamentoService implements RegistrarPagamentoUseCase {
         );
 
         ordem.registrarPagamento(command.usuarioId(), pagamento);
+        return ordemDePedidoRepositoryPort.save(ordem);
+    }
+
+    @Override
+    @Transactional
+    public OrdemDePedido removerPagamento(UUID ordemDePedidoId, UUID usuarioId, UUID pagamentoId) {
+        OrdemDePedido ordem = ordemDePedidoRepositoryPort.buscarPorId(ordemDePedidoId);
+        ordem.removerPagamento(usuarioId, pagamentoId);
         return ordemDePedidoRepositoryPort.save(ordem);
     }
 }

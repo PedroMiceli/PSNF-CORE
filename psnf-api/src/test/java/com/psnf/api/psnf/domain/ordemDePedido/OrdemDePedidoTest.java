@@ -1,5 +1,6 @@
 package com.psnf.api.psnf.domain.ordemDePedido;
 
+import com.psnf.api.psnf.domain.ordemDePedido.exception.PagamentoNaoEncontradoException;
 import com.psnf.api.psnf.domain.ordemDePedido.models.ItemPedido;
 import com.psnf.api.psnf.domain.ordemDePedido.models.MensagemIncidente;
 import com.psnf.api.psnf.domain.ordemDePedido.models.NotaFiscal;
@@ -110,5 +111,32 @@ class OrdemDePedidoTest {
                 () -> Pagamento.criar(EnumTipoPagamento.TRANSFERENCIA, BigDecimal.TEN, null, "001", "123", null, null, null));
         assertThrows(IllegalArgumentException.class,
                 () -> Pagamento.criar(EnumTipoPagamento.BOLETO, BigDecimal.TEN, null, null, null, null, null, " "));
+    }
+
+    private static Pagamento pixSalvo(String valor) {
+        return Pagamento.restaurar(UUID.randomUUID(), LocalDateTime.now(), null, null, EnumTipoPagamento.PIX, new BigDecimal(valor),
+                null, null, null, null, "chave", null);
+    }
+
+    @Test
+    void compradorExcluiPagamentoFeitoPorEngano() {
+        Pagamento errado = pixSalvo("100.00");
+        ordem.registrarPagamento(comprador.getId(), errado);
+        assertEquals(EnumStatusOrdemDePedido.PAGO, ordem.getStatus());
+
+        assertThrows(AcessoNegadoException.class, () -> ordem.removerPagamento(vendedor.getId(), errado.getId()));
+        ordem.removerPagamento(comprador.getId(), errado.getId());
+        assertTrue(ordem.getPagamentos().isEmpty());
+        assertEquals(new BigDecimal("100.00"), ordem.getValorRestante());
+        assertEquals(EnumStatusOrdemDePedido.AGUARDANDO_PAGAMENTO, ordem.getStatus()); // volta a aguardar
+        assertThrows(PagamentoNaoEncontradoException.class, () -> ordem.removerPagamento(comprador.getId(), errado.getId()));
+    }
+
+    @Test
+    void naoExcluiPagamentoDepoisDoEnvio() {
+        Pagamento p = pixSalvo("100.00");
+        ordem.registrarPagamento(comprador.getId(), p);
+        ordem.enviar(vendedor.getId(), null);
+        assertThrows(RegraDeNegocioException.class, () -> ordem.removerPagamento(comprador.getId(), p.getId()));
     }
 }

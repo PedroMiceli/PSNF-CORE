@@ -2,6 +2,7 @@ package com.psnf.api.psnf.domain.ordemDePedido.models;
 
 import com.psnf.api.psnf.domain.ordemDePedido.models.enums.EnumStatusOrdemDePedido;
 import com.psnf.api.psnf.domain.shared.exception.AcessoNegadoException;
+import com.psnf.api.psnf.domain.ordemDePedido.exception.PagamentoNaoEncontradoException;
 import com.psnf.api.psnf.domain.shared.exception.RegraDeNegocioException;
 import com.psnf.api.psnf.domain.shared.model.BaseDomain;
 import com.psnf.api.psnf.domain.usuario.model.Usuario;
@@ -109,6 +110,24 @@ public class OrdemDePedido extends BaseDomain {
         if (getValorRestante().compareTo(BigDecimal.ZERO) == 0) {
             status = PAGO;
         }
+    }
+
+    /**
+     * O comprador exclui um pagamento registrado por engano. Só antes do envio: se a ordem já estava
+     * PAGA, ela volta a aguardar pagamento.
+     */
+    public Pagamento removerPagamento(UUID usuarioId, UUID pagamentoId) {
+        garantirComprador(usuarioId);
+        if (status != AGUARDANDO_PAGAMENTO && status != PAGO) {
+            throw new RegraDeNegocioException("Pagamentos só podem ser excluídos antes do envio do pedido (status atual: " + status + ")");
+        }
+        Pagamento pagamento = pagamentos.stream().filter(p -> p.getId() != null && p.getId().equals(pagamentoId)).findFirst()
+                .orElseThrow(() -> new PagamentoNaoEncontradoException(pagamentoId));
+        pagamentos.remove(pagamento);
+        if (status == PAGO) {
+            status = AGUARDANDO_PAGAMENTO;
+        }
+        return pagamento;
     }
 
     public void adicionarNotaFiscal(UUID usuarioId, NotaFiscal notaFiscal) {
