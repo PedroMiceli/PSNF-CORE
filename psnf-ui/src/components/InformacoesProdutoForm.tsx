@@ -30,10 +30,11 @@ export function InformacoesProdutoForm({ info, onInfo, caracteristicas, onCaract
   const errosLocais = mostrarErros ? validarInfo(info) : {};
   const erro = (k: keyof InfoForm) => errosLocais[k] ?? errosApi?.[`informacoes.${k}`];
 
-  const texto = (k: keyof InfoForm, label: string, extra: { placeholder?: string; className?: string; dica?: string; maxLength?: number } = {}) => (
+  const texto = (k: keyof InfoForm, label: string, extra: { placeholder?: string; className?: string; dica?: string; maxLength?: number; maiusculas?: boolean } = {}) => (
     <Campo label={label} erro={erro(k)} dica={extra.dica} className={extra.className}>
       <input className={controle} value={info[k]} placeholder={extra.placeholder} maxLength={extra.maxLength}
-        onChange={(e) => onInfo(k, e.target.value)} />
+        autoCapitalize={extra.maiusculas ? 'characters' : undefined}
+        onChange={(e) => onInfo(k, extra.maiusculas ? e.target.value.toUpperCase() : e.target.value)} />
     </Campo>
   );
   const numero = (k: keyof InfoForm, label: string, extra: { step?: string; className?: string; placeholder?: string } = {}) => (
@@ -54,7 +55,7 @@ export function InformacoesProdutoForm({ info, onInfo, caracteristicas, onCaract
 
       <Secao titulo="Identificação" contagem={preenchidos('sku', 'gtin', 'marca', 'modelo', 'condicao')} aberta>
         <div className={linhaForm}>
-          {texto('sku', 'SKU (seu código)', { placeholder: 'CAR-MET-01', maxLength: 60, dica: 'Vai como "código do produto" na NF' })}
+          {texto('sku', 'SKU (seu código)', { placeholder: 'CAR-MET-01', maxLength: 60, maiusculas: true, dica: 'Vai como "código do produto" na NF' })}
           {texto('gtin', 'GTIN / EAN (código de barras)', { placeholder: '7891234567895', dica: 'Deixe vazio se não tiver ("SEM GTIN")' })}
         </div>
         <div className={linhaForm}>
@@ -137,8 +138,8 @@ export function InformacoesProdutoForm({ info, onInfo, caracteristicas, onCaract
               <div key={i} className={linhaForm}>
                 <p className="mb-3 min-w-[110px] flex-1 self-center font-semibold break-words">{v.variacao || `Variação ${i + 1}`}</p>
                 <Campo label="SKU" erro={errosApi?.[`variacoes[${i}].sku`]}>
-                  <input className={controle} value={v.sku} maxLength={60} placeholder={info.sku || undefined}
-                    onChange={(e) => set('sku', e.target.value)} />
+                  <input className={controle} value={v.sku} maxLength={60} placeholder={info.sku || undefined} autoCapitalize="characters"
+                    onChange={(e) => set('sku', e.target.value.toUpperCase())} />
                 </Campo>
                 <Campo label="GTIN / EAN" erro={erroGtin}>
                   <input className={controle} value={v.gtin} inputMode="numeric" placeholder={info.gtin || undefined}

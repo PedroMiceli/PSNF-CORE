@@ -4,7 +4,7 @@ import { api } from '../api/endpoints';
 import type { Anuncio, Usuario } from '../api/types';
 import { useAcao, useApi } from '../api/useApi';
 import { formatarMoeda } from '../components/format';
-import { acoes, Botao, Campo, Carregando, controle, cx, dica, ErroBox, linhaForm, Painel, tabela, Vazio, Voltar } from '../components/ui';
+import { acoes, Botao, Campo, Carregando, controle, cx, dica, ErroBox, InputMoeda, linhaForm, Painel, tabela, Vazio, Voltar } from '../components/ui';
 
 interface ItemForm {
   anuncioId: string;
@@ -28,7 +28,7 @@ const novoItem = (anuncio?: Anuncio): ItemForm => {
     anuncioId: anuncio?.id ?? '',
     variacaoId: '',
     quantidade: String(qtd),
-    valorUnidade: String(precoSugerido(anuncio, qtd) ?? ''),
+    valorUnidade: precoSugerido(anuncio, qtd)?.toFixed(2) ?? '',
   };
 };
 
@@ -69,7 +69,7 @@ export function NovaOrdem() {
       const novo = { ...it, [campo]: valor };
       if (campo === 'quantidade') {
         const sugerido = precoSugerido(porId(it.anuncioId), Number(valor));
-        if (sugerido != null) novo.valorUnidade = String(sugerido);
+        if (sugerido != null) novo.valorUnidade = sugerido.toFixed(2);
       }
       return novo;
     }));
@@ -127,7 +127,7 @@ export function NovaOrdem() {
               <table className={tabela.tabela}>
                 <thead>
                   <tr>
-                    {['Anúncio', 'Variação', 'Quantidade', 'Valor unitário (R$)', 'Subtotal', ''].map((t, i) => <th key={i} className={tabela.th}>{t}</th>)}
+                    {['Anúncio', 'Variação', 'Quantidade', 'Valor unitário', 'Subtotal', ''].map((t, i) => <th key={i} className={tabela.th}>{t}</th>)}
                   </tr>
                 </thead>
                 <tbody>
@@ -153,8 +153,8 @@ export function NovaOrdem() {
                             onChange={(e) => atualizar(i, 'quantidade', e.target.value)} />
                         </td>
                         <td className={celula}>
-                          <input className={cx(controle, 'min-w-[90px]')} type="number" step="0.01" min={0} value={it.valorUnidade}
-                            onChange={(e) => atualizar(i, 'valorUnidade', e.target.value)} />
+                          <InputMoeda className="min-w-[110px]" valor={it.valorUnidade} aria-label="Valor unitário"
+                            onValor={(v) => atualizar(i, 'valorUnidade', v)} />
                         </td>
                         <td className={cx(celula, tabela.num)}>{formatarMoeda((Number(it.quantidade) || 0) * (Number(it.valorUnidade) || 0))}</td>
                         <td className={celula}>

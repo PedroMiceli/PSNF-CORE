@@ -47,7 +47,7 @@ class InformacoesProdutoTest {
 
     @Test
     void normalizaEValidaOsCampos() {
-        InformacoesProduto i = info(" ABC-1 ", null, "73181500", null, 0, new BigDecimal("1.2"), new BigDecimal("1.5"));
+        InformacoesProduto i = info(" abc-1 ", null, "73181500", null, 0, new BigDecimal("1.2"), new BigDecimal("1.5"));
         assertEquals("ABC-1", i.sku());
         assertEquals("UN", i.unidadeComercial());
         assertEquals("7318.15.00", i.ncm());

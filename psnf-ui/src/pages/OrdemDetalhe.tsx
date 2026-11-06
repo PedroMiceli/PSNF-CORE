@@ -8,7 +8,7 @@ import { DadosNotaFiscal, resumoItem } from '../components/DadosNotaFiscal';
 import { formatarData, formatarMoeda, STATUS_LABEL } from '../components/format';
 import { ACEITA_DOCUMENTOS, ACEITA_IMAGENS, UploadArquivo } from '../components/UploadArquivo';
 import {
-  acoes, Badge, Botao, Campo, Carregando, controle, cx, dica, ErroBox, ImagemAnuncio, linhaForm, Painel, StatusBadge,
+  acoes, Badge, Botao, Campo, Carregando, controle, cx, dica, ErroBox, ImagemAnuncio, InputMoeda, linhaForm, Painel, StatusBadge,
   tabela, TituloPagina, Voltar,
 } from '../components/ui';
 import { useUsuario } from '../context/UsuarioContext';
@@ -219,7 +219,7 @@ function Acoes({ ordem, souComprador, souVendedor, enviando, executar }: {
 
 function Pagamentos({ ordem, podePagar, enviando, executar }: { ordem: OrdemDePedido; podePagar: boolean; enviando: boolean; executar: Exec }) {
   const [tipo, setTipo] = useState<TipoPagamento>('PIX');
-  const [valor, setValor] = useState(String(ordem.valorRestante));
+  const [valor, setValor] = useState(ordem.valorRestante.toFixed(2));
   const [extra, setExtra] = useState({ chavePix: '', boleto: '', codigoBanco: '', agencia: '', conta: '', nomeReferencia: '' });
   const set = (k: keyof typeof extra) => (e: { target: { value: string } }) => setExtra({ ...extra, [k]: e.target.value });
 
@@ -258,8 +258,8 @@ function Pagamentos({ ordem, podePagar, enviando, executar }: { ordem: OrdemDePe
                 <option value="TRANSFERENCIA">Transferência</option>
               </select>
             </Campo>
-            <Campo label="Valor (R$)" dica={`Restante: ${formatarMoeda(ordem.valorRestante)}`}>
-              <input className={controle} type="number" step="0.01" value={valor} onChange={(e) => setValor(e.target.value)} />
+            <Campo label="Valor" dica={`Restante: ${formatarMoeda(ordem.valorRestante)}`}>
+              <InputMoeda valor={valor} onValor={setValor} />
             </Campo>
           </div>
           <div className={linhaForm}>

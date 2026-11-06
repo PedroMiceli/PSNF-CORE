@@ -9,7 +9,7 @@ import {
 } from '../components/produto';
 import { SidePanel } from '../components/SidePanel';
 import { ACEITA_IMAGENS, UploadArquivo } from '../components/UploadArquivo';
-import { acoes, Botao, Campo, Carregando, controle, cx, dica, ErroBox, ImagemAnuncio, linhaForm, Painel, Voltar } from '../components/ui';
+import { acoes, Botao, Campo, Carregando, controle, cx, dica, ErroBox, ImagemAnuncio, InputMoeda, linhaForm, Painel, Voltar } from '../components/ui';
 
 interface ValorForm { valorUnidade: string; quantidadeMinima: string }
 interface ImagemForm { caminho: string; principal: boolean }
@@ -54,7 +54,7 @@ export function AnuncioForm() {
       descricao: a.descricao,
       categoriaId: a.categoriaId,
       valores: [...a.valores].sort((x, y) => x.quantidadeMinima - y.quantidadeMinima)
-        .map((v) => ({ valorUnidade: String(v.valorUnidade), quantidadeMinima: String(v.quantidadeMinima) })),
+        .map((v) => ({ valorUnidade: v.valorUnidade.toFixed(2), quantidadeMinima: String(v.quantidadeMinima) })),
       imagens: a.imagens.map((i) => ({ caminho: i.caminho, principal: i.principal })),
       variacoes: a.variacoes.map((v) => ({ variacao: v.variacao, sku: v.sku ?? '', gtin: v.gtin ?? '' })),
       informacoes: infoParaForm(a.informacoes),
@@ -144,9 +144,9 @@ export function AnuncioForm() {
                 <input className={controle} type="number" min={1} value={v.quantidadeMinima}
                   onChange={(e) => set('valores', form.valores.map((x, j) => (j === i ? { ...x, quantidadeMinima: e.target.value } : x)))} />
               </Campo>
-              <Campo label="Valor por unidade (R$)">
-                <input className={controle} type="number" step="0.01" min={0} value={v.valorUnidade}
-                  onChange={(e) => set('valores', form.valores.map((x, j) => (j === i ? { ...x, valorUnidade: e.target.value } : x)))} />
+              <Campo label="Valor por unidade">
+                <InputMoeda valor={v.valorUnidade}
+                  onValor={(valor) => set('valores', form.valores.map((x, j) => (j === i ? { ...x, valorUnidade: valor } : x)))} />
               </Campo>
               <Botao variante="perigo" tamanho="pequeno" className="mb-3" disabled={form.valores.length === 1}
                 onClick={() => set('valores', form.valores.filter((_, j) => j !== i))}>Remover</Botao>
