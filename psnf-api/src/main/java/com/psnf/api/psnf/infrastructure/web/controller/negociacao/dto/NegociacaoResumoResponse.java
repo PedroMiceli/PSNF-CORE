@@ -22,6 +22,8 @@ public record NegociacaoResumoResponse(
         UUID ultimaMensagemAutorId,
         LocalDateTime ultimaMensagemEm,
         int quantidadeMensagens,
+        /** produtos na negociação (o de abordagem + os incluídos depois) */
+        int quantidadeAnuncios,
         /** mensagens da outra pessoa depois da última mensagem do usuário logado */
         int mensagensSemResposta
 ) {
@@ -36,6 +38,7 @@ public record NegociacaoResumoResponse(
                 ultima.map(m -> m.getTexto()).orElse(null), ultima.map(m -> m.getAutorId()).orElse(null),
                 n.getUltimaMensagemEm() != null ? n.getUltimaMensagemEm() : n.getDataCadastro(),
                 n.getMensagens().size(),
+                n.getAnuncioIds().size(),
                 n.mensagensSemResposta(usuarioLogado));
     }
 }

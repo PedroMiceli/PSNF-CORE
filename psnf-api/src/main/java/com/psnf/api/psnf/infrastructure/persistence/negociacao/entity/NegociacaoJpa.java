@@ -18,6 +18,7 @@ import java.util.List;
  *  - N:1 Usuario (comprador)
  *  - N:1 Usuario (vendedor)
  *  - 1:N MensagemNegociacao (cascade + orphanRemoval)
+ *  - 1:N NegociacaoAnuncio: outros anúncios do vendedor incluídos na conversa (cascade + orphanRemoval)
  * Uma negociação por comprador e anúncio.
  */
 @Entity
@@ -50,4 +51,8 @@ public class NegociacaoJpa extends BaseEntity {
     @OneToMany(mappedBy = "negociacao", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("dataCadastro ASC")
     private List<MensagemNegociacaoJpa> mensagens = new ArrayList<>();
+
+    @OneToMany(mappedBy = "negociacao", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("dataCadastro ASC")
+    private List<NegociacaoAnuncioJpa> anunciosAdicionais = new ArrayList<>();
 }

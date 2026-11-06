@@ -224,7 +224,7 @@ export interface PagamentoInput {
 
 /* ------------------------------------------------------------------ negociação (chat) */
 
-export type TipoMensagemNegociacao = 'ABORDAGEM' | 'TEXTO';
+export type TipoMensagemNegociacao = 'ABORDAGEM' | 'TEXTO' | 'ANUNCIO_ADICIONADO' | 'ANUNCIO_REMOVIDO';
 
 export interface ParticipanteNegociacao {
   id: UUID;
@@ -242,13 +242,27 @@ export interface MensagemNegociacao {
   autorId: UUID;
   texto: string;
   tipo: TipoMensagemNegociacao;
+  /** produto citado (abordagem, anúncio incluído/retirado) */
+  anuncioId: UUID | null;
   dataCadastro: string;
+}
+
+export interface AnuncioNegociacao {
+  id: UUID;
+  titulo: string;
+  imagem: string | null;
+  precoMenor: number | null;
+  quantidadeMinima: number;
+  ativo: boolean;
 }
 
 export interface Negociacao {
   id: UUID;
   dataCadastro: string;
-  anuncio: { id: UUID; titulo: string; imagem: string | null; precoMenor: number | null; quantidadeMinima: number; ativo: boolean };
+  /** anúncio de abordagem (o que iniciou a conversa) */
+  anuncio: AnuncioNegociacao;
+  /** todos os produtos da negociação, o de abordagem primeiro */
+  anuncios: AnuncioNegociacao[];
   comprador: ParticipanteNegociacao;
   vendedor: ParticipanteNegociacao;
   mensagens: MensagemNegociacao[];
@@ -267,6 +281,8 @@ export interface NegociacaoResumo {
   ultimaMensagemAutorId: UUID | null;
   ultimaMensagemEm: string;
   quantidadeMensagens: number;
+  /** produtos na negociação */
+  quantidadeAnuncios: number;
   /** mensagens da outra pessoa depois da última mensagem do usuário logado */
   mensagensSemResposta: number;
 }

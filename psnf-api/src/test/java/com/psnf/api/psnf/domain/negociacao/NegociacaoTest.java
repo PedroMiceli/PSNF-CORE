@@ -10,6 +10,7 @@ import com.psnf.api.psnf.domain.shared.exception.RegraDeNegocioException;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -21,8 +22,14 @@ class NegociacaoTest {
     final UUID comprador = UUID.randomUUID();
 
     private Anuncio anuncio() {
-        return Anuncio.criar("Carrinho de metal", "Para armazém", UUID.randomUUID(), vendedor,
-                List.of(Valor.criar(BigDecimal.TEN, 1)), List.of(ImagemAnuncio.criar("a.png", true)), List.of());
+        return anuncioDe(vendedor);
+    }
+
+    /** anúncio já salvo (com id), ativo */
+    private static Anuncio anuncioDe(UUID dono) {
+        return Anuncio.restaurar(UUID.randomUUID(), LocalDateTime.now(), null, null, "Carrinho de metal", "Para armazém", true,
+                UUID.randomUUID(), dono, List.of(Valor.criar(BigDecimal.TEN, 1)), List.of(ImagemAnuncio.criar("a.png", true)),
+                List.of(), null, List.of());
     }
 
     @Test
@@ -68,5 +75,41 @@ class NegociacaoTest {
         n.enviarMensagem(vendedor, "5 dias");
         assertEquals(0, n.mensagensSemResposta(vendedor));
         assertEquals(1, n.mensagensSemResposta(comprador));
+    }
+
+    @Test
+    void incluiOutrosAnunciosDoMesmoVendedor() {
+        Anuncio principal = anuncio();
+        Negociacao n = Negociacao.iniciar(principal, comprador, "Vendedor");
+        Anuncio outro = anuncio();
+        n.adicionarAnuncio(comprador, outro);
+        assertTrue(n.contemAnuncio(outro.getId()));
+        assertEquals(2, n.getAnuncioIds().size());
+        var aviso = n.getUltimaMensagem().orElseThrow();
+        assertEquals(TipoMensagemNegociacao.ANUNCIO_ADICIONADO, aviso.getTipo());
+        assertEquals(outro.getId(), aviso.getAnuncioId());
+        assertEquals(2, n.mensagensSemResposta(vendedor)); // abordagem + aviso
+    }
+
+    @Test
+    void regrasParaIncluirERetirarAnuncios() {
+        Anuncio principal = anuncio();
+        Negociacao n = Negociacao.iniciar(principal, comprador, "Vendedor");
+        Anuncio deOutroVendedor = anuncioDe(UUID.randomUUID());
+        assertThrows(RegraDeNegocioException.class, () -> n.adicionarAnuncio(comprador, deOutroVendedor));
+        Anuncio inativo = anuncio();
+        inativo.desativar();
+        assertThrows(RegraDeNegocioException.class, () -> n.adicionarAnuncio(comprador, inativo));
+        assertThrows(AcessoNegadoException.class, () -> n.adicionarAnuncio(UUID.randomUUID(), anuncio()));
+
+        Anuncio extra = anuncio();
+        n.adicionarAnuncio(vendedor, extra);
+        assertThrows(RegraDeNegocioException.class, () -> n.adicionarAnuncio(comprador, extra)); // já está
+        // o anúncio de abordagem nunca sai
+        assertThrows(RegraDeNegocioException.class, () -> n.removerAnuncio(comprador, principal));
+        n.removerAnuncio(comprador, extra);
+        assertFalse(n.contemAnuncio(extra.getId()));
+        assertEquals(TipoMensagemNegociacao.ANUNCIO_REMOVIDO, n.getUltimaMensagem().orElseThrow().getTipo());
+        assertThrows(RegraDeNegocioException.class, () -> n.removerAnuncio(comprador, extra));
     }
 }

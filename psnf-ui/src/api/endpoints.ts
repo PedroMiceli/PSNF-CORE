@@ -51,6 +51,9 @@ export const api = {
   negociacoes: () => http.get<NegociacaoResumo[]>('/negociacoes'),
   negociacao: (id: UUID) => http.get<Negociacao>(`/negociacoes/${id}`),
   enviarMensagemNegociacao: (id: UUID, texto: string) => http.post<Negociacao>(`/negociacoes/${id}/mensagens`, { texto }),
+  /** inclui outro anúncio do mesmo vendedor na negociação */
+  adicionarAnuncioNegociacao: (id: UUID, anuncioId: UUID) => http.post<Negociacao>(`/negociacoes/${id}/anuncios`, { anuncioId }),
+  removerAnuncioNegociacao: (id: UUID, anuncioId: UUID) => http.delete<Negociacao>(`/negociacoes/${id}/anuncios/${anuncioId}`),
 
   // ordens de pedido
   criarOrdem: (body: NovaOrdemInput) => http.post<OrdemDePedido>('/ordens-de-pedido', body),

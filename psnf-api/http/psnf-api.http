@@ -385,6 +385,37 @@ X-Usuario-Id: {{compradorId}}
 
 > {% client.test("200", () => client.assert(response.status === 200 && response.body.mensagens.length >= 2)); %}
 
+### 3B.5b Comprador inclui outro anúncio do mesmo vendedor na negociação
+POST {{baseUrl}}/negociacoes/{{negociacaoId}}/anuncios
+Content-Type: application/json
+X-Usuario-Id: {{compradorId}}
+
+{ "anuncioId": "{{anuncio2Id}}" }
+
+> {%
+    // 422 ao rodar o arquivo de novo: a negociação reaberta já tem o anúncio
+    client.test("200 (ou 422 se já incluído antes)", () => client.assert(response.status === 200 || response.status === 422, "status " + response.status));
+    if (response.status === 200) {
+        client.test("2 produtos", () => client.assert(response.body.anuncios.length === 2));
+        client.test("aviso no chat", () => client.assert(response.body.mensagens.at(-1).tipo === "ANUNCIO_ADICIONADO"));
+    }
+%}
+
+### 3B.5c [422] O mesmo anúncio não entra duas vezes
+POST {{baseUrl}}/negociacoes/{{negociacaoId}}/anuncios
+Content-Type: application/json
+X-Usuario-Id: {{compradorId}}
+
+{ "anuncioId": "{{anuncio2Id}}" }
+
+> {% client.test("422", () => client.assert(response.status === 422, "status " + response.status)); %}
+
+### 3B.5d [422] O anúncio que iniciou a negociação não pode ser retirado
+DELETE {{baseUrl}}/negociacoes/{{negociacaoId}}/anuncios/{{anuncioId}}
+X-Usuario-Id: {{compradorId}}
+
+> {% client.test("422", () => client.assert(response.status === 422, "status " + response.status)); %}
+
 ### 3B.6 [422] Vendedor não negocia o próprio anúncio
 POST {{baseUrl}}/negociacoes
 Content-Type: application/json

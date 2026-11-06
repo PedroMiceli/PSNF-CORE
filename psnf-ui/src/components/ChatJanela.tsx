@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ApiError } from '../api/client';
 import { api } from '../api/endpoints';
-import type { MensagemNegociacao, Negociacao, ParticipanteNegociacao } from '../api/types';
+import type { Anuncio, AnuncioNegociacao, MensagemNegociacao, Negociacao, ParticipanteNegociacao } from '../api/types';
 import { useChat } from '../context/ChatContext';
 import { useUsuario } from '../context/UsuarioContext';
 import { formatarMoeda } from './format';
@@ -29,11 +29,13 @@ export function ChatJanela() {
   const [neg, setNeg] = useState<Negociacao | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [minimizada, setMinimizada] = useState(false);
+  const [escolhendo, setEscolhendo] = useState(false);
 
   // carrega ao abrir outra negociação
   useEffect(() => {
     setErro(null);
     setMinimizada(false);
+    setEscolhendo(false);
     if (!aberta) { setNeg(null); return; }
     if (inicial?.id === aberta) { setNeg(inicial); return; }
     setNeg(null);
@@ -59,8 +61,12 @@ export function ChatJanela() {
 
   if (!aberta) return null;
 
+  // no celular o chat cobre a tela: minimiza para mostrar o anúncio
+  const irParaAnuncio = () => { if (window.innerWidth < 640) setMinimizada(true); };
+
   const souVendedor = neg?.vendedor.id === usuarioId;
   const outro = neg ? (souVendedor ? neg.comprador : neg.vendedor) : null;
+  const atualizada = (n: Negociacao) => { setNeg(n); recarregarLista(); };
 
   return (
     <section role="dialog" aria-label="Chat da negociação"
@@ -70,21 +76,27 @@ export function ChatJanela() {
         hubExpandido ? 'lg:right-[21rem]' : 'lg:right-20',
         minimizada ? 'right-2 bottom-2 left-2 rounded-card sm:left-auto' : 'inset-0 sm:inset-auto sm:h-[min(600px,calc(100vh-6rem))]')}>
       <Cabecalho neg={neg} outro={outro} souVendedor={souVendedor} minimizada={minimizada}
-        onMinimizar={() => setMinimizada((m) => !m)} onFechar={fecharChat} />
+        onMinimizar={() => setMinimizada((m) => !m)} onFechar={fecharChat} onGerarOrdem={() => setMinimizada(true)} />
       {!minimizada && (
         erro ? <p className="m-4 rounded-lg bg-red-50 p-3 text-sm text-vermelho">{erro}</p>
           : !neg ? <p className="m-4 text-sm text-suave">Carregando conversa...</p>
-            : <Conversa neg={neg} usuarioId={usuarioId} onAtualizada={(n) => { setNeg(n); recarregarLista(); }} onIrParaAnuncio={() => {
-              if (window.innerWidth < 640) setMinimizada(true); // no celular o chat cobre a tela
-            }} />
+            : (
+              <>
+                <ProdutosNegociacao neg={neg} escolhendo={escolhendo} onEscolher={() => setEscolhendo((e) => !e)} onAtualizada={atualizada}
+                  onIrParaAnuncio={irParaAnuncio} />
+                {escolhendo
+                  ? <SeletorAnuncios neg={neg} onAtualizada={(n) => { atualizada(n); setEscolhendo(false); }} onCancelar={() => setEscolhendo(false)} />
+                  : <Conversa neg={neg} usuarioId={usuarioId} onAtualizada={atualizada} onIrParaAnuncio={irParaAnuncio} />}
+              </>
+            )
       )}
     </section>
   );
 }
 
-function Cabecalho({ neg, outro, souVendedor, minimizada, onMinimizar, onFechar }: {
+function Cabecalho({ neg, outro, souVendedor, minimizada, onMinimizar, onFechar, onGerarOrdem }: {
   neg: Negociacao | null; outro: ParticipanteNegociacao | null; souVendedor: boolean; minimizada: boolean;
-  onMinimizar: () => void; onFechar: () => void;
+  onMinimizar: () => void; onFechar: () => void; onGerarOrdem: () => void;
 }) {
   const navigate = useNavigate();
   const botao = 'cursor-pointer rounded-md px-2 py-1 text-base leading-none text-slate-300 hover:bg-topo-claro hover:text-white';
@@ -125,8 +137,9 @@ function Cabecalho({ neg, outro, souVendedor, minimizada, onMinimizar, onFechar 
             </p>
           </div>
           {souVendedor && (
-            <Botao tamanho="pequeno" variante="primario" title="Monta a ordem para este comprador com o produto da negociação"
-              onClick={() => navigate(`/ordens/nova?anuncio=${neg.anuncio.id}&comprador=${neg.comprador.id}`)}>
+            <Botao tamanho="pequeno" variante="primario" title="Monta a ordem para este comprador com todos os produtos da negociação"
+              // minimiza o chat para o formulário da ordem ficar visível
+              onClick={() => { onGerarOrdem(); navigate(`/ordens/nova?negociacao=${neg.id}`); }}>
               Gerar ordem
             </Botao>
           )}
@@ -179,7 +192,9 @@ function Conversa({ neg, usuarioId, onAtualizada, onIrParaAnuncio }: {
           return (
             <div key={m.id}>
               {novoDia && <p className="my-2 text-center text-[0.7rem] font-semibold tracking-wide text-suave uppercase">{dia(m.dataCadastro)}</p>}
-              <Bolha m={m} minha={m.autorId === usuarioId} autor={nomeDe(m.autorId)} neg={neg} onIrParaAnuncio={onIrParaAnuncio} />
+              {m.tipo === 'ANUNCIO_ADICIONADO' || m.tipo === 'ANUNCIO_REMOVIDO'
+                ? <AvisoProduto m={m} minha={m.autorId === usuarioId} autor={nomeDe(m.autorId)} neg={neg} onIrParaAnuncio={onIrParaAnuncio} />
+                : <Bolha m={m} minha={m.autorId === usuarioId} autor={nomeDe(m.autorId)} neg={neg} onIrParaAnuncio={onIrParaAnuncio} />}
             </div>
           );
         })}
@@ -202,6 +217,48 @@ function Conversa({ neg, usuarioId, onAtualizada, onIrParaAnuncio }: {
   );
 }
 
+/** Cartão de produto clicável (leva ao anúncio). */
+function CartaoProduto({ anuncio, claro, onClick }: { anuncio: AnuncioNegociacao; claro?: boolean; onClick: () => void }) {
+  return (
+    <Link to={`/anuncios/${anuncio.id}`} onClick={onClick}
+      className={cx('mt-2 flex items-center gap-2.5 rounded-lg p-2 text-left whitespace-normal hover:no-underline',
+        claro ? 'bg-white/15 text-white hover:bg-white/25' : 'bg-slate-100 text-texto hover:bg-slate-200')}>
+      <ImagemAnuncio caminho={anuncio.imagem} alt="" compacta className="size-10 shrink-0 rounded-md" />
+      <span className="min-w-0 flex-1">
+        <span className="block truncate font-semibold">{anuncio.titulo}</span>
+        <span className={cx('text-xs', claro ? 'text-blue-100' : 'text-primaria')}>
+          {anuncio.precoMenor != null && `a partir de ${formatarMoeda(anuncio.precoMenor)} · `}Ver anúncio →
+        </span>
+      </span>
+    </Link>
+  );
+}
+
+/** Aviso automático no meio da conversa: produto incluído ou retirado da negociação. */
+function AvisoProduto({ m, minha, autor, neg, onIrParaAnuncio }: {
+  m: MensagemNegociacao; minha: boolean; autor: string; neg: Negociacao; onIrParaAnuncio: () => void;
+}) {
+  const anuncio = neg.anuncios.find((a) => a.id === m.anuncioId);
+  const quem = minha ? 'Você' : autor;
+  if (m.tipo === 'ANUNCIO_REMOVIDO') {
+    return (
+      <p className="my-2 text-center text-xs text-suave">
+        ➖ {quem} retirou {m.texto.replace(/^Retirou o produto /, '').replace(/ da negociação\.$/, '')} da negociação · {hora(m.dataCadastro)}
+      </p>
+    );
+  }
+  return (
+    <div className="my-2 flex flex-col items-center">
+      <div className="w-full max-w-[90%] rounded-lg border border-dashed border-green-300 bg-green-50 px-3 py-2 text-center text-xs text-green-900">
+        🛒 <strong>{quem}</strong> adicionou um produto à negociação · {hora(m.dataCadastro)}
+        {anuncio
+          ? <CartaoProduto anuncio={anuncio} onClick={onIrParaAnuncio} />
+          : <p className="m-0 mt-1 text-suave">{m.texto.replace(/^Adicionou o produto /, '').replace(/ à negociação\.$/, '')} (retirado depois)</p>}
+      </div>
+    </div>
+  );
+}
+
 function Bolha({ m, minha, autor, neg, onIrParaAnuncio }: {
   m: MensagemNegociacao; minha: boolean; autor: string; neg: Negociacao; onIrParaAnuncio: () => void;
 }) {
@@ -213,18 +270,120 @@ function Bolha({ m, minha, autor, neg, onIrParaAnuncio }: {
         {m.texto}
         {m.tipo === 'ABORDAGEM' && (
           // cartão do produto de interesse, para o vendedor saber de qual anúncio se trata
-          <Link to={`/anuncios/${neg.anuncio.id}`} onClick={onIrParaAnuncio}
-            className={cx('mt-2 flex items-center gap-2.5 rounded-lg p-2 whitespace-normal hover:no-underline',
-              minha ? 'bg-white/15 text-white hover:bg-white/25' : 'bg-slate-100 text-texto hover:bg-slate-200')}>
-            <ImagemAnuncio caminho={neg.anuncio.imagem} alt="" compacta className="size-10 shrink-0 rounded-md" />
-            <span className="min-w-0 flex-1">
-              <span className="block truncate font-semibold">{neg.anuncio.titulo}</span>
-              <span className={cx('text-xs', minha ? 'text-blue-100' : 'text-primaria')}>Ver anúncio →</span>
-            </span>
-          </Link>
+          <CartaoProduto anuncio={neg.anuncio} claro={minha} onClick={onIrParaAnuncio} />
         )}
       </div>
       <span className="mt-0.5 px-1 text-[0.65rem] text-suave">{hora(m.dataCadastro)}</span>
+    </div>
+  );
+}
+
+/** Faixa com os produtos da negociação: o que iniciou a conversa e os incluídos depois. */
+function ProdutosNegociacao({ neg, escolhendo, onEscolher, onAtualizada, onIrParaAnuncio }: {
+  neg: Negociacao; escolhendo: boolean; onEscolher: () => void; onAtualizada: (n: Negociacao) => void; onIrParaAnuncio: () => void;
+}) {
+  const [removendo, setRemovendo] = useState<string | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
+
+  const remover = async (a: AnuncioNegociacao) => {
+    if (!window.confirm(`Retirar "${a.titulo}" da negociação?`)) return;
+    setRemovendo(a.id);
+    setErro(null);
+    try { onAtualizada(await api.removerAnuncioNegociacao(neg.id, a.id)); }
+    catch (e) { setErro(e instanceof ApiError ? e.message : String(e)); }
+    finally { setRemovendo(null); }
+  };
+
+  return (
+    <div className="shrink-0 border-b border-borda bg-white px-3 py-2">
+      <div className="mb-1.5 flex items-center justify-between gap-2">
+        <span className="text-[0.7rem] font-semibold tracking-wide text-suave uppercase">
+          Produtos na negociação ({neg.anuncios.length})
+        </span>
+        <button type="button" onClick={onEscolher} aria-expanded={escolhendo}
+          className="cursor-pointer rounded-md px-1.5 py-0.5 text-xs font-semibold text-primaria hover:bg-blue-50">
+          {escolhendo ? 'Voltar à conversa' : '+ Adicionar produto'}
+        </button>
+      </div>
+      <ul className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1" aria-label="Produtos na negociação">
+        {neg.anuncios.map((a, i) => (
+          <li key={a.id} className={cx('flex max-w-[170px] shrink-0 items-center gap-1.5 rounded-full border py-0.5 pr-1 pl-0.5',
+            i === 0 ? 'border-blue-200 bg-blue-50' : 'border-borda bg-gray-50', !a.ativo && 'opacity-60')}>
+            <ImagemAnuncio caminho={a.imagem} alt="" compacta className="size-6 shrink-0 rounded-full" />
+            <Link to={`/anuncios/${a.id}`} onClick={onIrParaAnuncio} title={i === 0 ? `${a.titulo} (iniciou a negociação)` : a.titulo}
+              className="min-w-0 truncate text-xs text-texto">{a.titulo}</Link>
+            {i > 0 && (
+              <button type="button" onClick={() => remover(a)} disabled={removendo === a.id} aria-label={`Retirar ${a.titulo}`}
+                className="cursor-pointer rounded-full px-1 text-xs leading-none text-suave hover:bg-red-50 hover:text-vermelho">✕</button>
+            )}
+          </li>
+        ))}
+      </ul>
+      {erro && <p className="m-0 text-xs text-vermelho">{erro}</p>}
+    </div>
+  );
+}
+
+/** Lista os outros anúncios ativos do vendedor para incluir na negociação. */
+function SeletorAnuncios({ neg, onAtualizada, onCancelar }: {
+  neg: Negociacao; onAtualizada: (n: Negociacao) => void; onCancelar: () => void;
+}) {
+  const [anuncios, setAnuncios] = useState<Anuncio[] | null>(null);
+  const [busca, setBusca] = useState('');
+  const [adicionando, setAdicionando] = useState<string | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
+
+  useEffect(() => {
+    api.anunciosDoUsuario(neg.vendedor.id).then(setAnuncios).catch((e) => setErro(e instanceof ApiError ? e.message : String(e)));
+  }, [neg.vendedor.id]);
+
+  const disponiveis = useMemo(() => {
+    const t = busca.trim().toLowerCase();
+    return (anuncios ?? []).filter((a) => a.ativo && !neg.anuncios.some((x) => x.id === a.id)
+      && (!t || a.titulo.toLowerCase().includes(t)));
+  }, [anuncios, neg.anuncios, busca]);
+
+  const adicionar = async (a: Anuncio) => {
+    setAdicionando(a.id);
+    setErro(null);
+    try { onAtualizada(await api.adicionarAnuncioNegociacao(neg.id, a.id)); }
+    catch (e) { setErro(e instanceof ApiError ? e.message : String(e)); setAdicionando(null); }
+  };
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col bg-slate-50">
+      <div className="border-b border-borda bg-white p-3">
+        <p className="m-0 mb-2 text-sm">
+          Outros produtos de <strong>{neg.vendedor.nome}</strong>. Os produtos incluídos entram juntos na ordem de pedido.
+        </p>
+        <input type="search" value={busca} onChange={(e) => setBusca(e.target.value)} autoFocus placeholder="Buscar produto do vendedor"
+          aria-label="Buscar produto do vendedor"
+          className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm outline-none focus:border-primaria focus:ring-2 focus:ring-blue-200" />
+        {erro && <p className="m-0 mt-1.5 text-xs text-vermelho">{erro}</p>}
+      </div>
+      <ul className="min-h-0 flex-1 divide-y divide-borda overflow-y-auto bg-white">
+        {!anuncios && !erro && <li className="p-3 text-sm text-suave">Carregando produtos...</li>}
+        {anuncios && disponiveis.length === 0 && (
+          <li className="p-4 text-center text-sm text-suave">
+            {busca ? 'Nenhum produto encontrado.' : 'Todos os produtos ativos deste vendedor já estão na negociação.'}
+          </li>
+        )}
+        {disponiveis.map((a) => (
+          <li key={a.id} className="flex items-center gap-2.5 px-3 py-2">
+            <ImagemAnuncio caminho={(a.imagens.find((i) => i.principal) ?? a.imagens[0])?.caminho} alt="" compacta className="size-11 shrink-0 rounded-md" />
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-semibold">{a.titulo}</span>
+              {a.precoMenor != null && <span className="text-xs text-suave">a partir de {formatarMoeda(a.precoMenor)}</span>}
+            </span>
+            <Botao tamanho="pequeno" disabled={adicionando != null} onClick={() => adicionar(a)}>
+              {adicionando === a.id ? '...' : 'Adicionar'}
+            </Botao>
+          </li>
+        ))}
+      </ul>
+      <div className="border-t border-borda bg-white p-2.5 text-right">
+        <Botao tamanho="pequeno" onClick={onCancelar}>Voltar à conversa</Botao>
+      </div>
     </div>
   );
 }

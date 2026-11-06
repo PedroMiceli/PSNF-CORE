@@ -13,11 +13,16 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
-/** Conversa completa: cabeçalho (anúncio e participantes) e mensagens. */
+/**
+ * Conversa completa: cabeçalho (anúncios e participantes) e mensagens.
+ * {@code anuncio} é o anúncio de abordagem; {@code anuncios} são todos os produtos da negociação
+ * (o de abordagem primeiro), usados para montar a ordem de pedido.
+ */
 public record NegociacaoResponse(
         UUID id,
         LocalDateTime dataCadastro,
         AnuncioResumo anuncio,
+        List<AnuncioResumo> anuncios,
         Participante comprador,
         Participante vendedor,
         List<Mensagem> mensagens
@@ -39,15 +44,15 @@ public record NegociacaoResponse(
         }
     }
 
-    public record Mensagem(UUID id, UUID autorId, String texto, TipoMensagemNegociacao tipo, LocalDateTime dataCadastro) {
+    public record Mensagem(UUID id, UUID autorId, String texto, TipoMensagemNegociacao tipo, UUID anuncioId, LocalDateTime dataCadastro) {
         static Mensagem from(MensagemNegociacao m) {
-            return new Mensagem(m.getId(), m.getAutorId(), m.getTexto(), m.getTipo(), m.getDataCadastro());
+            return new Mensagem(m.getId(), m.getAutorId(), m.getTexto(), m.getTipo(), m.getAnuncioId(), m.getDataCadastro());
         }
     }
 
     public static NegociacaoResponse from(NegociacaoDetalhes d) {
         return new NegociacaoResponse(d.negociacao().getId(), d.negociacao().getDataCadastro(),
-                AnuncioResumo.from(d.anuncio()), Participante.from(d.comprador()), Participante.from(d.vendedor()),
+                AnuncioResumo.from(d.anuncio()), d.anuncios().stream().map(AnuncioResumo::from).toList(), Participante.from(d.comprador()), Participante.from(d.vendedor()),
                 d.negociacao().getMensagens().stream().map(Mensagem::from).toList());
     }
 }
