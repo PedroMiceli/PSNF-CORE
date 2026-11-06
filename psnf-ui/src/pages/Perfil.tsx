@@ -3,18 +3,15 @@ import { api } from '../api/endpoints';
 import type { EnderecoInput } from '../api/types';
 import { useAcao, useApi } from '../api/useApi';
 import { ACEITA_IMAGENS, UploadArquivo } from '../components/UploadArquivo';
-import { UFS } from '../components/format';
+import { EnderecoForm } from '../components/EnderecoForm';
 import { Campo, Carregando, ErroBox, ImagemAnuncio } from '../components/ui';
 import { useUsuario } from '../context/UsuarioContext';
-
-const enderecoVazio: EnderecoInput = { logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', cep: '', uf: '' };
 
 export function Perfil() {
   const usuario = useApi(() => api.usuarioLogado(), []);
   const salvar = useAcao();
   const endereco = useAcao();
   const [dados, setDados] = useState({ nome: '', telefone: '', imagem: '' });
-  const [novoEnd, setNovoEnd] = useState<EnderecoInput>(enderecoVazio);
 
   useEffect(() => {
     if (usuario.data) setDados({ nome: usuario.data.nome, telefone: usuario.data.telefone ?? '', imagem: usuario.data.imagem ?? '' });
@@ -29,23 +26,15 @@ export function Perfil() {
     const r = await salvar.executar(() => api.atualizarUsuario(dados));
     if (r) usuario.setData(r);
   };
-  const adicionarEndereco = async (e: FormEvent) => {
-    e.preventDefault();
-    const r = await endereco.executar(() => api.adicionarEndereco(novoEnd));
-    if (r) {
-      usuario.setData(r);
-      setNovoEnd(enderecoVazio);
-    }
+  const adicionarEndereco = async (novo: EnderecoInput) => {
+    const r = await endereco.executar(() => api.adicionarEndereco(novo));
+    if (r) usuario.setData(r);
+    return !!r;
   };
   const removerEndereco = async (id: string) => {
     const r = await endereco.executar(() => api.removerEndereco(id));
     if (r) usuario.setData(r);
   };
-  const campoEnd = (k: keyof EnderecoInput, label: string, placeholder = '') => (
-    <Campo label={label} erro={endereco.erro?.campos?.[k]}>
-      <input value={novoEnd[k] ?? ''} placeholder={placeholder} onChange={(e) => setNovoEnd({ ...novoEnd, [k]: e.target.value })} />
-    </Campo>
-  );
 
   return (
     <section className="formulario">
@@ -88,19 +77,7 @@ export function Perfil() {
             ))}
           </ul>
         )}
-        <form onSubmit={adicionarEndereco} className="sub-form">
-          <h4>Adicionar endereço</h4>
-          <div className="linha-form">{campoEnd('logradouro', 'Logradouro', 'Rua...')}{campoEnd('numero', 'Número')}{campoEnd('complemento', 'Complemento')}</div>
-          <div className="linha-form">{campoEnd('bairro', 'Bairro')}{campoEnd('cidade', 'Cidade')}
-            <Campo label="UF" erro={endereco.erro?.campos?.uf}>
-              <select value={novoEnd.uf} onChange={(e) => setNovoEnd({ ...novoEnd, uf: e.target.value })}>
-                <option value="">Selecione...</option>
-                {UFS.map((uf) => <option key={uf} value={uf}>{uf}</option>)}
-              </select>
-            </Campo>
-            {campoEnd('cep', 'CEP', '00000-000')}</div>
-          <button className="btn" disabled={endereco.enviando}>Adicionar</button>
-        </form>
+        <EnderecoForm enviando={endereco.enviando} erros={endereco.erro?.campos} onSalvar={adicionarEndereco} />
       </div>
 
       <NovoUsuario />

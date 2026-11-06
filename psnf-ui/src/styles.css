@@ -226,3 +226,14 @@ h4 { margin: 1.2rem 0 .5rem; font-size: .9rem; color: var(--suave); text-transfo
   .vitrine-categorias button { white-space: nowrap; border: 1px solid var(--borda); border-radius: 999px; padding: .35rem .8rem; }
   .grid-vitrine { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* endereço: CEP primeiro, com busca automática */
+.linha-cep { align-items: center; }
+.campo-cep { flex: 0 0 170px; min-width: 150px; }
+.campo-largo { flex: 2 1 260px; }
+.campo-numero { flex: 0 0 120px; min-width: 100px; }
+.campo-uf { flex: 0 0 130px; min-width: 110px; }
+.status-cep { margin: .6rem 0 0; font-size: .86rem; color: var(--suave); flex: 1; min-width: 200px; }
+.status-cep-buscando { color: var(--primaria); }
+.status-cep-encontrado { color: var(--verde); font-weight: 600; }
+.status-cep-erro { color: var(--laranja); font-weight: 600; }

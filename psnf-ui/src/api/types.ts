@@ -23,6 +23,15 @@ export interface Endereco {
 }
 export type EnderecoInput = Omit<Endereco, 'id'>;
 
+/** Endereço encontrado pelo CEP (logradouro e bairro podem faltar em CEPs gerais de cidade). */
+export interface EnderecoConsultado {
+  cep: string;
+  logradouro: string | null;
+  bairro: string | null;
+  cidade: string | null;
+  uf: string | null;
+}
+
 export interface Usuario {
   id: UUID;
   nome: string;

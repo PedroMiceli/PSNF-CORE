@@ -1,6 +1,6 @@
 import { http } from './client';
 import type {
-  ArquivoEnviado, Anuncio, AnuncioInput, Categoria, EnderecoInput, NovaOrdemInput, OrdemDePedido,
+  ArquivoEnviado, Anuncio, EnderecoConsultado, AnuncioInput, Categoria, EnderecoInput, NovaOrdemInput, OrdemDePedido,
   OrdemDePedidoResumo, Pagina, PagamentoInput, Usuario, UUID,
 } from './types';
 
@@ -23,6 +23,8 @@ export const api = {
   atualizarUsuario: (body: { nome: string; telefone?: string; imagem?: string }) => http.put<Usuario>('/usuarios/me', body),
   adicionarEndereco: (body: EnderecoInput) => http.post<Usuario>('/usuarios/me/enderecos', body),
   removerEndereco: (id: UUID) => http.delete<Usuario>(`/usuarios/me/enderecos/${id}`),
+  /** Busca o endereço pelo CEP (a API consulta a BrasilAPI). */
+  consultarCep: (cep: string) => http.get<EnderecoConsultado>(`/cep/${cep.replace(/\D/g, '')}`),
   anunciosDoUsuario: (id: UUID) => http.get<Anuncio[]>(`/usuarios/${id}/anuncios`),
 
   // categorias (fixas, somente leitura)

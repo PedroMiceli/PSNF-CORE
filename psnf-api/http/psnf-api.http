@@ -119,6 +119,25 @@ X-Usuario-Id: {{novoUsuarioId}}
 > {% client.test("200 - 1 endereço", () => client.assert(response.body.enderecos.length === 1)); %}
 
 
+### 2.7 Buscar endereço pelo CEP (a API consulta a BrasilAPI; aceita com ou sem máscara)
+GET {{baseUrl}}/cep/01310-100
+
+> {%
+    client.test("200 - Avenida Paulista", () => client.assert(response.body.logradouro === "Avenida Paulista"));
+    client.test("cidade/UF", () => client.assert(response.body.cidade === "São Paulo" && response.body.uf === "SP"));
+%}
+
+### 2.8 [404] CEP inexistente
+GET {{baseUrl}}/cep/00000000
+
+> {% client.test("404", () => client.assert(response.status === 404, "status " + response.status)); %}
+
+### 2.9 [400] CEP com quantidade errada de dígitos
+GET {{baseUrl}}/cep/123
+
+> {% client.test("400", () => client.assert(response.status === 400, "status " + response.status)); %}
+
+
 ### =============================== 3. ANÚNCIO =========================================
 
 ### 3.1 Vendedor cria anúncio (com faixas de preço, imagens e variações)
