@@ -5,7 +5,6 @@ import type { Anuncio, Usuario } from '../api/types';
 import { useAcao, useApi } from '../api/useApi';
 import { formatarMoeda } from '../components/format';
 import { Campo, Carregando, ErroBox, Vazio } from '../components/ui';
-import { COMPRADOR_MOCK } from '../context/UsuarioContext';
 
 interface ItemForm {
   anuncioId: string;
@@ -44,7 +43,7 @@ export function NovaOrdem() {
   const acao = useAcao();
   const verificacao = useAcao();
 
-  const [compradorId, setCompradorId] = useState(COMPRADOR_MOCK.id);
+  const [compradorId, setCompradorId] = useState('');
   const [comprador, setComprador] = useState<Usuario | null>(null);
   const [itens, setItens] = useState<ItemForm[]>([]);
 
@@ -58,11 +57,10 @@ export function NovaOrdem() {
 
   const verificarComprador = async () => {
     setComprador(null);
+    if (!compradorId.trim()) return;
     const u = await verificacao.executar(() => api.usuario(compradorId.trim()));
     if (u) setComprador(u);
   };
-  // verifica o comprador padrão ao abrir a tela
-  useEffect(() => { void verificarComprador(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const atualizar = (i: number, campo: keyof ItemForm, valor: string) =>
     setItens((lista) => lista.map((it, j) => {
@@ -111,13 +109,12 @@ export function NovaOrdem() {
           <div className="painel">
             <h3>Comprador</h3>
             <div className="linha-form">
-              <Campo label="Id do comprador" erro={acao.erro?.campos?.compradorId}>
-                <input value={compradorId} onChange={(e) => { setCompradorId(e.target.value); setComprador(null); }} />
+              <Campo label="Código do comprador" erro={acao.erro?.campos?.compradorId}>
+                <input value={compradorId} placeholder="Informe o código do comprador"
+                  onChange={(e) => { setCompradorId(e.target.value); setComprador(null); }} />
               </Campo>
-              <button type="button" className="btn pequeno" onClick={verificarComprador}>Verificar</button>
-              <button type="button" className="btn pequeno" onClick={() => { setCompradorId(COMPRADOR_MOCK.id); setComprador(null); }}>
-                Usar comprador mock
-              </button>
+              <button type="button" className="btn pequeno" disabled={!compradorId.trim() || verificacao.enviando}
+                onClick={verificarComprador}>Verificar</button>
             </div>
             {comprador && <p className="ok">✔ {comprador.nome} — {comprador.email}</p>}
             {verificacao.erro && <p className="campo-msg">{verificacao.erro.message}</p>}
