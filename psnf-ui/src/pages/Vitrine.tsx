@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { api } from '../api/endpoints';
 import { useApi } from '../api/useApi';
 import { formatarMoeda } from '../components/format';
-import { Carregando, ErroBox, ImagemAnuncio, Vazio } from '../components/ui';
+import { Botao, Carregando, cx, ErroBox, ImagemAnuncio, Vazio } from '../components/ui';
 
 const POR_PAGINA = 24;
 
@@ -43,21 +43,28 @@ export function Vitrine() {
     window.scrollTo({ top: 0 });
   };
 
+  const itemCategoria = (ativo: boolean) => cx(
+    'w-full cursor-pointer rounded-lg px-2.5 py-1.5 text-left text-sm whitespace-nowrap hover:bg-slate-100',
+    'max-md:rounded-full max-md:border max-md:border-borda max-md:px-3',
+    ativo ? 'bg-blue-50 font-bold text-primaria' : 'text-texto',
+  );
+
   return (
-    <section className="vitrine">
+    <section className="grid items-start gap-6 md:grid-cols-[240px_minmax(0,1fr)] max-md:gap-3">
       <h1 className="sr-only">Vitrine</h1>
 
-      {/* coluna da esquerda: categorias */}
-      <aside className="vitrine-categorias" aria-label="Categorias">
-        <h2>Categorias</h2>
-        <ul>
+      {/* coluna da esquerda: categorias (no celular vira uma faixa rolável) */}
+      <aside aria-label="Categorias"
+        className="rounded-card border border-borda bg-white p-2.5 md:sticky md:top-[76px] md:max-h-[calc(100vh-96px)] md:overflow-y-auto md:px-2.5 md:py-4 max-md:overflow-x-auto">
+        <h2 className="mx-2 mb-2.5 font-bold max-md:hidden">Categorias</h2>
+        <ul className="flex gap-0.5 md:flex-col max-md:gap-1.5">
           <li>
-            <button className={categoriaId === '' ? 'ativo' : ''} aria-current={categoriaId === '' ? 'true' : undefined}
+            <button className={itemCategoria(categoriaId === '')} aria-current={categoriaId === '' ? 'true' : undefined}
               onClick={() => escolherCategoria('')}>Todas</button>
           </li>
           {categorias.data?.map((c) => (
             <li key={c.id}>
-              <button className={categoriaId === c.id ? 'ativo' : ''} aria-current={categoriaId === c.id ? 'true' : undefined}
+              <button className={itemCategoria(categoriaId === c.id)} aria-current={categoriaId === c.id ? 'true' : undefined}
                 onClick={() => escolherCategoria(c.id)}>{c.nome}</button>
             </li>
           ))}
@@ -65,16 +72,17 @@ export function Vitrine() {
       </aside>
 
       {/* conteúdo: barra de pesquisa no topo e os anúncios no meio */}
-      <div className="vitrine-conteudo">
-        <div className="vitrine-busca">
+      <div className="min-w-0">
+        <div className="mb-4 flex items-center gap-2.5 rounded-card border border-gray-300 bg-white px-4 focus-within:border-primaria focus-within:ring-3 focus-within:ring-blue-200">
           <span aria-hidden="true">🔍</span>
           <input type="search" placeholder="Buscar produtos (ex.: carrinho, cabo usb)..." value={busca}
-            onChange={(e) => setBusca(e.target.value)} aria-label="Buscar produtos" />
+            onChange={(e) => setBusca(e.target.value)} aria-label="Buscar produtos"
+            className="min-w-0 flex-1 bg-transparent py-3.5 text-base outline-none" />
         </div>
 
         <ErroBox erro={anuncios.error ?? categorias.error} />
         {resultado && (
-          <p className="contagem">
+          <p className="-mt-1.5 mb-4 text-sm text-suave [&_strong]:text-texto" aria-live="polite">
             {resultado.total === 0 ? 'Nenhum anúncio encontrado' : `${resultado.total.toLocaleString('pt-BR')} anúncio(s)`}
             {termo && <> para <strong>“{termo}”</strong></>}
             {categoriaId && <> em <strong>{nomeCategoria(categoriaId)}</strong></>}
@@ -91,19 +99,20 @@ export function Vitrine() {
           </Vazio>
         ) : (
           <>
-            <div className={`grid-vitrine ${anuncios.loading ? 'atualizando' : ''}`}>
+            <div className={cx('grid grid-cols-1 gap-4 transition-opacity sm:grid-cols-2 lg:grid-cols-3', anuncios.loading && 'opacity-55')}>
               {resultado.itens.map((a) => {
                 const principal = a.imagens.find((i) => i.principal) ?? a.imagens[0];
                 return (
-                  <Link key={a.id} to={`/anuncios/${a.id}`} className="card-anuncio">
-                    <ImagemAnuncio caminho={principal?.caminho} alt={a.titulo} className="card-img" />
-                    <div className="card-corpo">
-                      <span className="card-categoria">{nomeCategoria(a.categoriaId)}</span>
-                      <h3>{a.titulo}</h3>
-                      <p className="card-preco">
-                        <small>a partir de</small> {formatarMoeda(a.precoMenor)}
+                  <Link key={a.id} to={`/anuncios/${a.id}`}
+                    className="overflow-hidden rounded-card border border-borda bg-white text-inherit transition hover:-translate-y-0.5 hover:no-underline hover:shadow-[0_8px_24px_rgba(15,23,42,0.08)]">
+                    <ImagemAnuncio caminho={principal?.caminho} alt={a.titulo} className="h-[170px] w-full" />
+                    <div className="p-3.5">
+                      <span className="text-[0.72rem] tracking-wider text-suave uppercase">{nomeCategoria(a.categoriaId)}</span>
+                      <h3 className="mt-1 mb-1.5 text-base">{a.titulo}</h3>
+                      <p className="text-lg font-extrabold text-verde">
+                        <small className="text-[0.72rem] font-medium text-suave">a partir de</small> {formatarMoeda(a.precoMenor)}
                       </p>
-                      <p className="card-meta">
+                      <p className="mt-1 text-xs text-suave">
                         {a.valores.length} faixa(s) de preço · {a.variacoes.length} variação(ões)
                       </p>
                     </div>
@@ -112,12 +121,12 @@ export function Vitrine() {
               })}
             </div>
             {resultado.totalPaginas > 1 && (
-              <nav className="paginacao" aria-label="Páginas">
-                <button className="btn" disabled={pagina === 0 || anuncios.loading}
-                  onClick={() => { setPagina(pagina - 1); window.scrollTo({ top: 0 }); }}>← Anterior</button>
+              <nav className="mt-6 flex items-center justify-center gap-4 text-suave" aria-label="Páginas">
+                <Botao disabled={pagina === 0 || anuncios.loading}
+                  onClick={() => { setPagina(pagina - 1); window.scrollTo({ top: 0 }); }}>← Anterior</Botao>
                 <span>Página {pagina + 1} de {resultado.totalPaginas}</span>
-                <button className="btn" disabled={pagina + 1 >= resultado.totalPaginas || anuncios.loading}
-                  onClick={() => { setPagina(pagina + 1); window.scrollTo({ top: 0 }); }}>Próxima →</button>
+                <Botao disabled={pagina + 1 >= resultado.totalPaginas || anuncios.loading}
+                  onClick={() => { setPagina(pagina + 1); window.scrollTo({ top: 0 }); }}>Próxima →</Botao>
               </nav>
             )}
           </>

@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api/endpoints';
 import { useAcao, useApi } from '../api/useApi';
 import { formatarMoeda } from '../components/format';
-import { Carregando, ErroBox, ImagemAnuncio } from '../components/ui';
+import { acoes, Badge, BADGE_INATIVO, Botao, Carregando, chip, cx, dica, ErroBox, ImagemAnuncio, Voltar } from '../components/ui';
 import { useUsuario } from '../context/UsuarioContext';
 
 export function AnuncioDetalhe() {
@@ -29,43 +29,48 @@ export function AnuncioDetalhe() {
   };
 
   return (
-    <section className="detalhe-anuncio">
-      <Link to="/" className="voltar">← Vitrine</Link>
-      <div className="detalhe-grid">
-        <div className="galeria">
-          <ImagemAnuncio caminho={principal} alt={a.titulo} className="galeria-principal" />
-          <div className="galeria-thumbs">
+    <section>
+      <Voltar to="/">Vitrine</Voltar>
+      <div className="grid gap-8 md:grid-cols-[minmax(280px,1fr)_1.2fr]">
+        {/* galeria */}
+        <div>
+          <ImagemAnuncio caminho={principal} alt={a.titulo} className="h-[380px] w-full rounded-card border border-borda max-md:h-[260px]" />
+          <div className="mt-2.5 flex flex-wrap gap-2">
             {a.imagens.map((img) => (
-              <button key={img.id} onClick={() => setImagemSelecionada(img.caminho)} className={img.caminho === principal ? 'ativo' : ''}>
-                <ImagemAnuncio caminho={img.caminho} alt="" className="thumb" />
+              <button key={img.id} onClick={() => setImagemSelecionada(img.caminho)} aria-label="Ver imagem"
+                className={cx('cursor-pointer rounded-lg border-2 p-0', img.caminho === principal ? 'border-primaria' : 'border-transparent')}>
+                <ImagemAnuncio caminho={img.caminho} alt="" compacta className="h-14 w-18 rounded-md" />
               </button>
             ))}
           </div>
         </div>
 
-        <div className="detalhe-info">
-          <p className="fornecedor">{vendedor.data?.nome ?? 'Fornecedor'}</p>
+        {/* informações */}
+        <div className="min-w-0">
+          <p className="text-sm tracking-wider text-suave uppercase">{vendedor.data?.nome ?? 'Fornecedor'}</p>
           <h1>
-            {a.titulo} {!a.ativo && <span className="badge status-CANCELADO">Inativo</span>}
+            {a.titulo} {!a.ativo && <Badge className={BADGE_INATIVO}>Inativo</Badge>}
           </h1>
 
           {a.variacoes.length > 0 && (
             <>
               <h4>Variações</h4>
-              <div className="chips">
-                {a.variacoes.map((v) => <span key={v.id} className="chip estatico">{v.variacao}</span>)}
+              <div className="mb-5 flex flex-wrap gap-2">
+                {a.variacoes.map((v) => <span key={v.id} className={chip}>{v.variacao}</span>)}
               </div>
             </>
           )}
 
           <h4>Preço por quantidade</h4>
-          <div className="faixas">
+          <div className="mb-5 grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-2">
             {faixas.map((f, i) => {
               const prox = faixas[i + 1];
               return (
-                <div key={f.id} className="faixa">
-                  <small>{prox ? `${f.quantidadeMinima} – ${prox.quantidadeMinima - 1} un.` : `a partir de ${f.quantidadeMinima} un.`}</small>
-                  <strong>{formatarMoeda(f.valorUnidade)}</strong>
+                <div key={f.id} className="flex flex-col rounded-lg border border-green-200 bg-green-50 px-3 py-2.5">
+                  <small className="text-xs text-suave">
+                    {prox ? `${f.quantidadeMinima} – ${prox.quantidadeMinima - 1} un.` : `a partir de ${f.quantidadeMinima} un.`}
+                  </small>
+                  <strong className="text-lg text-verde">{formatarMoeda(f.valorUnidade)}</strong>
                 </div>
               );
             })}
@@ -73,15 +78,15 @@ export function AnuncioDetalhe() {
 
           <ErroBox erro={acao.erro} />
           {ehDono ? (
-            <div className="acoes">
-              <button className="btn primario" onClick={() => navigate(`/ordens/nova?anuncio=${a.id}`)}>Gerar ordem de pedido</button>
-              <button className="btn" onClick={() => navigate(`/anuncios/${a.id}/editar`)}>Editar</button>
-              <button className="btn" disabled={acao.enviando} onClick={alternarStatus}>{a.ativo ? 'Desativar' : 'Ativar'}</button>
+            <div className={acoes}>
+              <Botao variante="primario" onClick={() => navigate(`/ordens/nova?anuncio=${a.id}`)}>Gerar ordem de pedido</Botao>
+              <Botao onClick={() => navigate(`/anuncios/${a.id}/editar`)}>Editar</Botao>
+              <Botao disabled={acao.enviando} onClick={alternarStatus}>{a.ativo ? 'Desativar' : 'Ativar'}</Botao>
             </div>
           ) : (
-            <div className="acoes">
-              <button className="btn primario" disabled title="O chat ainda não existe na API">Iniciar chat</button>
-              <p className="dica">
+            <div>
+              <Botao variante="primario" disabled title="O chat ainda não existe na API">Iniciar chat</Botao>
+              <p className={dica}>
                 O chat ainda não foi implementado. No fluxo previsto, comprador e vendedor negociam no chat e o
                 <strong> vendedor</strong> gera a ordem de pedido para o comprador.
               </p>
@@ -89,7 +94,7 @@ export function AnuncioDetalhe() {
           )}
 
           <h4>Descrição do produto</h4>
-          <p className="descricao">{a.descricao}</p>
+          <p className="leading-relaxed whitespace-pre-wrap">{a.descricao}</p>
         </div>
       </div>
     </section>

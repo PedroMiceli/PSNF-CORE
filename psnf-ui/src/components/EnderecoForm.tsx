@@ -3,7 +3,7 @@ import { ApiError } from '../api/client';
 import { api } from '../api/endpoints';
 import type { EnderecoInput } from '../api/types';
 import { UFS } from './format';
-import { Campo } from './ui';
+import { Botao, Campo, controle, cx, linhaForm } from './ui';
 
 const vazio: EnderecoInput = { cep: '', logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', uf: '' };
 
@@ -92,22 +92,26 @@ export function EnderecoForm({ enviando, erros, onSalvar }: Props) {
 
   const campo = (k: keyof EnderecoInput, label: string, extra: { placeholder?: string; className?: string; ref?: Ref<HTMLInputElement> } = {}) => (
     <Campo label={label} erro={erros?.[k]} className={extra.className}>
-      <input ref={extra.ref} value={end[k] ?? ''} placeholder={extra.placeholder} onChange={(e) => set(k, e.target.value)} />
+      <input ref={extra.ref} className={controle} value={end[k] ?? ''} placeholder={extra.placeholder} onChange={(e) => set(k, e.target.value)} />
     </Campo>
   );
 
   return (
-    <form onSubmit={enviar} className="sub-form endereco-form">
+    <form onSubmit={enviar} className="mt-4 border-t border-borda pt-2">
       <h4>Adicionar endereço</h4>
 
-      <div className="linha-form linha-cep">
-        <Campo label="CEP" erro={erros?.cep} className="campo-cep">
-          <input value={end.cep} onChange={(e) => alterarCep(e.target.value)} onBlur={() => {
+      <div className={cx(linhaForm, 'items-center')}>
+        <Campo label="CEP" erro={erros?.cep} className="max-w-[170px] min-w-[150px]">
+          <input className={controle} value={end.cep} onChange={(e) => alterarCep(e.target.value)} onBlur={() => {
             const d = end.cep.replace(/\D/g, '');
             if (d.length === 8 && status.tipo === 'erro') void buscar(d); // tenta de novo ao sair do campo
           }} placeholder="00000-000" inputMode="numeric" autoComplete="postal-code" maxLength={9} aria-describedby="status-cep" />
         </Campo>
-        <p id="status-cep" className={`status-cep status-cep-${status.tipo}`} role="status" aria-live="polite">
+        <p id="status-cep" role="status" aria-live="polite" className={cx('mt-2 min-w-[200px] flex-1 text-sm',
+          status.tipo === 'vazio' && 'text-suave',
+          status.tipo === 'buscando' && 'text-primaria',
+          status.tipo === 'encontrado' && 'font-semibold text-verde',
+          status.tipo === 'erro' && 'font-semibold text-laranja')}>
           {status.tipo === 'vazio' && 'Digite o CEP para preencher o endereço automaticamente.'}
           {status.tipo === 'buscando' && '⏳ Buscando endereço...'}
           {status.tipo === 'encontrado' && (status.completo
@@ -117,22 +121,22 @@ export function EnderecoForm({ enviando, erros, onSalvar }: Props) {
         </p>
       </div>
 
-      <div className="linha-form">
-        {campo('logradouro', 'Logradouro', { placeholder: 'Rua, avenida...', className: 'campo-largo', ref: refLogradouro })}
-        {campo('numero', 'Número', { className: 'campo-numero', ref: refNumero })}
+      <div className={linhaForm}>
+        {campo('logradouro', 'Logradouro', { placeholder: 'Rua, avenida...', className: 'grow-2 basis-64', ref: refLogradouro })}
+        {campo('numero', 'Número', { className: 'max-w-[120px] min-w-[100px]', ref: refNumero })}
         {campo('complemento', 'Complemento', { placeholder: 'Sala, bloco...' })}
       </div>
-      <div className="linha-form">
+      <div className={linhaForm}>
         {campo('bairro', 'Bairro')}
         {campo('cidade', 'Cidade')}
-        <Campo label="UF" erro={erros?.uf} className="campo-uf">
-          <select value={end.uf} onChange={(e) => set('uf', e.target.value)}>
+        <Campo label="UF" erro={erros?.uf} className="max-w-[130px] min-w-[110px]">
+          <select className={controle} value={end.uf} onChange={(e) => set('uf', e.target.value)}>
             <option value="">Selecione...</option>
             {UFS.map((uf) => <option key={uf} value={uf}>{uf}</option>)}
           </select>
         </Campo>
       </div>
-      <button className="btn primario" disabled={enviando || status.tipo === 'buscando'}>Adicionar</button>
+      <Botao type="submit" variante="primario" disabled={enviando || status.tipo === 'buscando'}>Adicionar</Botao>
     </form>
   );
 }

@@ -46,6 +46,18 @@ No canto superior direito, o seletor **Logado como** troca entre:
 5. Troque para o comprador → **Confirmar entrega**.
 6. Use **Incidentes e mensagens** a qualquer momento (é possível anexar fotos).
 
+## Estilo (Tailwind CSS)
+
+O visual usa **Tailwind CSS v4** (plugin `@tailwindcss/vite`), com as classes direto no JSX.
+
+- **Tema** em `src/styles.css` (`@theme`): cores do projeto como utilitários — `bg-primaria`, `text-suave`,
+  `border-borda`, `text-verde`, `rounded-card`... Para mudar uma cor do sistema inteiro, altere-a ali.
+- **Componentes e classes base** em `src/components/ui.tsx`: `Botao` / `LinkBotao` (variantes `primario`,
+  `perigo`; tamanho `pequeno`), `Painel`, `Campo`, `Badge`, `StatusBadge`, `TituloPagina`, `Voltar`, e as classes
+  `controle` (inputs/selects), `tabela`, `linhaForm`, `acoes`, `dica` e `chip`. Use-os antes de repetir classes.
+- `cx(...)` junta classes condicionais: `cx('p-2', ativo && 'bg-blue-50')`.
+- Recomendado: extensão **Tailwind CSS IntelliSense** (o IntelliJ já tem suporte nativo).
+
 ## Estrutura
 
 ```

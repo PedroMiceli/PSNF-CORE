@@ -1,10 +1,10 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api/endpoints';
 import type { AnuncioInput } from '../api/types';
 import { useAcao, useApi } from '../api/useApi';
 import { ACEITA_IMAGENS, UploadArquivo } from '../components/UploadArquivo';
-import { Campo, Carregando, ErroBox, ImagemAnuncio } from '../components/ui';
+import { acoes, Botao, Campo, Carregando, controle, cx, dica, ErroBox, ImagemAnuncio, linhaForm, Painel, Voltar } from '../components/ui';
 
 interface ValorForm { valorUnidade: string; quantidadeMinima: string }
 interface ImagemForm { caminho: string; principal: boolean }
@@ -66,67 +66,70 @@ export function AnuncioForm() {
 
   if (editando && existente.loading) return <Carregando />;
 
+  const erroGeral = (texto?: string) => texto && <p className="mb-2 text-xs text-vermelho">{texto}</p>;
+
   return (
-    <section className="formulario">
-      <Link to="/meus-anuncios" className="voltar">← Meus anúncios</Link>
+    <section className="max-w-[960px]">
+      <Voltar to="/meus-anuncios">Meus anúncios</Voltar>
       <h1>{editando ? 'Editar anúncio' : 'Novo anúncio'}</h1>
       <ErroBox erro={existente.error ?? acao.erro} />
 
       <form onSubmit={salvar}>
-        <div className="painel">
+        <Painel>
           <Campo label="Título" erro={erroCampo('titulo')}>
-            <input value={form.titulo} onChange={(e) => set('titulo', e.target.value)} placeholder="Carrinho de metal" />
+            <input className={controle} value={form.titulo} onChange={(e) => set('titulo', e.target.value)} placeholder="Carrinho de metal" />
           </Campo>
           <Campo label="Descrição" erro={erroCampo('descricao')}>
-            <textarea rows={4} value={form.descricao} onChange={(e) => set('descricao', e.target.value)} />
+            <textarea className={controle} rows={4} value={form.descricao} onChange={(e) => set('descricao', e.target.value)} />
           </Campo>
           <Campo label="Categoria" erro={erroCampo('categoriaId')} dica={categorias.data?.length ? undefined : 'Nenhuma categoria disponível. Verifique se a API está no ar.'}>
-            <select value={form.categoriaId} onChange={(e) => set('categoriaId', e.target.value)}>
+            <select className={controle} value={form.categoriaId} onChange={(e) => set('categoriaId', e.target.value)}>
               <option value="">Selecione...</option>
               {categorias.data?.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
             </select>
           </Campo>
-        </div>
+        </Painel>
 
-        <div className="painel">
+        <Painel>
           <h3>Faixas de preço</h3>
-          <p className="dica">A partir da quantidade mínima, cada unidade custa o valor informado.</p>
-          {erroCampo('valores') && <p className="campo-msg">{erroCampo('valores')}</p>}
+          <p className={dica}>A partir da quantidade mínima, cada unidade custa o valor informado.</p>
+          {erroGeral(erroCampo('valores'))}
           {form.valores.map((v, i) => (
-            <div key={i} className="linha-form">
+            <div key={i} className={linhaForm}>
               <Campo label="A partir de (un.)">
-                <input type="number" min={1} value={v.quantidadeMinima}
+                <input className={controle} type="number" min={1} value={v.quantidadeMinima}
                   onChange={(e) => set('valores', form.valores.map((x, j) => (j === i ? { ...x, quantidadeMinima: e.target.value } : x)))} />
               </Campo>
               <Campo label="Valor por unidade (R$)">
-                <input type="number" step="0.01" min={0} value={v.valorUnidade}
+                <input className={controle} type="number" step="0.01" min={0} value={v.valorUnidade}
                   onChange={(e) => set('valores', form.valores.map((x, j) => (j === i ? { ...x, valorUnidade: e.target.value } : x)))} />
               </Campo>
-              <button type="button" className="btn pequeno perigo" disabled={form.valores.length === 1}
-                onClick={() => set('valores', form.valores.filter((_, j) => j !== i))}>Remover</button>
+              <Botao variante="perigo" tamanho="pequeno" className="mb-3" disabled={form.valores.length === 1}
+                onClick={() => set('valores', form.valores.filter((_, j) => j !== i))}>Remover</Botao>
             </div>
           ))}
-          <button type="button" className="btn pequeno" onClick={() => set('valores', [...form.valores, { valorUnidade: '', quantidadeMinima: '' }])}>
+          <Botao tamanho="pequeno" onClick={() => set('valores', [...form.valores, { valorUnidade: '', quantidadeMinima: '' }])}>
             + Faixa de preço
-          </button>
-        </div>
+          </Botao>
+        </Painel>
 
-        <div className="painel">
+        <Painel>
           <h3>Imagens</h3>
-          <p className="dica">Envie as fotos do produto (JPG, PNG, WEBP ou GIF até 5 MB). Clique em ★ para escolher a principal.</p>
-          {erroCampo('imagens') && <p className="campo-msg">{erroCampo('imagens')}</p>}
+          <p className={dica}>Envie as fotos do produto (JPG, PNG, WEBP ou GIF até 5 MB). Clique em ★ para escolher a principal.</p>
+          {erroGeral(erroCampo('imagens'))}
           {form.imagens.length > 0 && (
-            <div className="galeria-form">
+            <div className="mb-3 grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-3">
               {form.imagens.map((img, i) => (
-                <div key={img.caminho + i} className={`galeria-item ${img.principal ? 'principal' : ''}`}>
-                  <ImagemAnuncio caminho={img.caminho} alt={`Imagem ${i + 1}`} className="galeria-item-img" />
-                  <div className="galeria-item-acoes">
-                    <button type="button" className="btn pequeno" title="Definir como principal" aria-pressed={img.principal}
+                <div key={img.caminho + i}
+                  className={cx('overflow-hidden rounded-card border-2 bg-white', img.principal ? 'border-amber-500' : 'border-borda')}>
+                  <ImagemAnuncio caminho={img.caminho} alt={`Imagem ${i + 1}`} className="h-[110px] w-full" />
+                  <div className="flex flex-wrap justify-between gap-1 p-1.5">
+                    <Botao tamanho="pequeno" title="Definir como principal" aria-pressed={img.principal}
                       onClick={() => set('imagens', form.imagens.map((x, j) => ({ ...x, principal: j === i })))}>
                       {img.principal ? '★ Principal' : '☆'}
-                    </button>
-                    <button type="button" className="btn pequeno perigo"
-                      onClick={() => set('imagens', comPrincipal(form.imagens.filter((_, j) => j !== i)))}>Remover</button>
+                    </Botao>
+                    <Botao variante="perigo" tamanho="pequeno"
+                      onClick={() => set('imagens', comPrincipal(form.imagens.filter((_, j) => j !== i)))}>Remover</Botao>
                   </div>
                 </div>
               ))}
@@ -134,37 +137,36 @@ export function AnuncioForm() {
           )}
           <UploadArquivo accept={ACEITA_IMAGENS} multiple rotulo="Enviar imagens"
             onEnviado={(a) => setForm((f) => ({ ...f, imagens: comPrincipal([...f.imagens, { caminho: a.caminho, principal: false }]) }))} />
-          <div className="linha-form url-externa">
+          <div className={cx(linhaForm, 'mt-1.5')}>
             <Campo label="ou adicione por URL">
-              <input value={urlExterna} placeholder="https://..." onChange={(e) => setUrlExterna(e.target.value)} />
+              <input className={controle} value={urlExterna} placeholder="https://..." onChange={(e) => setUrlExterna(e.target.value)} />
             </Campo>
-            <button type="button" className="btn pequeno" disabled={!urlExterna.trim()}
+            <Botao tamanho="pequeno" className="mb-3" disabled={!urlExterna.trim()}
               onClick={() => { set('imagens', comPrincipal([...form.imagens, { caminho: urlExterna.trim(), principal: false }])); setUrlExterna(''); }}>
               Adicionar URL
-            </button>
+            </Botao>
           </div>
-        </div>
+        </Painel>
 
-        <div className="painel">
-          <h3>Variações <small>(opcional)</small></h3>
+        <Painel>
+          <h3>Variações <small className="font-normal text-suave">(opcional)</small></h3>
           {form.variacoes.map((v, i) => (
-            <div key={i} className="linha-form">
+            <div key={i} className={linhaForm}>
               <Campo label={`Variação ${i + 1}`}>
-                <input value={v} placeholder="BRANCO - P"
+                <input className={controle} value={v} placeholder="BRANCO - P"
                   onChange={(e) => set('variacoes', form.variacoes.map((x, j) => (j === i ? e.target.value : x)))} />
               </Campo>
-              <button type="button" className="btn pequeno perigo" onClick={() => set('variacoes', form.variacoes.filter((_, j) => j !== i))}>
-                Remover
-              </button>
+              <Botao variante="perigo" tamanho="pequeno" className="mb-3"
+                onClick={() => set('variacoes', form.variacoes.filter((_, j) => j !== i))}>Remover</Botao>
             </div>
           ))}
-          <button type="button" className="btn pequeno" onClick={() => set('variacoes', [...form.variacoes, ''])}>+ Variação</button>
-        </div>
+          <Botao tamanho="pequeno" onClick={() => set('variacoes', [...form.variacoes, ''])}>+ Variação</Botao>
+        </Painel>
 
-        <div className="acoes">
-          <button type="submit" className="btn primario" disabled={acao.enviando}>
+        <div className={acoes}>
+          <Botao type="submit" variante="primario" disabled={acao.enviando}>
             {acao.enviando ? 'Salvando...' : editando ? 'Salvar alterações' : 'Publicar anúncio'}
-          </button>
+          </Botao>
         </div>
       </form>
     </section>
