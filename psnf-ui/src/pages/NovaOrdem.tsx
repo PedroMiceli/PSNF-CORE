@@ -43,7 +43,7 @@ export function NovaOrdem() {
   const acao = useAcao();
   const verificacao = useAcao();
 
-  const [compradorId, setCompradorId] = useState('');
+  const [compradorId, setCompradorId] = useState(params.get('comprador') ?? '');
   const [comprador, setComprador] = useState<Usuario | null>(null);
   const [itens, setItens] = useState<ItemForm[]>([]);
 
@@ -55,12 +55,18 @@ export function NovaOrdem() {
     if (meus.data && itens.length === 0) setItens([novoItem(porId(params.get('anuncio') ?? ''))]);
   }, [meus.data]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const verificarComprador = async () => {
+  const verificarComprador = async (id = compradorId) => {
     setComprador(null);
-    if (!compradorId.trim()) return;
-    const u = await verificacao.executar(() => api.usuario(compradorId.trim()));
+    if (!id.trim()) return;
+    const u = await verificacao.executar(() => api.usuario(id.trim()));
     if (u) setComprador(u);
   };
+
+  // vindo do chat (?comprador=): já confere o comprador da negociação
+  useEffect(() => {
+    const id = params.get('comprador');
+    if (id) void verificarComprador(id);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const atualizar = (i: number, campo: keyof ItemForm, valor: string) =>
     setItens((lista) => lista.map((it, j) => {
@@ -115,7 +121,7 @@ export function NovaOrdem() {
                   onChange={(e) => { setCompradorId(e.target.value); setComprador(null); }} />
               </Campo>
               <Botao tamanho="pequeno" className="mb-3" disabled={!compradorId.trim() || verificacao.enviando}
-                onClick={verificarComprador}>Verificar</Botao>
+                onClick={() => verificarComprador()}>Verificar</Botao>
             </div>
             {comprador && <p className="font-semibold text-verde">✔ {comprador.nome} — {comprador.email}</p>}
             {verificacao.erro && <p className="text-xs text-vermelho">{verificacao.erro.message}</p>}

@@ -1,5 +1,7 @@
 import { NavLink, Outlet } from 'react-router-dom';
+import { ChatProvider } from '../context/ChatContext';
 import { COMPRADOR_MOCK, VENDEDOR_MOCK, useUsuario } from '../context/UsuarioContext';
+import { ChatJanela } from './ChatJanela';
 import { cx } from './ui';
 
 const itemMenu = ({ isActive }: { isActive: boolean }) =>
@@ -11,6 +13,8 @@ export function Layout() {
   const corPapel = usuarioId === VENDEDOR_MOCK.id ? 'bg-blue-900' : usuarioId === COMPRADOR_MOCK.id ? 'bg-green-800' : 'bg-orange-900';
 
   return (
+    // key: ao trocar de usuário o chat aberto é fechado
+    <ChatProvider key={usuarioId} usuarioId={usuarioId}>
     <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-10 bg-topo text-white">
         <div className="mx-auto flex max-w-[1200px] flex-wrap items-center gap-6 px-4 py-3">
@@ -18,6 +22,7 @@ export function Layout() {
           <nav className="flex flex-1 flex-wrap gap-1">
             <NavLink to="/" end className={itemMenu}>Vitrine</NavLink>
             <NavLink to="/meus-anuncios" className={itemMenu}>Meus anúncios</NavLink>
+            <NavLink to="/negociacoes" className={itemMenu}>Negociações</NavLink>
             <NavLink to="/ordens" className={itemMenu}>Ordens de pedido</NavLink>
             <NavLink to="/perfil" className={itemMenu}>Perfil</NavLink>
           </nav>
@@ -40,6 +45,8 @@ export function Layout() {
       <footer className="p-4 text-center text-xs text-suave">
         Protótipo PSNF — o usuário logado é simulado pelo header <code>X-Usuario-Id</code>.
       </footer>
+      <ChatJanela />
     </div>
+    </ChatProvider>
   );
 }

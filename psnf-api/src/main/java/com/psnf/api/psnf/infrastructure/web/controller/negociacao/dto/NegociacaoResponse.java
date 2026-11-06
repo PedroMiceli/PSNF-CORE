@@ -1,0 +1,53 @@
+package com.psnf.api.psnf.infrastructure.web.controller.negociacao.dto;
+
+import com.psnf.api.psnf.domain.anuncio.model.Anuncio;
+import com.psnf.api.psnf.domain.anuncio.model.ImagemAnuncio;
+import com.psnf.api.psnf.domain.negociacao.model.MensagemNegociacao;
+import com.psnf.api.psnf.domain.negociacao.model.NegociacaoDetalhes;
+import com.psnf.api.psnf.domain.negociacao.model.enums.TipoMensagemNegociacao;
+import com.psnf.api.psnf.domain.usuario.model.Endereco;
+import com.psnf.api.psnf.domain.usuario.model.Usuario;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.UUID;
+
+/** Conversa completa: cabeçalho (anúncio e participantes) e mensagens. */
+public record NegociacaoResponse(
+        UUID id,
+        LocalDateTime dataCadastro,
+        AnuncioResumo anuncio,
+        Participante comprador,
+        Participante vendedor,
+        List<Mensagem> mensagens
+) {
+    public record AnuncioResumo(UUID id, String titulo, String imagem, BigDecimal precoMenor, int quantidadeMinima, boolean ativo) {
+        static AnuncioResumo from(Anuncio a) {
+            return new AnuncioResumo(a.getId(), a.getTitulo(), a.getImagemPrincipal().map(ImagemAnuncio::getCaminho).orElse(null),
+                    a.getMenorValor(), a.getQuantidadeMinima(), a.isAtivo());
+        }
+    }
+
+    /** Dados simples do participante, para o outro saber com quem está falando. */
+    public record Participante(UUID id, String nome, String email, String telefone, String imagem,
+                               String cidade, String uf, LocalDateTime membroDesde) {
+        static Participante from(Usuario u) {
+            Endereco e = u.getEnderecos().isEmpty() ? null : u.getEnderecos().getFirst();
+            return new Participante(u.getId(), u.getNome(), u.getEmail(), u.getTelefone(), u.getImagem(),
+                    e == null ? null : e.getCidade(), e == null ? null : e.getUf(), u.getDataCadastro());
+        }
+    }
+
+    public record Mensagem(UUID id, UUID autorId, String texto, TipoMensagemNegociacao tipo, LocalDateTime dataCadastro) {
+        static Mensagem from(MensagemNegociacao m) {
+            return new Mensagem(m.getId(), m.getAutorId(), m.getTexto(), m.getTipo(), m.getDataCadastro());
+        }
+    }
+
+    public static NegociacaoResponse from(NegociacaoDetalhes d) {
+        return new NegociacaoResponse(d.negociacao().getId(), d.negociacao().getDataCadastro(),
+                AnuncioResumo.from(d.anuncio()), Participante.from(d.comprador()), Participante.from(d.vendedor()),
+                d.negociacao().getMensagens().stream().map(Mensagem::from).toList());
+    }
+}
