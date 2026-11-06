@@ -1,7 +1,10 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { ApiError } from '../api/client';
 import { api } from '../api/endpoints';
-import type { Negociacao, UUID } from '../api/types';
+import type { Negociacao, NegociacaoResumo, UUID } from '../api/types';
+
+/** Intervalo da atualização automática da lista de conversas (até existir WebSocket). */
+const ATUALIZAR_LISTA_MS = 8000;
 
 interface Ctx {
   /** negociação aberta na janela de chat */
@@ -12,25 +15,65 @@ interface Ctx {
   fecharChat: () => void;
   /** comprador inicia (ou reabre) a negociação do anúncio e abre o chat */
   iniciarNegociacao: (anuncioId: UUID) => Promise<ApiError | null>;
+
+  /** todas as conversas do usuário (hub de negociações) */
+  lista: NegociacaoResumo[] | null;
+  erroLista: ApiError | null;
+  recarregarLista: () => void;
+  /** mensagens dos outros ainda não vistas nesta conversa */
+  naoLidas: (n: NegociacaoResumo) => number;
+  totalNaoLidas: number;
+  /** registra que o usuário já viu as N mensagens da conversa */
+  marcarVista: (id: UUID, quantidadeMensagens: number) => void;
+
+  /** barra lateral do hub aberta (larga) ou recolhida (só miniaturas) */
+  hubExpandido: boolean;
+  alternarHub: () => void;
 }
 
 const ChatContext = createContext<Ctx | null>(null);
 
-// a conversa aberta continua aberta ao recarregar a página (por aba do navegador)
-// (guardada por usuário: ao trocar o "Logado como", não reabre a conversa de outra pessoa)
-const chave = (usuarioId: string) => `psnf.chatAberto.${usuarioId}`;
-const lerAberta = (usuarioId: string) => { try { return sessionStorage.getItem(chave(usuarioId)); } catch { return null; } };
-const gravarAberta = (usuarioId: string, id: UUID | null) => {
+/* ------------------------------------------------------------------ armazenamento local (por usuário) */
+// a conversa aberta continua aberta ao recarregar a página (por aba do navegador);
+// "vistas" e o estado da barra ficam no navegador. Tudo separado por usuário: ao trocar o
+// "Logado como", nada da outra pessoa aparece.
+const ler = <T,>(storage: () => Storage, chave: string, padrao: T): T => {
+  try { const v = storage().getItem(chave); return v == null ? padrao : (JSON.parse(v) as T); } catch { return padrao; }
+};
+const gravar = (storage: () => Storage, chave: string, valor: unknown) => {
   try {
-    if (id) sessionStorage.setItem(chave(usuarioId), id); else sessionStorage.removeItem(chave(usuarioId));
+    if (valor == null) storage().removeItem(chave); else storage().setItem(chave, JSON.stringify(valor));
   } catch { /* sem storage: só não lembra */ }
 };
+const sessao = () => sessionStorage;
+const local = () => localStorage;
 
-/** Janela de chat única, disponível em todas as páginas (fica aberta ao navegar). */
 export function ChatProvider({ usuarioId, children }: { usuarioId: string; children: ReactNode }) {
-  const [aberta, setAbertaState] = useState<UUID | null>(() => lerAberta(usuarioId));
-  const setAberta = useCallback((id: UUID | null) => { setAbertaState(id); gravarAberta(usuarioId, id); }, [usuarioId]);
+  const kAberta = `psnf.chatAberto.${usuarioId}`;
+  const kVistas = `psnf.chatVistas.${usuarioId}`;
+  const kHub = `psnf.hubExpandido.${usuarioId}`;
+
+  const [aberta, setAbertaState] = useState<UUID | null>(() => ler<UUID | null>(sessao, kAberta, null));
+  const setAberta = useCallback((id: UUID | null) => { setAbertaState(id); gravar(sessao, kAberta, id); }, [kAberta]);
   const [inicial, setInicial] = useState<Negociacao | null>(null);
+
+  const [lista, setLista] = useState<NegociacaoResumo[] | null>(null);
+  const [erroLista, setErroLista] = useState<ApiError | null>(null);
+  const [vistas, setVistas] = useState<Record<UUID, number>>(() => ler(local, kVistas, {}));
+  const [hubExpandido, setHubExpandido] = useState(() => ler(local, kHub, true));
+
+  const recarregarLista = useCallback(() => {
+    api.negociacoes()
+      .then((l) => { setLista(l); setErroLista(null); })
+      .catch((e) => setErroLista(e instanceof ApiError ? e : new ApiError(0, String(e))));
+  }, []);
+
+  // carrega ao entrar e atualiza sozinho (só com a aba visível)
+  useEffect(() => {
+    recarregarLista();
+    const t = setInterval(() => { if (!document.hidden) recarregarLista(); }, ATUALIZAR_LISTA_MS);
+    return () => clearInterval(t);
+  }, [recarregarLista]);
 
   const abrirChat = useCallback((id: UUID) => { setInicial(null); setAberta(id); }, [setAberta]);
   const fecharChat = useCallback(() => { setAberta(null); setInicial(null); }, [setAberta]);
@@ -39,14 +82,38 @@ export function ChatProvider({ usuarioId, children }: { usuarioId: string; child
       const n = await api.iniciarNegociacao(anuncioId);
       setInicial(n);
       setAberta(n.id);
+      recarregarLista();
       return null;
     } catch (e) {
       return e instanceof ApiError ? e : new ApiError(0, String(e));
     }
-  }, [setAberta]);
+  }, [setAberta, recarregarLista]);
 
-  const valor = useMemo(() => ({ aberta, inicial, abrirChat, fecharChat, iniciarNegociacao }),
-    [aberta, inicial, abrirChat, fecharChat, iniciarNegociacao]);
+  const marcarVista = useCallback((id: UUID, quantidade: number) => {
+    setVistas((v) => {
+      if ((v[id] ?? 0) >= quantidade) return v;
+      const novo = { ...v, [id]: quantidade };
+      gravar(local, kVistas, novo);
+      return novo;
+    });
+  }, [kVistas]);
+
+  // não lidas = mensagens da outra pessoa ainda sem resposta (vem da API), descontando as que o
+  // usuário já viu neste navegador; as próprias mensagens nunca contam
+  const naoLidas = useCallback((n: NegociacaoResumo) => {
+    if (n.id === aberta) return 0;
+    const novasDesdeQueViu = Math.max(0, n.quantidadeMensagens - (vistas[n.id] ?? 0));
+    return Math.min(n.mensagensSemResposta, novasDesdeQueViu);
+  }, [vistas, aberta]);
+  const totalNaoLidas = useMemo(() => (lista ?? []).reduce((s, n) => s + (naoLidas(n) > 0 ? 1 : 0), 0), [lista, naoLidas]);
+
+  const alternarHub = useCallback(() => setHubExpandido((e) => { gravar(local, kHub, !e); return !e; }), [kHub]);
+
+  const valor = useMemo(() => ({
+    aberta, inicial, abrirChat, fecharChat, iniciarNegociacao,
+    lista, erroLista, recarregarLista, naoLidas, totalNaoLidas, marcarVista, hubExpandido, alternarHub,
+  }), [aberta, inicial, abrirChat, fecharChat, iniciarNegociacao, lista, erroLista, recarregarLista, naoLidas,
+    totalNaoLidas, marcarVista, hubExpandido, alternarHub]);
   return <ChatContext.Provider value={valor}>{children}</ChatContext.Provider>;
 }
 

@@ -1,6 +1,7 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { ChatProvider } from '../context/ChatContext';
 import { COMPRADOR_MOCK, VENDEDOR_MOCK, useUsuario } from '../context/UsuarioContext';
+import { ChatHub } from './ChatHub';
 import { ChatJanela } from './ChatJanela';
 import { cx } from './ui';
 
@@ -17,7 +18,7 @@ export function Layout() {
     <ChatProvider key={usuarioId} usuarioId={usuarioId}>
     <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-10 bg-topo text-white">
-        <div className="mx-auto flex max-w-[1200px] flex-wrap items-center gap-6 px-4 py-3">
+        <div className="mx-auto flex max-w-[1200px] flex-wrap items-center gap-6 px-4 py-3 lg:h-16 lg:flex-nowrap lg:py-0">
           <NavLink to="/" className="text-xl font-extrabold tracking-wider text-white hover:no-underline">PSNF</NavLink>
           <nav className="flex flex-1 flex-wrap gap-1">
             <NavLink to="/" end className={itemMenu}>Vitrine</NavLink>
@@ -38,13 +39,19 @@ export function Layout() {
           </label>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-[1200px] flex-1 px-4 pt-6 pb-12">
-        {/* key: ao trocar de usuário a página é remontada e busca os dados de novo */}
-        <Outlet key={usuarioId} />
-      </main>
-      <footer className="p-4 text-center text-xs text-suave">
-        Protótipo PSNF — o usuário logado é simulado pelo header <code>X-Usuario-Id</code>.
-      </footer>
+      <div className="flex flex-1">
+        <div className="flex min-w-0 flex-1 flex-col">
+          <main className="mx-auto w-full max-w-[1200px] flex-1 px-4 pt-6 pb-12">
+            {/* key: ao trocar de usuário a página é remontada e busca os dados de novo */}
+            <Outlet key={usuarioId} />
+          </main>
+          <footer className="p-4 text-center text-xs text-suave">
+            Protótipo PSNF — o usuário logado é simulado pelo header <code>X-Usuario-Id</code>.
+          </footer>
+        </div>
+        {/* hub de negociações: barra à direita em todas as páginas */}
+        <ChatHub />
+      </div>
       <ChatJanela />
     </div>
     </ChatProvider>

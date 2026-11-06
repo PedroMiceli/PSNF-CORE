@@ -376,6 +376,7 @@ GET {{baseUrl}}/negociacoes
 > {%
     client.test("200", () => client.assert(response.status === 200));
     client.test("papel VENDEDOR", () => client.assert(response.body.some(n => n.id === client.global.get("negociacaoId") && n.papel === "VENDEDOR")));
+    client.test("vendedor respondeu por último: nada sem resposta", () => client.assert(response.body.find(n => n.id === client.global.get("negociacaoId")).mensagensSemResposta === 0));
 %}
 
 ### 3B.5 Detalhes da negociação (como comprador)

@@ -267,4 +267,6 @@ export interface NegociacaoResumo {
   ultimaMensagemAutorId: UUID | null;
   ultimaMensagemEm: string;
   quantidadeMensagens: number;
+  /** mensagens da outra pessoa depois da última mensagem do usuário logado */
+  mensagensSemResposta: number;
 }

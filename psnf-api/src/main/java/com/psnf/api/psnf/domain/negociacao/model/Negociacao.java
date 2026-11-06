@@ -93,6 +93,13 @@ public class Negociacao extends BaseDomain {
         return vendedorId.equals(usuarioId);
     }
 
+    /** Mensagens dos outros participantes depois da última mensagem deste usuário (ainda sem resposta dele). */
+    public int mensagensSemResposta(UUID usuarioId) {
+        int n = 0;
+        for (int i = mensagens.size() - 1; i >= 0 && !mensagens.get(i).getAutorId().equals(usuarioId); i--) n++;
+        return n;
+    }
+
     public Optional<MensagemNegociacao> getUltimaMensagem() {
         return mensagens.isEmpty() ? Optional.empty() : Optional.of(mensagens.getLast());
     }
