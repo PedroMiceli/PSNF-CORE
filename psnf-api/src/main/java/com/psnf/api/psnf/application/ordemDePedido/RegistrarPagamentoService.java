@@ -30,7 +30,8 @@ public class RegistrarPagamentoService implements RegistrarPagamentoUseCase {
                 command.conta(),
                 command.nomeReferencia(),
                 command.chavePix(),
-                command.boleto()
+                command.boleto(),
+                command.dataReferencia()
         );
 
         ordem.registrarPagamento(command.usuarioId(), pagamento);

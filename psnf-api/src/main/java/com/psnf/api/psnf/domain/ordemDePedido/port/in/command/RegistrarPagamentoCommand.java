@@ -3,6 +3,7 @@ package com.psnf.api.psnf.domain.ordemDePedido.port.in.command;
 import com.psnf.api.psnf.domain.ordemDePedido.models.enums.EnumTipoPagamento;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.UUID;
 
 public record RegistrarPagamentoCommand(
@@ -15,7 +16,8 @@ public record RegistrarPagamentoCommand(
         String conta,
         String nomeReferencia,
         String chavePix,
-        String boleto
+        String boleto,
+        LocalDate dataReferencia
 ) {
     public RegistrarPagamentoCommand {
         if (ordemDePedidoId == null || usuarioId == null) {

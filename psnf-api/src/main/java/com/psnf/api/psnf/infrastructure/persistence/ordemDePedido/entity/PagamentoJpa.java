@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 @Entity
 @Table(name = "pagamento")
@@ -29,6 +30,8 @@ public class PagamentoJpa extends BaseEntity {
     private String nomeReferencia;
     private String chavePix;
     private String boleto;
+
+    private LocalDate dataReferencia;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "ordem_de_pedido_id", nullable = false)

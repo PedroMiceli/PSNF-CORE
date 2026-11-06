@@ -139,4 +139,18 @@ class OrdemDePedidoTest {
         ordem.enviar(vendedor.getId(), null);
         assertThrows(RegraDeNegocioException.class, () -> ordem.removerPagamento(comprador.getId(), p.getId()));
     }
+
+    @Test
+    void pagamentoTemDataDeReferencia() {
+        LocalDate dia = LocalDate.of(2026, 11, 20);
+        Pagamento comData = Pagamento.criar(EnumTipoPagamento.BOLETO, BigDecimal.TEN, null, null, null, "Parcela 2", null, "34191.79001", dia);
+        assertEquals(dia, comData.getDataReferencia());
+        // sem informar: hoje
+        assertEquals(LocalDate.now(), pix("10.00").getDataReferencia());
+        // pagamento antigo (sem a coluna): usa o dia em que foi registrado
+        LocalDateTime registrado = LocalDateTime.of(2026, 10, 1, 9, 30);
+        Pagamento antigo = Pagamento.restaurar(UUID.randomUUID(), registrado, null, null, EnumTipoPagamento.PIX, BigDecimal.ONE,
+                null, null, null, null, "chave", null, null);
+        assertEquals(LocalDate.of(2026, 10, 1), antigo.getDataReferencia());
+    }
 }
