@@ -1,7 +1,9 @@
 package com.psnf.api.psnf.infrastructure.persistence.ordemDePedido.adapter.mapper;
 
+import com.psnf.api.psnf.domain.ordemDePedido.models.Entrega;
 import com.psnf.api.psnf.domain.ordemDePedido.models.OrdemDePedido;
 import com.psnf.api.psnf.infrastructure.persistence.anuncio.entity.jpa.AnuncioJpa;
+import com.psnf.api.psnf.infrastructure.persistence.ordemDePedido.entity.EntregaJpa;
 import com.psnf.api.psnf.infrastructure.persistence.ordemDePedido.entity.OrdemDePedidoJpa;
 import com.psnf.api.psnf.infrastructure.persistence.usuario.adapter.mapper.UsuarioJpaMapper;
 import com.psnf.api.psnf.infrastructure.persistence.usuario.entity.UsuarioJpa;
@@ -25,6 +27,15 @@ public class OrdemDePedidoJpaMapper {
         jpa.setPrevisaoDeEntrega(ordem.getPrevisaoDeEntrega());
         jpa.setIncidentesLidosCompradorEm(ordem.getIncidentesLidosCompradorEm());
         jpa.setIncidentesLidosVendedorEm(ordem.getIncidentesLidosVendedorEm());
+        if (ordem.getEntrega() != null) {
+            var e = ordem.getEntrega();
+            EntregaJpa ej = new EntregaJpa();
+            ej.restaurarBase(e.getId(), e.getDataCadastro(), e.getDataAlteracao(), e.getDataExcluido());
+            ej.setDescricao(e.getDescricao());
+            ej.setCodigoRastreio(e.getCodigoRastreio());
+            ej.setOrdemDePedido(jpa);
+            jpa.setEntrega(ej);
+        }
         jpa.setStatus(ordem.getStatus());
         jpa.setComprador(usuarioRef.apply(ordem.getComprador().getId()));
         jpa.setVendedor(usuarioRef.apply(ordem.getVendedor().getId()));
@@ -58,6 +69,11 @@ public class OrdemDePedidoJpaMapper {
                 jpa.getNotasFiscais().stream().map(NotaFiscalJpaMapper::toDomain).toList()
         );
         ordem.restaurarLeituraIncidentes(jpa.getIncidentesLidosCompradorEm(), jpa.getIncidentesLidosVendedorEm());
+        EntregaJpa e = jpa.getEntrega();
+        if (e != null) {
+            ordem.restaurarEntrega(Entrega.restaurar(e.getId(), e.getDataCadastro(), e.getDataAlteracao(), e.getDataExcluido(),
+                    e.getDescricao(), e.getCodigoRastreio()));
+        }
         return ordem;
     }
 }

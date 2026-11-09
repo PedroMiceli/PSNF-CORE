@@ -34,6 +34,8 @@ public class OrdemDePedido extends BaseDomain {
     private final List<Pagamento> pagamentos;
     /** até quando comprador e vendedor já viram as mensagens de incidente (para destacar as novas) */
     private LocalDateTime incidentesLidosCompradorEm;
+    /** detalhes da entrega informados pelo vendedor (descrição e código de envio); null se não houver */
+    private Entrega entrega;
     private LocalDateTime incidentesLidosVendedorEm;
     private final List<MensagemIncidente> mensagensIncidente;
     private final List<NotaFiscal> notasFiscais;
@@ -180,6 +182,11 @@ public class OrdemDePedido extends BaseDomain {
      * {@link #isPagamentoPendente()} até todos os comprovantes chegarem.
      */
     public void enviar(UUID usuarioId, LocalDate previsaoDeEntrega) {
+        enviar(usuarioId, previsaoDeEntrega, null, null);
+    }
+
+    /** Despacha informando, se quiser, a descrição da entrega e o código de envio. */
+    public void enviar(UUID usuarioId, LocalDate previsaoDeEntrega, String descricaoEntrega, String codigoRastreio) {
         garantirVendedor(usuarioId);
         if (status == AGUARDANDO_CONFIRMACAO || status == ACEITO) {
             throw new RegraDeNegocioException("Cadastre as formas de pagamento cobrindo o valor total antes de despachar o pedido");
@@ -190,6 +197,9 @@ public class OrdemDePedido extends BaseDomain {
         }
         this.previsaoDeEntrega = previsaoDeEntrega;
         this.status = ENVIADO;
+        if (descricaoEntrega != null || codigoRastreio != null) {
+            definirEntrega(descricaoEntrega, codigoRastreio);
+        }
     }
 
     public void confirmarEntrega(UUID usuarioId) {
@@ -209,6 +219,35 @@ public class OrdemDePedido extends BaseDomain {
         mensagensIncidente.add(mensagem);
         marcarIncidentesLidos(usuarioId); // quem escreve já viu a conversa até aqui
     }
+
+    /******************************************* ENTREGA *******************************************/
+
+    /**
+     * O vendedor informa ou corrige os detalhes da entrega (descrição e/ou código de envio), a partir do aceite
+     * do comprador até a entrega. Com os dois campos vazios, a entrega é removida.
+     */
+    public void registrarEntrega(UUID usuarioId, String descricao, String codigoRastreio) {
+        garantirVendedor(usuarioId);
+        if (status == AGUARDANDO_CONFIRMACAO || status == CANCELADO) {
+            throw new RegraDeNegocioException("Os dados da entrega só podem ser informados depois que o comprador aceitar a ordem");
+        }
+        definirEntrega(descricao, codigoRastreio);
+    }
+
+    private void definirEntrega(String descricao, String codigoRastreio) {
+        if (entrega == null) {
+            entrega = Entrega.criar(descricao, codigoRastreio);
+        } else if (!entrega.atualizar(descricao, codigoRastreio)) {
+            entrega = null;
+        }
+    }
+
+    /** Usado pela persistência. */
+    public void restaurarEntrega(Entrega entrega) {
+        this.entrega = entrega;
+    }
+
+    public Entrega getEntrega() { return entrega; }
 
     /******************************************* LEITURA DOS INCIDENTES *******************************************/
 

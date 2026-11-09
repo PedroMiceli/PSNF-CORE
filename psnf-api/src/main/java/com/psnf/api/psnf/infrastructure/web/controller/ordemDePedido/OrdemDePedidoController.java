@@ -104,8 +104,17 @@ public class OrdemDePedidoController {
 
     @PatchMapping("/{id}/enviar")
     public ResponseEntity<OrdemDePedidoResponse> enviar(@PathVariable UUID id, @RequestBody(required = false) @Valid EnviarOrdemDePedidoRequest request) {
-        return ResponseEntity.ok(resposta(alterarStatusOrdemDePedidoUseCase.enviar(
-                id, usuarioLogado(), request == null ? null : request.previsaoDeEntrega())));
+        return ResponseEntity.ok(resposta(alterarStatusOrdemDePedidoUseCase.enviar(id, usuarioLogado(),
+                request == null ? null : request.previsaoDeEntrega(),
+                request == null ? null : request.descricaoEntrega(),
+                request == null ? null : request.codigoRastreio())));
+    }
+
+    /** O vendedor informa ou corrige os detalhes da entrega (descrição e código de envio, ambos opcionais). */
+    @PutMapping("/{id}/entrega")
+    public ResponseEntity<OrdemDePedidoResponse> registrarEntrega(@PathVariable UUID id, @RequestBody @Valid EntregaRequest request) {
+        return ResponseEntity.ok(resposta(alterarStatusOrdemDePedidoUseCase.registrarEntrega(
+                id, usuarioLogado(), request.descricao(), request.codigoRastreio())));
     }
 
     @PatchMapping("/{id}/confirmar-entrega")

@@ -620,10 +620,34 @@ PATCH {{baseUrl}}/ordens-de-pedido/{{ordemId}}/enviar
 Content-Type: application/json
 
 {
-  "previsaoDeEntrega": "2030-12-31"
+  "previsaoDeEntrega": "2030-12-31",
+  "codigoRastreio": "BR123456789BR"
 }
 
-> {% client.test("status ENVIADO", () => client.assert(response.body.status === "ENVIADO")); %}
+> {%
+    client.test("status ENVIADO", () => client.assert(response.body.status === "ENVIADO"));
+    client.test("entrega com o código de envio", () => client.assert(response.body.entrega.codigoRastreio === "BR123456789BR" && response.body.entrega.descricao === null));
+%}
+
+### 4.11b Vendedor completa os dados da entrega (descrição e código, ambos opcionais)
+PUT {{baseUrl}}/ordens-de-pedido/{{ordemId}}/entrega
+Content-Type: application/json
+
+{
+  "descricao": "Transportadora Rápida Ltda. Entrega em horário comercial, procurar o almoxarifado.",
+  "codigoRastreio": "BR123456789BR"
+}
+
+> {% client.test("descrição salva", () => client.assert(response.body.entrega.descricao.startsWith("Transportadora Rápida"))); %}
+
+### 4.11c [403] Só o vendedor informa a entrega
+PUT {{baseUrl}}/ordens-de-pedido/{{ordemId}}/entrega
+Content-Type: application/json
+X-Usuario-Id: {{compradorId}}
+
+{ "descricao": "x" }
+
+> {% client.test("403", () => client.assert(response.status === 403, "status " + response.status)); %}
 
 ### 4.12 Comprador confirma a entrega -> ENTREGUE
 PATCH {{baseUrl}}/ordens-de-pedido/{{ordemId}}/confirmar-entrega

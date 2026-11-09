@@ -26,9 +26,17 @@ public class AlterarStatusOrdemDePedidoService implements AlterarStatusOrdemDePe
 
     @Override
     @Transactional
-    public OrdemDePedido enviar(UUID ordemDePedidoId, UUID usuarioId, LocalDate previsaoDeEntrega) {
+    public OrdemDePedido enviar(UUID ordemDePedidoId, UUID usuarioId, LocalDate previsaoDeEntrega, String descricaoEntrega, String codigoRastreio) {
         OrdemDePedido ordem = ordemDePedidoRepositoryPort.buscarPorId(ordemDePedidoId);
-        ordem.enviar(usuarioId, previsaoDeEntrega);
+        ordem.enviar(usuarioId, previsaoDeEntrega, descricaoEntrega, codigoRastreio);
+        return ordemDePedidoRepositoryPort.save(ordem);
+    }
+
+    @Override
+    @Transactional
+    public OrdemDePedido registrarEntrega(UUID ordemDePedidoId, UUID usuarioId, String descricao, String codigoRastreio) {
+        OrdemDePedido ordem = ordemDePedidoRepositoryPort.buscarPorId(ordemDePedidoId);
+        ordem.registrarEntrega(usuarioId, descricao, codigoRastreio);
         return ordemDePedidoRepositoryPort.save(ordem);
     }
 

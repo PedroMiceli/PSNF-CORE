@@ -138,6 +138,8 @@ export function OrdemDetalhe() {
 
       <Acoes ordem={o} souComprador={souComprador} souVendedor={souVendedor} enviando={acao.enviando} executar={executar} />
 
+      <PainelEntrega ordem={o} souVendedor={souVendedor} enviando={acao.enviando} executar={executar} />
+
       <Painel>
         <h3>Itens</h3>
         <div className="overflow-x-auto">
@@ -263,6 +265,7 @@ function Acoes({ ordem, souComprador, souVendedor, enviando, executar }: {
   ordem: OrdemDePedido; souComprador: boolean; souVendedor: boolean; enviando: boolean; executar: Exec;
 }) {
   const [previsao, setPrevisao] = useState('');
+  const [entrega, setEntrega] = useState({ descricao: ordem.entrega?.descricao ?? '', codigoRastreio: ordem.entrega?.codigoRastreio ?? '' });
   const st = ordem.status;
   const podeCancelar = (souComprador || souVendedor) && ['AGUARDANDO_CONFIRMACAO', 'ACEITO', 'AGUARDANDO_PAGAMENTO', 'PAGO'].includes(st);
   const podeAceitar = souComprador && st === 'AGUARDANDO_CONFIRMACAO';
@@ -304,6 +307,20 @@ function Acoes({ ordem, souComprador, souVendedor, enviando, executar }: {
         )}
         {podeDespachar && (
           <>
+            <div className="w-full">
+              <p className="mt-0 mb-2 text-sm font-semibold">Despacho <small className="font-normal text-suave">(os dados da entrega são opcionais e podem ser editados depois)</small></p>
+              <div className={cx(linhaForm, 'items-start')}>
+                <Campo label="Código de envio / rastreio" className="max-w-[320px]">
+                  <input className={controle} value={entrega.codigoRastreio} maxLength={100} placeholder="Ex.: BR123456789BR"
+                    onChange={(e) => setEntrega({ ...entrega, codigoRastreio: e.target.value })} />
+                </Campo>
+                <Campo label="Detalhes da entrega" className="grow-2 basis-80">
+                  <textarea className={controle} rows={2} maxLength={2000} value={entrega.descricao}
+                    placeholder="Transportadora, horário, quem recebe, instruções..."
+                    onChange={(e) => setEntrega({ ...entrega, descricao: e.target.value })} />
+                </Campo>
+              </div>
+            </div>
             <Campo label="Previsão de entrega" className="mb-0 max-w-[260px]">
               <input className={controle} type="date" value={previsao} min={new Date().toISOString().slice(0, 10)}
                 onChange={(e) => setPrevisao(e.target.value)} />
@@ -311,7 +328,7 @@ function Acoes({ ordem, souComprador, souVendedor, enviando, executar }: {
             <Botao variante="primario" disabled={enviando} onClick={() => {
               const ok = st === 'PAGO' || window.confirm(
                 `Ainda faltam ${formatarMoeda(faltaPagar)} em pagamentos. Despachar mesmo assim (ex.: venda a prazo)? A ordem continuará indicando o pagamento pendente.`);
-              if (ok) void executar(() => api.despachar(ordem.id, previsao || null));
+              if (ok) void executar(() => api.despachar(ordem.id, previsao || null, entrega));
             }}>
               {st === 'PAGO' ? 'Pedido despachado' : 'Despachar com pagamento pendente'}
             </Botao>
@@ -340,6 +357,77 @@ const hojeLocal = () => {
 };
 
 const TIPO_LABEL: Record<TipoPagamento, string> = { PIX: 'PIX', BOLETO: 'Boleto', TRANSFERENCIA: 'Transferência' };
+
+/**
+ * Dados da entrega (descrição e código de envio, ambos opcionais). O vendedor informa ao despachar ou aqui,
+ * a qualquer momento depois do aceite; o comprador acompanha.
+ */
+function PainelEntrega({ ordem, souVendedor, enviando, executar }: {
+  ordem: OrdemDePedido; souVendedor: boolean; enviando: boolean; executar: Exec;
+}) {
+  const e = ordem.entrega;
+  const enviado = ['ENVIADO', 'ENTREGUE'].includes(ordem.status);
+  const podeEditar = souVendedor && !['AGUARDANDO_CONFIRMACAO', 'CANCELADO'].includes(ordem.status);
+  const [editando, setEditando] = useState(false);
+  const [form, setForm] = useState({ descricao: '', codigoRastreio: '' });
+
+  // só aparece quando faz sentido: já tem dados, o pedido saiu, ou o vendedor pode adiantar
+  if (!e && !enviado && !(podeEditar && ['PAGO'].includes(ordem.status))) return null;
+
+  const abrirEdicao = () => { setForm({ descricao: e?.descricao ?? '', codigoRastreio: e?.codigoRastreio ?? '' }); setEditando(true); };
+  const salvar = async (ev: FormEvent) => {
+    ev.preventDefault();
+    if (await executar(() => api.registrarEntrega(ordem.id, { descricao: form.descricao || null, codigoRastreio: form.codigoRastreio || null }))) {
+      setEditando(false);
+    }
+  };
+
+  return (
+    <Painel id="entrega" aria-labelledby="entrega-titulo">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 id="entrega-titulo" className="m-0">🚚 Entrega</h3>
+        {podeEditar && !editando && (
+          <Botao tamanho="pequeno" onClick={abrirEdicao}>{e ? 'Editar dados da entrega' : '+ Informar dados da entrega'}</Botao>
+        )}
+      </div>
+      {editando ? (
+        <form onSubmit={salvar} className="mt-3">
+          <div className={cx(linhaForm, 'items-start')}>
+            <Campo label="Código de envio / rastreio" className="max-w-[320px]">
+              <input className={controle} value={form.codigoRastreio} maxLength={100} placeholder="Ex.: BR123456789BR"
+                onChange={(ev) => setForm({ ...form, codigoRastreio: ev.target.value })} />
+            </Campo>
+            <Campo label="Detalhes da entrega" className="grow-2 basis-80">
+              <textarea className={controle} rows={3} maxLength={2000} value={form.descricao}
+                placeholder="Transportadora, horário, quem recebe, instruções..."
+                onChange={(ev) => setForm({ ...form, descricao: ev.target.value })} />
+            </Campo>
+          </div>
+          <p className={cx(dica, 'mt-0')}>Os dois campos são opcionais. Deixe os dois vazios para remover os dados da entrega.</p>
+          <div className={acoes}>
+            <Botao type="submit" variante="primario" disabled={enviando}>Salvar</Botao>
+            <Botao onClick={() => setEditando(false)}>Cancelar</Botao>
+          </div>
+        </form>
+      ) : (
+        <div className="mt-3">
+          <dl className="m-0 mb-3 grid grid-cols-[max-content_minmax(0,1fr)] gap-x-4 gap-y-1.5 text-sm">
+            <dt className="text-suave">Previsão de entrega</dt><dd className="m-0">{formatarData(ordem.previsaoDeEntrega)}</dd>
+          </dl>
+          {e?.codigoRastreio && <div className="max-w-[420px]"><CampoCopiavel rotulo="Código de envio / rastreio" valor={e.codigoRastreio} mono /></div>}
+          {e?.descricao && (
+            <div className="mb-1">
+              <span className="mb-1 block text-xs font-semibold text-gray-700">Detalhes da entrega</span>
+              <p className="m-0 rounded-lg bg-gray-50 px-3 py-2 text-sm whitespace-pre-wrap break-words">{e.descricao}</p>
+            </div>
+          )}
+          {!e && <p className={cx(dica, 'mb-0')}>{souVendedor ? 'Informe o código de envio ou detalhes da entrega para o comprador acompanhar.' : 'O vendedor ainda não informou código de envio nem detalhes da entrega.'}</p>}
+          {e?.dataAlteracao && <p className={cx(dica, 'mb-0')}>Atualizado em {formatarData(e.dataAlteracao)}.</p>}
+        </div>
+      )}
+    </Painel>
+  );
+}
 
 /** Selo do pagamento: comprovante enviado ou pendente. */
 function SituacaoPagamento({ p }: { p: Pagamento }) {

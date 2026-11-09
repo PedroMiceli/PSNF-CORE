@@ -18,6 +18,7 @@ import java.util.List;
  *  - N:1 Usuario (comprador)
  *  - N:1 Usuario (vendedor)
  *  - 1:N ItemPedido / Pagamento / MensagemIncidente / NotaFiscal (dono do ciclo de vida: cascade + orphanRemoval)
+ *  - 1:1 Entrega (opcional: descrição e código de envio)
  */
 @Entity
 @Table(name = "ordem_de_pedido")
@@ -61,4 +62,7 @@ public class OrdemDePedidoJpa extends BaseEntity {
     @OneToMany(mappedBy = "ordemDePedido", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("dataCadastro ASC")
     private List<NotaFiscalJpa> notasFiscais = new ArrayList<>();
+
+    @OneToOne(mappedBy = "ordemDePedido", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private EntregaJpa entrega;
 }

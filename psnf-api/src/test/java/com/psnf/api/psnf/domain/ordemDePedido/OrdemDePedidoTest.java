@@ -245,4 +245,31 @@ class OrdemDePedidoTest {
         assertEquals(0, ordem.mensagensIncidenteNaoLidas(UUID.randomUUID())); // quem não participa
         assertThrows(AcessoNegadoException.class, () -> ordem.marcarIncidentesLidos(UUID.randomUUID()));
     }
+
+    @Test
+    void entregaComDescricaoECodigoOpcionais() {
+        Pagamento p = aceitarECadastrarTudo();
+        // ao despachar, com só o código de envio
+        ordem.enviar(vendedor.getId(), null, "  ", " BR123456789BR ");
+        assertEquals("BR123456789BR", ordem.getEntrega().getCodigoRastreio());
+        assertNull(ordem.getEntrega().getDescricao());
+
+        // depois, o vendedor completa com a descrição
+        ordem.registrarEntrega(vendedor.getId(), "Transportadora Rápida, entrega em horário comercial", "BR123456789BR");
+        assertEquals("Transportadora Rápida, entrega em horário comercial", ordem.getEntrega().getDescricao());
+
+        // só o vendedor informa; com os dois vazios a entrega sai
+        assertThrows(AcessoNegadoException.class, () -> ordem.registrarEntrega(comprador.getId(), "x", null));
+        ordem.registrarEntrega(vendedor.getId(), null, "");
+        assertNull(ordem.getEntrega());
+        assertThrows(IllegalArgumentException.class, () -> ordem.registrarEntrega(vendedor.getId(), null, "x".repeat(101)));
+    }
+
+    @Test
+    void entregaSoDepoisDoAceite() {
+        assertThrows(RegraDeNegocioException.class, () -> ordem.registrarEntrega(vendedor.getId(), "x", null));
+        ordem.aceitar(comprador.getId());
+        ordem.registrarEntrega(vendedor.getId(), "Retirada no CD", null); // pode adiantar antes do envio
+        assertEquals("Retirada no CD", ordem.getEntrega().getDescricao());
+    }
 }

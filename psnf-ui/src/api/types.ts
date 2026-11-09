@@ -199,6 +199,8 @@ export interface OrdemDePedido {
   pagamentoPendente: boolean;
   /** mensagens de incidente do outro lado que o usuário logado ainda não viu */
   mensagensNaoLidas: number;
+  /** descrição e código de envio informados pelo vendedor; null se ainda não informou */
+  entrega: Entrega | null;
   itens: ItemPedido[];
   pagamentos: Pagamento[];
   notasFiscais: NotaFiscal[];
@@ -219,6 +221,19 @@ export interface OrdemDePedidoResumo {
   pagamentoPendente: boolean;
   /** mensagens de incidente do outro lado que o usuário logado ainda não viu */
   mensagensNaoLidas: number;
+}
+
+/** Detalhes da entrega informados pelo vendedor (os dois campos são opcionais). */
+export interface Entrega {
+  id: UUID;
+  descricao: string | null;
+  codigoRastreio: string | null;
+  dataCadastro: string;
+  dataAlteracao: string | null;
+}
+export interface EntregaInput {
+  descricao: string | null;
+  codigoRastreio: string | null;
 }
 
 /** Ordem com mensagens de incidente novas para o usuário logado. */

@@ -31,6 +31,8 @@ public record OrdemDePedidoResponse(
         boolean pagamentoPendente,
         /** mensagens de incidente do outro lado que o usuário logado ainda não viu */
         int mensagensNaoLidas,
+        /** descrição e código de envio informados pelo vendedor; null se ainda não informou */
+        EntregaResponse entrega,
         List<ItemResponse> itens,
         List<PagamentoResponse> pagamentos,
         List<NotaFiscalResponse> notasFiscais,
@@ -55,6 +57,12 @@ public record OrdemDePedidoResponse(
             return new PagamentoResponse(p.getId(), p.getTipoPagamento(), p.getValor(), p.getNomeReferencia(), p.getDataReferencia(),
                     p.getChavePix(), p.getBoleto(), p.getCodigoBanco(), p.getAgencia(), p.getConta(), p.getComprovante(),
                     p.getDataComprovante(), p.getDataCadastro());
+        }
+    }
+
+    public record EntregaResponse(UUID id, String descricao, String codigoRastreio, LocalDateTime dataCadastro, LocalDateTime dataAlteracao) {
+        static EntregaResponse from(Entrega e) {
+            return new EntregaResponse(e.getId(), e.getDescricao(), e.getCodigoRastreio(), e.getDataCadastro(), e.getDataAlteracao());
         }
     }
 
@@ -90,6 +98,7 @@ public record OrdemDePedidoResponse(
                 ordem.getValorRestante(),
                 ordem.isPagamentoPendente(),
                 ordem.mensagensIncidenteNaoLidas(usuarioLogado),
+                ordem.getEntrega() == null ? null : EntregaResponse.from(ordem.getEntrega()),
                 ordem.getItens().stream().map(ItemResponse::from).toList(),
                 ordem.getPagamentos().stream().map(PagamentoResponse::from).toList(),
                 ordem.getNotasFiscais().stream().map(NotaFiscalResponse::from).toList(),

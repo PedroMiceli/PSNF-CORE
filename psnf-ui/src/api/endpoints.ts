@@ -1,6 +1,6 @@
 import { http } from './client';
 import type {
-  AlertaMensagem, ArquivoEnviado, Anuncio, EnderecoConsultado, AnuncioInput, Categoria, EnderecoInput, Ncm, Negociacao, NegociacaoResumo, NovaOrdemInput, OrdemDePedido,
+  AlertaMensagem, ArquivoEnviado, EntregaInput, Anuncio, EnderecoConsultado, AnuncioInput, Categoria, EnderecoInput, Ncm, Negociacao, NegociacaoResumo, NovaOrdemInput, OrdemDePedido,
   OrdemDePedidoResumo, Pagina, PagamentoInput, Usuario, UUID,
 } from './types';
 
@@ -76,8 +76,13 @@ export const api = {
   marcarMensagensLidas: (id: UUID) => http.patch<OrdemDePedido>(`/ordens-de-pedido/${id}/mensagens/lidas`),
   enviarMensagem: (id: UUID, mensagem: string, imagem?: string) =>
     http.post<OrdemDePedido>(`/ordens-de-pedido/${id}/mensagens`, { mensagem, imagem: imagem || null }),
-  despachar: (id: UUID, previsaoDeEntrega: string | null) =>
-    http.patch<OrdemDePedido>(`/ordens-de-pedido/${id}/enviar`, { previsaoDeEntrega }),
+  /** descrição da entrega e código de envio são opcionais */
+  despachar: (id: UUID, previsaoDeEntrega: string | null, entrega?: EntregaInput) =>
+    http.patch<OrdemDePedido>(`/ordens-de-pedido/${id}/enviar`, {
+      previsaoDeEntrega, descricaoEntrega: entrega?.descricao || null, codigoRastreio: entrega?.codigoRastreio || null,
+    }),
+  /** o vendedor informa ou corrige os dados da entrega (com os dois vazios, a entrega é removida) */
+  registrarEntrega: (id: UUID, entrega: EntregaInput) => http.put<OrdemDePedido>(`/ordens-de-pedido/${id}/entrega`, entrega),
   confirmarEntrega: (id: UUID) => http.patch<OrdemDePedido>(`/ordens-de-pedido/${id}/confirmar-entrega`),
   cancelar: (id: UUID) => http.patch<OrdemDePedido>(`/ordens-de-pedido/${id}/cancelar`),
 };
