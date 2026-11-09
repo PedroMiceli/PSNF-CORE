@@ -32,6 +32,9 @@ public class OrdemDePedido extends BaseDomain {
     private final Usuario vendedor;
     private final List<ItemPedido> itens;
     private final List<Pagamento> pagamentos;
+    /** até quando comprador e vendedor já viram as mensagens de incidente (para destacar as novas) */
+    private LocalDateTime incidentesLidosCompradorEm;
+    private LocalDateTime incidentesLidosVendedorEm;
     private final List<MensagemIncidente> mensagensIncidente;
     private final List<NotaFiscal> notasFiscais;
 
@@ -204,7 +207,37 @@ public class OrdemDePedido extends BaseDomain {
     public void registrarMensagemIncidente(UUID usuarioId, MensagemIncidente mensagem) {
         garantirParticipante(usuarioId);
         mensagensIncidente.add(mensagem);
+        marcarIncidentesLidos(usuarioId); // quem escreve já viu a conversa até aqui
     }
+
+    /******************************************* LEITURA DOS INCIDENTES *******************************************/
+
+    /** O usuário viu as mensagens de incidente: deixam de contar como novas para ele. */
+    public void marcarIncidentesLidos(UUID usuarioId) {
+        garantirParticipante(usuarioId);
+        LocalDateTime agora = LocalDateTime.now();
+        if (isComprador(usuarioId)) incidentesLidosCompradorEm = agora;
+        else incidentesLidosVendedorEm = agora;
+    }
+
+    /** Mensagens de incidente escritas pelo outro lado que este usuário ainda não viu. */
+    public int mensagensIncidenteNaoLidas(UUID usuarioId) {
+        if (usuarioId == null || !isParticipante(usuarioId)) return 0;
+        LocalDateTime lidoEm = isComprador(usuarioId) ? incidentesLidosCompradorEm : incidentesLidosVendedorEm;
+        return (int) mensagensIncidente.stream()
+                .filter(m -> !usuarioId.equals(m.getUsuarioCriador()))
+                .filter(m -> lidoEm == null || m.getDataCadastro().isAfter(lidoEm))
+                .count();
+    }
+
+    /** Usado pela persistência para restaurar quando cada lado leu as mensagens. */
+    public void restaurarLeituraIncidentes(LocalDateTime compradorEm, LocalDateTime vendedorEm) {
+        this.incidentesLidosCompradorEm = compradorEm;
+        this.incidentesLidosVendedorEm = vendedorEm;
+    }
+
+    public LocalDateTime getIncidentesLidosCompradorEm() { return incidentesLidosCompradorEm; }
+    public LocalDateTime getIncidentesLidosVendedorEm() { return incidentesLidosVendedorEm; }
 
     /******************************************* VALORES *******************************************/
 

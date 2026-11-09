@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { urlArquivo } from '../api/client';
 import { api } from '../api/endpoints';
@@ -13,6 +13,7 @@ import {
   acoes, Badge, Botao, Campo, Carregando, controle, cx, dica, ErroBox, ImagemAnuncio, InputMoeda, linhaForm, Painel, PagamentoPendenteBadge, pagamentoAtrasadoNoFluxo, StatusBadge,
   tabela, TituloPagina, Voltar,
 } from '../components/ui';
+import { useAlertas } from '../context/AlertasContext';
 import { useUsuario } from '../context/UsuarioContext';
 
 const FLUXO: StatusOrdem[] = ['AGUARDANDO_CONFIRMACAO', 'ACEITO', 'AGUARDANDO_PAGAMENTO', 'PAGO', 'ENVIADO', 'ENTREGUE'];
@@ -29,6 +30,44 @@ export function OrdemDetalhe() {
   const { usuarioId } = useUsuario();
   const ordem = useApi(() => api.ordem(id), [id]);
   const acao = useAcao();
+  const { definirOrdemAberta, recarregar: recarregarAlertas } = useAlertas();
+  // mensagens que chegaram sem o usuário ter visto: ficam destacadas enquanto ele está na página
+  const [novas, setNovas] = useState<Set<string>>(new Set());
+  const qtdMensagens = useRef(0);
+
+  // esta ordem está na tela: o aviso no canto não aparece para ela
+  useEffect(() => { definirOrdemAberta(id); return () => definirOrdemAberta(null); }, [id, definirOrdemAberta]);
+
+  // separa as mensagens novas (as últimas do outro lado, segundo a API) e acompanha a quantidade
+  useEffect(() => {
+    const d = ordem.data;
+    if (!d) return;
+    qtdMensagens.current = d.mensagensIncidente.length;
+    if (d.mensagensNaoLidas > 0) {
+      const ids = d.mensagensIncidente.filter((m) => m.usuarioCriadorId !== usuarioId).slice(-d.mensagensNaoLidas).map((m) => m.id);
+      setNovas((atual) => (ids.every((x) => atual.has(x)) ? atual : new Set([...atual, ...ids])));
+    }
+  }, [ordem.data, usuarioId]);
+
+  // mensagens novas aparecem sem recarregar a página
+  useEffect(() => {
+    const t = setInterval(() => {
+      if (document.hidden) return;
+      api.ordem(id).then((n) => { if (n.mensagensIncidente.length !== qtdMensagens.current) ordem.setData(n); }).catch(() => {});
+    }, 15000);
+    return () => clearInterval(t);
+  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // vindo do aviso ou da lista (#mensagens): rola até os incidentes
+  useEffect(() => {
+    if (ordem.data && window.location.hash === '#mensagens') {
+      setTimeout(() => document.getElementById('mensagens')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+    }
+  }, [!!ordem.data]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const marcarLidas = useCallback(() => {
+    api.marcarMensagensLidas(id).then((r) => { ordem.setData(r); recarregarAlertas(); }).catch(() => {});
+  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (ordem.loading) return <Carregando />;
   if (ordem.error || !ordem.data) {
@@ -58,6 +97,18 @@ export function OrdemDetalhe() {
         <span className="text-suave">Você é o <strong>{souComprador ? 'comprador' : souVendedor ? 'vendedor' : 'observador'}</strong></span>
       </TituloPagina>
 
+      {o.mensagensNaoLidas > 0 && (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-900" role="status">
+          <span>
+            💬 <strong>{o.mensagensNaoLidas === 1 ? '1 mensagem nova' : `${o.mensagensNaoLidas} mensagens novas`}</strong> de{' '}
+            {souComprador ? o.vendedor.nome : o.comprador.nome} em Incidentes e mensagens.
+          </span>
+          <Botao tamanho="pequeno" variante="primario"
+            onClick={() => document.getElementById('mensagens')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+            Ver mensagens
+          </Botao>
+        </div>
+      )}
       <LinhaDoTempo status={o.status} pagamentoPendente={o.pagamentoPendente} />
       <AvisoPagamentoPendente ordem={o} souComprador={souComprador} />
       <ErroBox erro={acao.erro} />
@@ -132,7 +183,8 @@ export function OrdemDetalhe() {
         <NotasFiscais ordem={o} podeAdicionar={souVendedor && ['AGUARDANDO_PAGAMENTO', 'PAGO', 'ENVIADO', 'ENTREGUE'].includes(o.status)} enviando={acao.enviando} executar={executar} />
       </div>
 
-      <Mensagens ordem={o} usuarioId={usuarioId} podeEnviar={souComprador || souVendedor} enviando={acao.enviando} executar={executar} />
+      <Mensagens ordem={o} usuarioId={usuarioId} podeEnviar={souComprador || souVendedor} enviando={acao.enviando} executar={executar}
+        novas={novas} onVisto={marcarLidas} />
     </section>
   );
 }
@@ -554,9 +606,25 @@ function NotasFiscais({ ordem, podeAdicionar, enviando, executar }: { ordem: Ord
   );
 }
 
-function Mensagens({ ordem, usuarioId, podeEnviar, enviando, executar }: {
+function Mensagens({ ordem, usuarioId, podeEnviar, enviando, executar, novas, onVisto }: {
   ordem: OrdemDePedido; usuarioId: string; podeEnviar: boolean; enviando: boolean; executar: Exec;
+  /** ids das mensagens que chegaram sem o usuário ter visto */
+  novas: Set<string>;
+  /** chamado quando o usuário vê a seção com mensagens não lidas */
+  onVisto: () => void;
 }) {
+  const secao = useRef<HTMLDivElement>(null);
+  const temNaoLidas = ordem.mensagensNaoLidas > 0;
+
+  // marca como lidas quando a seção aparece na tela
+  useEffect(() => {
+    const el = secao.current;
+    if (!el || !temNaoLidas) return;
+    const obs = new IntersectionObserver((e) => { if (e.some((x) => x.isIntersecting)) { obs.disconnect(); onVisto(); } }, { threshold: 0.3 });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [temNaoLidas, onVisto]);
+
   const [texto, setTexto] = useState('');
   const [anexo, setAnexo] = useState<string | null>(null);
   const autor = (id: string) => (id === ordem.comprador.id ? `${ordem.comprador.nome} (comprador)` : id === ordem.vendedor.id ? `${ordem.vendedor.nome} (vendedor)` : id);
@@ -567,17 +635,31 @@ function Mensagens({ ordem, usuarioId, podeEnviar, enviando, executar }: {
       setAnexo(null);
     }
   };
+  const qtdNovas = ordem.mensagensIncidente.filter((m) => novas.has(m.id)).length;
   return (
-    <Painel>
-      <h3>Incidentes e mensagens</h3>
+    <Painel id="mensagens" ref={secao}
+      className={cx('scroll-mt-20 transition-shadow', qtdNovas > 0 && 'border-red-300 ring-2 ring-red-200')}>
+      <h3 className="flex flex-wrap items-center gap-2">
+        Incidentes e mensagens
+        {qtdNovas > 0 && (
+          <span className="rounded-full bg-vermelho px-2 py-0.5 text-xs font-bold text-white">
+            {qtdNovas === 1 ? '1 nova' : `${qtdNovas} novas`}
+          </span>
+        )}
+      </h3>
       <div className="flex max-h-[360px] flex-col gap-2.5 overflow-y-auto">
         {ordem.mensagensIncidente.length === 0 && <p className={dica}>Nenhuma mensagem. Use para relatar problemas com a carga, entrega ou NF.</p>}
         {ordem.mensagensIncidente.map((m) => {
           const minha = m.usuarioCriadorId === usuarioId;
+          const nova = novas.has(m.id);
           return (
             <div key={m.id} className={cx('max-w-[75%] px-3.5 py-2.5 max-md:max-w-[90%]',
-              minha ? 'self-end rounded-[12px_12px_2px_12px] bg-blue-100' : 'self-start rounded-[12px_12px_12px_2px] bg-slate-100')}>
-              <small className="text-xs text-suave">{autor(m.usuarioCriadorId)} · {formatarData(m.dataCadastro)}</small>
+              minha ? 'self-end rounded-[12px_12px_2px_12px] bg-blue-100' : 'self-start rounded-[12px_12px_12px_2px] bg-slate-100',
+              nova && 'bg-red-50 ring-2 ring-red-300')}>
+              <small className="text-xs text-suave">
+                {nova && <span className="mr-1.5 rounded bg-vermelho px-1.5 py-px text-[0.65rem] font-bold text-white uppercase">Nova</span>}
+                {autor(m.usuarioCriadorId)} · {formatarData(m.dataCadastro)}
+              </small>
               <p className="my-1 break-words">{m.mensagem}</p>
               {m.imagem && (
                 <a href={urlArquivo(m.imagem)} target="_blank" rel="noreferrer">

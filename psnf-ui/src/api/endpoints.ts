@@ -1,6 +1,6 @@
 import { http } from './client';
 import type {
-  ArquivoEnviado, Anuncio, EnderecoConsultado, AnuncioInput, Categoria, EnderecoInput, Ncm, Negociacao, NegociacaoResumo, NovaOrdemInput, OrdemDePedido,
+  AlertaMensagem, ArquivoEnviado, Anuncio, EnderecoConsultado, AnuncioInput, Categoria, EnderecoInput, Ncm, Negociacao, NegociacaoResumo, NovaOrdemInput, OrdemDePedido,
   OrdemDePedidoResumo, Pagina, PagamentoInput, Usuario, UUID,
 } from './types';
 
@@ -70,6 +70,10 @@ export const api = {
   removerPagamento: (id: UUID, pagamentoId: UUID) => http.delete<OrdemDePedido>(`/ordens-de-pedido/${id}/pagamentos/${pagamentoId}`),
   adicionarNotaFiscal: (id: UUID, caminho: string) =>
     http.post<OrdemDePedido>(`/ordens-de-pedido/${id}/notas-fiscais`, { caminho }),
+  /** ordens com mensagens de incidente novas para o usuário logado */
+  alertasMensagens: () => http.get<AlertaMensagem[]>('/ordens-de-pedido/mensagens-nao-lidas'),
+  /** o usuário viu as mensagens de incidente da ordem */
+  marcarMensagensLidas: (id: UUID) => http.patch<OrdemDePedido>(`/ordens-de-pedido/${id}/mensagens/lidas`),
   enviarMensagem: (id: UUID, mensagem: string, imagem?: string) =>
     http.post<OrdemDePedido>(`/ordens-de-pedido/${id}/mensagens`, { mensagem, imagem: imagem || null }),
   despachar: (id: UUID, previsaoDeEntrega: string | null) =>

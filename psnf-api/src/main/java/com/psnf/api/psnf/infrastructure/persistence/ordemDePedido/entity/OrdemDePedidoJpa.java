@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -29,6 +30,10 @@ public class OrdemDePedidoJpa extends BaseEntity {
     private String codigo;
 
     private LocalDate previsaoDeEntrega;
+
+    /** até quando comprador e vendedor já viram as mensagens de incidente */
+    private LocalDateTime incidentesLidosCompradorEm;
+    private LocalDateTime incidentesLidosVendedorEm;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

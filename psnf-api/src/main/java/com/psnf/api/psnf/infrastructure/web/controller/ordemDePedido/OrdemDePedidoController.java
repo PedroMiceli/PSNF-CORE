@@ -4,6 +4,7 @@ import com.psnf.api.psnf.domain.ordemDePedido.models.OrdemDePedido;
 import com.psnf.api.psnf.domain.ordemDePedido.port.in.*;
 import com.psnf.api.psnf.infrastructure.web.controller.UsuarioAutenticadoUtil;
 import com.psnf.api.psnf.infrastructure.web.controller.ordemDePedido.dto.request.*;
+import com.psnf.api.psnf.infrastructure.web.controller.ordemDePedido.dto.response.AlertaMensagemResponse;
 import com.psnf.api.psnf.infrastructure.web.controller.ordemDePedido.dto.response.OrdemDePedidoResponse;
 import com.psnf.api.psnf.infrastructure.web.controller.ordemDePedido.dto.response.OrdemDePedidoResumoResponse;
 import com.psnf.api.psnf.infrastructure.web.controller.ordemDePedido.mapper.OrdemDePedidoRequestMapper;
@@ -13,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
@@ -39,83 +41,103 @@ public class OrdemDePedidoController {
                 OrdemDePedidoRequestMapper.toCommand(usuarioLogado(), request));
         return ResponseEntity
                 .created(URI.create("/ordens-de-pedido/" + ordem.getId()))
-                .body(OrdemDePedidoResponse.from(ordem));
+                .body(resposta(ordem));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<OrdemDePedidoResponse> buscarPorId(@PathVariable UUID id) {
-        return ResponseEntity.ok(OrdemDePedidoResponse.from(
+        return ResponseEntity.ok(resposta(
                 buscarDetalhesOrdemDePedidoUseCase.buscarPorId(id, usuarioLogado())));
     }
 
     @GetMapping("/compras")
     public ResponseEntity<List<OrdemDePedidoResumoResponse>> minhasCompras() {
         return ResponseEntity.ok(listarOrdensDePedidoUseCase.listarCompras(usuarioLogado()).stream()
-                .map(OrdemDePedidoResumoResponse::from)
+                .map(o -> OrdemDePedidoResumoResponse.from(o, usuarioLogado()))
                 .toList());
     }
 
     @GetMapping("/vendas")
     public ResponseEntity<List<OrdemDePedidoResumoResponse>> minhasVendas() {
         return ResponseEntity.ok(listarOrdensDePedidoUseCase.listarVendas(usuarioLogado()).stream()
-                .map(OrdemDePedidoResumoResponse::from)
+                .map(o -> OrdemDePedidoResumoResponse.from(o, usuarioLogado()))
                 .toList());
     }
 
     @PostMapping("/{id}/pagamentos")
     public ResponseEntity<OrdemDePedidoResponse> registrarPagamento(@PathVariable UUID id, @RequestBody @Valid PagamentoRequest request) {
-        return ResponseEntity.ok(OrdemDePedidoResponse.from(registrarPagamentoUseCase.registrarPagamento(
+        return ResponseEntity.ok(resposta(registrarPagamentoUseCase.registrarPagamento(
                 OrdemDePedidoRequestMapper.toCommand(id, usuarioLogado(), request))));
     }
 
     /** O vendedor exclui uma forma de pagamento cadastrada por engano (antes do comprovante). */
     @DeleteMapping("/{id}/pagamentos/{pagamentoId}")
     public ResponseEntity<OrdemDePedidoResponse> removerPagamento(@PathVariable UUID id, @PathVariable UUID pagamentoId) {
-        return ResponseEntity.ok(OrdemDePedidoResponse.from(registrarPagamentoUseCase.removerPagamento(id, usuarioLogado(), pagamentoId)));
+        return ResponseEntity.ok(resposta(registrarPagamentoUseCase.removerPagamento(id, usuarioLogado(), pagamentoId)));
     }
 
     /** O comprador anexa (ou troca) o comprovante de um pagamento. */
     @PostMapping("/{id}/pagamentos/{pagamentoId}/comprovante")
     public ResponseEntity<OrdemDePedidoResponse> anexarComprovante(@PathVariable UUID id, @PathVariable UUID pagamentoId,
                                                                    @RequestBody @Valid ComprovanteRequest request) {
-        return ResponseEntity.ok(OrdemDePedidoResponse.from(
+        return ResponseEntity.ok(resposta(
                 registrarPagamentoUseCase.anexarComprovante(id, usuarioLogado(), pagamentoId, request.caminho())));
     }
 
     /** O comprador confere produtos, quantidades e valores e aceita a ordem. */
     @PatchMapping("/{id}/aceitar")
     public ResponseEntity<OrdemDePedidoResponse> aceitar(@PathVariable UUID id) {
-        return ResponseEntity.ok(OrdemDePedidoResponse.from(alterarStatusOrdemDePedidoUseCase.aceitar(id, usuarioLogado())));
+        return ResponseEntity.ok(resposta(alterarStatusOrdemDePedidoUseCase.aceitar(id, usuarioLogado())));
     }
 
     @PostMapping("/{id}/notas-fiscais")
     public ResponseEntity<OrdemDePedidoResponse> adicionarNotaFiscal(@PathVariable UUID id, @RequestBody @Valid NotaFiscalRequest request) {
-        return ResponseEntity.ok(OrdemDePedidoResponse.from(adicionarNotaFiscalUseCase.adicionarNotaFiscal(
+        return ResponseEntity.ok(resposta(adicionarNotaFiscalUseCase.adicionarNotaFiscal(
                 OrdemDePedidoRequestMapper.toCommand(id, usuarioLogado(), request))));
     }
 
     @PostMapping("/{id}/mensagens")
     public ResponseEntity<OrdemDePedidoResponse> registrarMensagem(@PathVariable UUID id, @RequestBody @Valid MensagemIncidenteRequest request) {
-        return ResponseEntity.ok(OrdemDePedidoResponse.from(registrarMensagemIncidenteUseCase.registrarMensagem(
+        return ResponseEntity.ok(resposta(registrarMensagemIncidenteUseCase.registrarMensagem(
                 OrdemDePedidoRequestMapper.toCommand(id, usuarioLogado(), request))));
     }
 
     @PatchMapping("/{id}/enviar")
     public ResponseEntity<OrdemDePedidoResponse> enviar(@PathVariable UUID id, @RequestBody(required = false) @Valid EnviarOrdemDePedidoRequest request) {
-        return ResponseEntity.ok(OrdemDePedidoResponse.from(alterarStatusOrdemDePedidoUseCase.enviar(
+        return ResponseEntity.ok(resposta(alterarStatusOrdemDePedidoUseCase.enviar(
                 id, usuarioLogado(), request == null ? null : request.previsaoDeEntrega())));
     }
 
     @PatchMapping("/{id}/confirmar-entrega")
     public ResponseEntity<OrdemDePedidoResponse> confirmarEntrega(@PathVariable UUID id) {
-        return ResponseEntity.ok(OrdemDePedidoResponse.from(
+        return ResponseEntity.ok(resposta(
                 alterarStatusOrdemDePedidoUseCase.confirmarEntrega(id, usuarioLogado())));
     }
 
     @PatchMapping("/{id}/cancelar")
     public ResponseEntity<OrdemDePedidoResponse> cancelar(@PathVariable UUID id) {
-        return ResponseEntity.ok(OrdemDePedidoResponse.from(
+        return ResponseEntity.ok(resposta(
                 alterarStatusOrdemDePedidoUseCase.cancelar(id, usuarioLogado())));
+    }
+
+    /** Ordens com mensagens de incidente novas para o usuário logado (para os alertas). */
+    @GetMapping("/mensagens-nao-lidas")
+    public ResponseEntity<List<AlertaMensagemResponse>> mensagensNaoLidas() {
+        UUID usuario = usuarioLogado();
+        return ResponseEntity.ok(listarOrdensDePedidoUseCase.listarComMensagensNaoLidas(usuario).stream()
+                .map(o -> AlertaMensagemResponse.from(o, usuario))
+                .sorted(Comparator.comparing(AlertaMensagemResponse::ultimaMensagemEm, Comparator.nullsLast(Comparator.reverseOrder())))
+                .toList());
+    }
+
+    /** O usuário viu as mensagens de incidente da ordem: deixam de aparecer como novas. */
+    @PatchMapping("/{id}/mensagens/lidas")
+    public ResponseEntity<OrdemDePedidoResponse> marcarMensagensLidas(@PathVariable UUID id) {
+        return ResponseEntity.ok(resposta(registrarMensagemIncidenteUseCase.marcarLidas(id, usuarioLogado())));
+    }
+
+    private OrdemDePedidoResponse resposta(OrdemDePedido ordem) {
+        return OrdemDePedidoResponse.from(ordem, usuarioLogado());
     }
 
     private UUID usuarioLogado() {

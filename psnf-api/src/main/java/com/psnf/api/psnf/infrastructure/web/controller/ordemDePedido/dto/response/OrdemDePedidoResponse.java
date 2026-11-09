@@ -29,6 +29,8 @@ public record OrdemDePedidoResponse(
         BigDecimal valorRestante,
         /** ainda falta pagar (algum pagamento sem comprovante), mesmo com o pedido enviado */
         boolean pagamentoPendente,
+        /** mensagens de incidente do outro lado que o usuário logado ainda não viu */
+        int mensagensNaoLidas,
         List<ItemResponse> itens,
         List<PagamentoResponse> pagamentos,
         List<NotaFiscalResponse> notasFiscais,
@@ -69,6 +71,11 @@ public record OrdemDePedidoResponse(
     }
 
     public static OrdemDePedidoResponse from(OrdemDePedido ordem) {
+        return from(ordem, null);
+    }
+
+    /** @param usuarioLogado para calcular as mensagens não lidas de quem está vendo */
+    public static OrdemDePedidoResponse from(OrdemDePedido ordem, UUID usuarioLogado) {
         return new OrdemDePedidoResponse(
                 ordem.getId(),
                 ordem.getCodigo(),
@@ -82,6 +89,7 @@ public record OrdemDePedidoResponse(
                 ordem.getValorPago(),
                 ordem.getValorRestante(),
                 ordem.isPagamentoPendente(),
+                ordem.mensagensIncidenteNaoLidas(usuarioLogado),
                 ordem.getItens().stream().map(ItemResponse::from).toList(),
                 ordem.getPagamentos().stream().map(PagamentoResponse::from).toList(),
                 ordem.getNotasFiscais().stream().map(NotaFiscalResponse::from).toList(),

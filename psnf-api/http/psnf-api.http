@@ -590,6 +590,14 @@ X-Usuario-Id: {{compradorId}}
 
 > {% client.test("1 mensagem", () => client.assert(response.body.mensagensIncidente.length === 1)); %}
 
+### 4.9b O vendedor recebe o alerta da mensagem nova
+GET {{baseUrl}}/ordens-de-pedido/mensagens-nao-lidas
+
+> {%
+    const alerta = response.body.find(a => a.ordemId === client.global.get("ordemId"));
+    client.test("alerta com 1 mensagem nova", () => client.assert(alerta && alerta.naoLidas === 1 && alerta.papel === "VENDEDOR"));
+%}
+
 ### 4.10 Vendedor responde a mensagem
 POST {{baseUrl}}/ordens-de-pedido/{{ordemId}}/mensagens
 Content-Type: application/json
@@ -600,6 +608,12 @@ Content-Type: application/json
 }
 
 > {% client.test("2 mensagens", () => client.assert(response.body.mensagensIncidente.length === 2)); %}
+
+### 4.10b O comprador vê a resposta como nova e marca como lida
+PATCH {{baseUrl}}/ordens-de-pedido/{{ordemId}}/mensagens/lidas
+X-Usuario-Id: {{compradorId}}
+
+> {% client.test("200 e nada mais pendente", () => client.assert(response.status === 200 && response.body.mensagensNaoLidas === 0)); %}
 
 ### 4.11 Vendedor despacha o pedido -> ENVIADO
 PATCH {{baseUrl}}/ordens-de-pedido/{{ordemId}}/enviar

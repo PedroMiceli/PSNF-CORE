@@ -197,6 +197,8 @@ export interface OrdemDePedido {
   valorRestante: number;
   /** ainda falta pagar (algum pagamento sem comprovante), mesmo com o pedido enviado */
   pagamentoPendente: boolean;
+  /** mensagens de incidente do outro lado que o usuário logado ainda não viu */
+  mensagensNaoLidas: number;
   itens: ItemPedido[];
   pagamentos: Pagamento[];
   notasFiscais: NotaFiscal[];
@@ -215,6 +217,19 @@ export interface OrdemDePedidoResumo {
   valorTotal: number;
   /** ainda falta pagar (mesmo com o pedido enviado ou entregue) */
   pagamentoPendente: boolean;
+  /** mensagens de incidente do outro lado que o usuário logado ainda não viu */
+  mensagensNaoLidas: number;
+}
+
+/** Ordem com mensagens de incidente novas para o usuário logado. */
+export interface AlertaMensagem {
+  ordemId: UUID;
+  codigo: string;
+  papel: 'COMPRADOR' | 'VENDEDOR';
+  outroParticipanteNome: string;
+  naoLidas: number;
+  ultimaMensagem: string | null;
+  ultimaMensagemEm: string | null;
 }
 
 export interface NovaOrdemInput {

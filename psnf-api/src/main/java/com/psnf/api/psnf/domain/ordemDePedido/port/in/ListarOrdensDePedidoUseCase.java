@@ -10,4 +10,7 @@ public interface ListarOrdensDePedidoUseCase {
     List<OrdemDePedido> listarCompras(UUID usuarioId);
 
     List<OrdemDePedido> listarVendas(UUID usuarioId);
+
+    /** Ordens (compras e vendas) com mensagens de incidente que o usuário ainda não viu. */
+    List<OrdemDePedido> listarComMensagensNaoLidas(UUID usuarioId);
 }

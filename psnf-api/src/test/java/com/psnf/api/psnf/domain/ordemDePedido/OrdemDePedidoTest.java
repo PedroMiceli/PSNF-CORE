@@ -226,4 +226,23 @@ class OrdemDePedidoTest {
                 null, null, null, null, "chave", null, null);
         assertEquals(LocalDate.of(2026, 10, 1), antigo.getDataReferencia());
     }
+
+    @Test
+    void mensagensDeIncidenteNovasParaCadaLado() throws InterruptedException {
+        assertEquals(0, ordem.mensagensIncidenteNaoLidas(vendedor.getId()));
+        ordem.registrarMensagemIncidente(comprador.getId(), MensagemIncidente.criar("Carga avariada", null, comprador.getId()));
+        ordem.registrarMensagemIncidente(comprador.getId(), MensagemIncidente.criar("Segue a foto", "/arquivos/f.png", comprador.getId()));
+        assertEquals(2, ordem.mensagensIncidenteNaoLidas(vendedor.getId()));
+        assertEquals(0, ordem.mensagensIncidenteNaoLidas(comprador.getId())); // as próprias não contam
+
+        ordem.marcarIncidentesLidos(vendedor.getId());
+        assertEquals(0, ordem.mensagensIncidenteNaoLidas(vendedor.getId()));
+
+        Thread.sleep(5);
+        ordem.registrarMensagemIncidente(vendedor.getId(), MensagemIncidente.criar("Vamos repor", null, vendedor.getId()));
+        assertEquals(1, ordem.mensagensIncidenteNaoLidas(comprador.getId()));
+        assertEquals(0, ordem.mensagensIncidenteNaoLidas(vendedor.getId()));
+        assertEquals(0, ordem.mensagensIncidenteNaoLidas(UUID.randomUUID())); // quem não participa
+        assertThrows(AcessoNegadoException.class, () -> ordem.marcarIncidentesLidos(UUID.randomUUID()));
+    }
 }

@@ -23,6 +23,8 @@ public class OrdemDePedidoJpaMapper {
         jpa.restaurarBase(ordem.getId(), ordem.getDataCadastro(), ordem.getDataAlteracao(), ordem.getDataExcluido());
         jpa.setCodigo(ordem.getCodigo());
         jpa.setPrevisaoDeEntrega(ordem.getPrevisaoDeEntrega());
+        jpa.setIncidentesLidosCompradorEm(ordem.getIncidentesLidosCompradorEm());
+        jpa.setIncidentesLidosVendedorEm(ordem.getIncidentesLidosVendedorEm());
         jpa.setStatus(ordem.getStatus());
         jpa.setComprador(usuarioRef.apply(ordem.getComprador().getId()));
         jpa.setVendedor(usuarioRef.apply(ordem.getVendedor().getId()));
@@ -40,7 +42,7 @@ public class OrdemDePedidoJpaMapper {
 
     //transforma o jpa para domain
     public static OrdemDePedido toDomain(OrdemDePedidoJpa jpa) {
-        return OrdemDePedido.restaurar(
+        OrdemDePedido ordem = OrdemDePedido.restaurar(
                 jpa.getId(),
                 jpa.getDataCadastro(),
                 jpa.getDataAlteracao(),
@@ -55,5 +57,7 @@ public class OrdemDePedidoJpaMapper {
                 jpa.getMensagensIncidente().stream().map(MensagensIncidenteJpaMapper::toDomain).toList(),
                 jpa.getNotasFiscais().stream().map(NotaFiscalJpaMapper::toDomain).toList()
         );
+        ordem.restaurarLeituraIncidentes(jpa.getIncidentesLidosCompradorEm(), jpa.getIncidentesLidosVendedorEm());
+        return ordem;
     }
 }
