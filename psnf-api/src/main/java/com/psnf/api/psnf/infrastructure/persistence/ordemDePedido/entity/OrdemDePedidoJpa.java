@@ -1,6 +1,7 @@
 package com.psnf.api.psnf.infrastructure.persistence.ordemDePedido.entity;
 
 import com.psnf.api.psnf.domain.ordemDePedido.models.enums.EnumStatusOrdemDePedido;
+import com.psnf.api.psnf.infrastructure.persistence.negociacao.entity.NegociacaoJpa;
 import com.psnf.api.psnf.infrastructure.persistence.shared.BaseEntity;
 import com.psnf.api.psnf.infrastructure.persistence.usuario.entity.UsuarioJpa;
 import jakarta.persistence.*;
@@ -19,6 +20,7 @@ import java.util.List;
  *  - N:1 Usuario (vendedor)
  *  - 1:N ItemPedido / Pagamento / MensagemIncidente / NotaFiscal (dono do ciclo de vida: cascade + orphanRemoval)
  *  - 1:1 Entrega (opcional: descrição e código de envio)
+ *  - N:1 Negociacao (opcional: chat em que a ordem foi combinada)
  */
 @Entity
 @Table(name = "ordem_de_pedido")
@@ -65,4 +67,9 @@ public class OrdemDePedidoJpa extends BaseEntity {
 
     @OneToOne(mappedBy = "ordemDePedido", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private EntregaJpa entrega;
+
+    /** negociação (chat) em que a ordem foi combinada; opcional */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "negociacao_id")
+    private NegociacaoJpa negociacao;
 }

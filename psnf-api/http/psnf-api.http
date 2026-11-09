@@ -438,7 +438,7 @@ Content-Type: application/json
 ### cadastra as formas de pagamento -> comprador paga e anexa os comprovantes -> vendedor
 ### envia a NF e despacha -> comprador confirma a entrega.
 
-### 4.1 Vendedor cria a ordem para o comprador (valores negociados)
+### 4.1 Vendedor cria a ordem para o comprador pelo chat (valores negociados na negociação 3B)
 ###     Total esperado: 200 x 10,50 + 10 x 45,00 = 2.550,00
 POST {{baseUrl}}/ordens-de-pedido
 Content-Type: application/json
@@ -448,11 +448,13 @@ Content-Type: application/json
   "itens": [
     { "anuncioId": "{{anuncioId}}", "variacaoId": "{{variacaoId}}", "quantidade": 200, "valorUnidade": 10.50 },
     { "anuncioId": "{{anuncio2Id}}", "quantidade": 10, "valorUnidade": 45.00 }
-  ]
+  ],
+  "negociacaoId": "{{negociacaoId}}"
 }
 
 > {%
     client.test("201 - ordem criada", () => client.assert(response.status === 201, "status " + response.status));
+    client.test("vinculada à negociação", () => client.assert(response.body.negociacaoId === client.global.get("negociacaoId")));
     client.test("total 2550", () => client.assert(response.body.valorTotal == 2550));
     client.test("status AGUARDANDO_CONFIRMACAO", () => client.assert(response.body.status === "AGUARDANDO_CONFIRMACAO"));
     const item = response.body.itens.find(i => i.anuncioId === client.global.get("anuncioId"));
@@ -460,6 +462,28 @@ Content-Type: application/json
     client.test("com o SKU/GTIN da variação", () => client.assert(item.informacoes.sku === "CAR-MET-BP" && item.informacoes.gtin === "7891234567895"));
     client.global.set("ordemId", response.body.id);
 %}
+
+### 4.1b A negociação mostra a ordem gerada (e o aviso no chat)
+GET {{baseUrl}}/negociacoes/{{negociacaoId}}
+X-Usuario-Id: {{compradorId}}
+
+> {%
+    const ordem = response.body.ordens.find(o => o.id === client.global.get("ordemId"));
+    client.test("ordem listada como desta negociação", () => client.assert(ordem && ordem.daNegociacao === true));
+    client.test("aviso ORDEM_GERADA no chat", () => client.assert(response.body.mensagens.some(m => m.tipo === "ORDEM_GERADA" && m.ordemId === client.global.get("ordemId"))));
+%}
+
+### 4.1c [422] Negociação de outro comprador não pode ser vinculada
+POST {{baseUrl}}/ordens-de-pedido
+Content-Type: application/json
+
+{
+  "compradorId": "{{novoUsuarioId}}",
+  "itens": [ { "anuncioId": "{{anuncio2Id}}", "quantidade": 1, "valorUnidade": 45.00 } ],
+  "negociacaoId": "{{negociacaoId}}"
+}
+
+> {% client.test("422", () => client.assert(response.status === 422, "status " + response.status)); %}
 
 ### 4.2 Detalhes da ordem (como vendedor)
 GET {{baseUrl}}/ordens-de-pedido/{{ordemId}}

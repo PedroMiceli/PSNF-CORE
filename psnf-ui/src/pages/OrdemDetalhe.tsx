@@ -14,6 +14,7 @@ import {
   tabela, TituloPagina, Voltar,
 } from '../components/ui';
 import { useAlertas } from '../context/AlertasContext';
+import { useChat } from '../context/ChatContext';
 import { useUsuario } from '../context/UsuarioContext';
 
 const FLUXO: StatusOrdem[] = ['AGUARDANDO_CONFIRMACAO', 'ACEITO', 'AGUARDANDO_PAGAMENTO', 'PAGO', 'ENVIADO', 'ENTREGUE'];
@@ -31,6 +32,7 @@ export function OrdemDetalhe() {
   const ordem = useApi(() => api.ordem(id), [id]);
   const acao = useAcao();
   const { definirOrdemAberta, recarregar: recarregarAlertas } = useAlertas();
+  const { abrirChat } = useChat();
   // mensagens que chegaram sem o usuário ter visto: ficam destacadas enquanto ele está na página
   const [novas, setNovas] = useState<Set<string>>(new Set());
   const qtdMensagens = useRef(0);
@@ -121,6 +123,12 @@ export function OrdemDetalhe() {
             <Dado rotulo="Vendedor">{o.vendedor.nome} <small className="block break-words text-suave">{o.vendedor.email}</small></Dado>
             <Dado rotulo="Criada em">{formatarData(o.dataCadastro)}</Dado>
             <Dado rotulo="Previsão de entrega">{formatarData(o.previsaoDeEntrega)}</Dado>
+            {o.negociacaoId && (
+              <Dado rotulo="Negociação">
+                <button type="button" onClick={() => abrirChat(o.negociacaoId!)}
+                  className="cursor-pointer text-primaria hover:underline">💬 Abrir a conversa em que foi combinada</button>
+              </Dado>
+            )}
           </dl>
         </Painel>
         <Painel>

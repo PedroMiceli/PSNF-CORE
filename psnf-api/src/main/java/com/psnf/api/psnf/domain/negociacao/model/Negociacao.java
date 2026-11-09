@@ -6,9 +6,12 @@ import com.psnf.api.psnf.domain.shared.exception.AcessoNegadoException;
 import com.psnf.api.psnf.domain.shared.exception.RegraDeNegocioException;
 import com.psnf.api.psnf.domain.shared.model.BaseDomain;
 
+import java.math.BigDecimal;
+import java.text.NumberFormat;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -116,6 +119,16 @@ public class Negociacao extends BaseDomain {
         }
         adicionar(MensagemNegociacao.criar(usuarioId, "Retirou o produto \"" + anuncio.getTitulo() + "\" da negociação.",
                 TipoMensagemNegociacao.ANUNCIO_REMOVIDO, anuncio.getId()));
+    }
+
+    /** Aviso no chat de que o vendedor gerou uma ordem de pedido a partir desta conversa. */
+    public void registrarOrdemGerada(UUID vendedor, UUID ordemId, String codigo, BigDecimal valorTotal) {
+        if (!ehVendedor(vendedor)) {
+            throw new AcessoNegadoException("Apenas o vendedor da negociação gera ordens de pedido a partir dela");
+        }
+        String valor = NumberFormat.getCurrencyInstance(Locale.of("pt", "BR")).format(valorTotal);
+        adicionar(MensagemNegociacao.criar(vendedor, "Gerou a ordem de pedido " + codigo + " (" + valor + ").",
+                TipoMensagemNegociacao.ORDEM_GERADA).comOrdem(ordemId));
     }
 
     public boolean contemAnuncio(UUID id) {

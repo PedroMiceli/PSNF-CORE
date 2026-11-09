@@ -91,6 +91,10 @@ function ItemConversa({ n, ativa, naoLidas, minha, grande, onClick }: {
           <span className="flex items-center gap-1.5 text-xs text-suave">
             <span className={cx('size-1.5 shrink-0 rounded-full', n.papel === 'VENDEDOR' ? 'bg-blue-500' : 'bg-green-600')} aria-hidden="true" />
             <span className="truncate">{n.papel === 'VENDEDOR' ? 'Venda para' : 'Compra de'} {n.outroParticipanteNome}</span>
+            {n.quantidadeOrdens > 0 && (
+              <span className="shrink-0 rounded-full bg-blue-50 px-1.5 text-[0.65rem] font-semibold text-blue-700"
+                title={`${n.quantidadeOrdens} ordem(ns) de pedido geradas nesta conversa`}>📄 {n.quantidadeOrdens}</span>
+            )}
             {n.quantidadeAnuncios > 1 && (
               <span className="shrink-0 rounded-full bg-gray-100 px-1.5 text-[0.65rem] font-semibold text-gray-600"
                 title={`${n.quantidadeAnuncios} produtos na negociação`}>+{n.quantidadeAnuncios - 1} produto{n.quantidadeAnuncios > 2 ? 's' : ''}</span>

@@ -201,6 +201,8 @@ export interface OrdemDePedido {
   mensagensNaoLidas: number;
   /** descrição e código de envio informados pelo vendedor; null se ainda não informou */
   entrega: Entrega | null;
+  /** negociação (chat) em que a ordem foi combinada */
+  negociacaoId: UUID | null;
   itens: ItemPedido[];
   pagamentos: Pagamento[];
   notasFiscais: NotaFiscal[];
@@ -250,6 +252,8 @@ export interface AlertaMensagem {
 export interface NovaOrdemInput {
   compradorId: UUID;
   itens: { anuncioId: UUID; variacaoId?: UUID | null; quantidade: number; valorUnidade: number }[];
+  /** negociação (chat) de onde a ordem saiu, para ficarem vinculadas */
+  negociacaoId?: UUID | null;
 }
 
 export interface ArquivoEnviado {
@@ -275,7 +279,7 @@ export interface PagamentoInput {
 
 /* ------------------------------------------------------------------ negociação (chat) */
 
-export type TipoMensagemNegociacao = 'ABORDAGEM' | 'TEXTO' | 'ANUNCIO_ADICIONADO' | 'ANUNCIO_REMOVIDO';
+export type TipoMensagemNegociacao = 'ABORDAGEM' | 'TEXTO' | 'ANUNCIO_ADICIONADO' | 'ANUNCIO_REMOVIDO' | 'ORDEM_GERADA';
 
 export interface ParticipanteNegociacao {
   id: UUID;
@@ -295,7 +299,20 @@ export interface MensagemNegociacao {
   tipo: TipoMensagemNegociacao;
   /** produto citado (abordagem, anúncio incluído/retirado) */
   anuncioId: UUID | null;
+  /** ordem citada (aviso de ordem gerada) */
+  ordemId: UUID | null;
   dataCadastro: string;
+}
+
+export interface OrdemDaNegociacao {
+  id: UUID;
+  codigo: string;
+  status: StatusOrdem;
+  valorTotal: number;
+  dataCadastro: string;
+  pagamentoPendente: boolean;
+  /** gerada a partir desta conversa (as demais são entre os mesmos comprador e vendedor) */
+  daNegociacao: boolean;
 }
 
 export interface AnuncioNegociacao {
@@ -314,6 +331,8 @@ export interface Negociacao {
   anuncio: AnuncioNegociacao;
   /** todos os produtos da negociação, o de abordagem primeiro */
   anuncios: AnuncioNegociacao[];
+  /** ordens de pedido entre comprador e vendedor (a mais recente primeiro) */
+  ordens: OrdemDaNegociacao[];
   comprador: ParticipanteNegociacao;
   vendedor: ParticipanteNegociacao;
   mensagens: MensagemNegociacao[];
@@ -334,6 +353,8 @@ export interface NegociacaoResumo {
   quantidadeMensagens: number;
   /** produtos na negociação */
   quantidadeAnuncios: number;
+  /** ordens de pedido geradas a partir desta conversa */
+  quantidadeOrdens: number;
   /** mensagens da outra pessoa depois da última mensagem do usuário logado */
   mensagensSemResposta: number;
 }

@@ -24,6 +24,8 @@ public record NegociacaoResumoResponse(
         int quantidadeMensagens,
         /** produtos na negociação (o de abordagem + os incluídos depois) */
         int quantidadeAnuncios,
+        /** ordens de pedido geradas a partir desta conversa */
+        int quantidadeOrdens,
         /** mensagens da outra pessoa depois da última mensagem do usuário logado */
         int mensagensSemResposta
 ) {
@@ -39,6 +41,7 @@ public record NegociacaoResumoResponse(
                 n.getUltimaMensagemEm() != null ? n.getUltimaMensagemEm() : n.getDataCadastro(),
                 n.getMensagens().size(),
                 n.getAnuncioIds().size(),
+                (int) d.ordens().stream().filter(o -> n.getId().equals(o.getNegociacaoId())).count(),
                 n.mensagensSemResposta(usuarioLogado));
     }
 }

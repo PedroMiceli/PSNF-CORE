@@ -10,7 +10,9 @@ import java.util.UUID;
 public record CadastrarOrdemDePedidoCommand(
         UUID vendedorId,
         UUID compradorId,
-        List<ItemPedidoCommand> itens
+        List<ItemPedidoCommand> itens,
+        /** opcional: negociação (chat) de onde a ordem saiu */
+        UUID negociacaoId
 ) {
     public CadastrarOrdemDePedidoCommand {
         if (vendedorId == null) {

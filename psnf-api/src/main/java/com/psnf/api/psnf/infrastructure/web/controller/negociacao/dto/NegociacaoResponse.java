@@ -5,6 +5,8 @@ import com.psnf.api.psnf.domain.anuncio.model.ImagemAnuncio;
 import com.psnf.api.psnf.domain.negociacao.model.MensagemNegociacao;
 import com.psnf.api.psnf.domain.negociacao.model.NegociacaoDetalhes;
 import com.psnf.api.psnf.domain.negociacao.model.enums.TipoMensagemNegociacao;
+import com.psnf.api.psnf.domain.ordemDePedido.models.OrdemDePedido;
+import com.psnf.api.psnf.domain.ordemDePedido.models.enums.EnumStatusOrdemDePedido;
 import com.psnf.api.psnf.domain.usuario.model.Endereco;
 import com.psnf.api.psnf.domain.usuario.model.Usuario;
 
@@ -25,8 +27,18 @@ public record NegociacaoResponse(
         List<AnuncioResumo> anuncios,
         Participante comprador,
         Participante vendedor,
-        List<Mensagem> mensagens
+        List<Mensagem> mensagens,
+        /** ordens de pedido entre comprador e vendedor; daNegociacao = gerada a partir desta conversa */
+        List<OrdemResumo> ordens
 ) {
+    public record OrdemResumo(UUID id, String codigo, EnumStatusOrdemDePedido status, BigDecimal valorTotal,
+                              LocalDateTime dataCadastro, boolean pagamentoPendente, boolean daNegociacao) {
+        static OrdemResumo from(OrdemDePedido o, UUID negociacaoId) {
+            return new OrdemResumo(o.getId(), o.getCodigo(), o.getStatus(), o.getValorTotal(), o.getDataCadastro(),
+                    o.isPagamentoPendente(), negociacaoId.equals(o.getNegociacaoId()));
+        }
+    }
+
     public record AnuncioResumo(UUID id, String titulo, String imagem, BigDecimal precoMenor, int quantidadeMinima, boolean ativo) {
         static AnuncioResumo from(Anuncio a) {
             return new AnuncioResumo(a.getId(), a.getTitulo(), a.getImagemPrincipal().map(ImagemAnuncio::getCaminho).orElse(null),
@@ -44,15 +56,17 @@ public record NegociacaoResponse(
         }
     }
 
-    public record Mensagem(UUID id, UUID autorId, String texto, TipoMensagemNegociacao tipo, UUID anuncioId, LocalDateTime dataCadastro) {
+    public record Mensagem(UUID id, UUID autorId, String texto, TipoMensagemNegociacao tipo, UUID anuncioId, UUID ordemId,
+                           LocalDateTime dataCadastro) {
         static Mensagem from(MensagemNegociacao m) {
-            return new Mensagem(m.getId(), m.getAutorId(), m.getTexto(), m.getTipo(), m.getAnuncioId(), m.getDataCadastro());
+            return new Mensagem(m.getId(), m.getAutorId(), m.getTexto(), m.getTipo(), m.getAnuncioId(), m.getOrdemId(), m.getDataCadastro());
         }
     }
 
     public static NegociacaoResponse from(NegociacaoDetalhes d) {
         return new NegociacaoResponse(d.negociacao().getId(), d.negociacao().getDataCadastro(),
                 AnuncioResumo.from(d.anuncio()), d.anuncios().stream().map(AnuncioResumo::from).toList(), Participante.from(d.comprador()), Participante.from(d.vendedor()),
-                d.negociacao().getMensagens().stream().map(Mensagem::from).toList());
+                d.negociacao().getMensagens().stream().map(Mensagem::from).toList(),
+                d.ordens().stream().map(o -> OrdemResumo.from(o, d.negociacao().getId())).toList());
     }
 }

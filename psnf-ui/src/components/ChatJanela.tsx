@@ -6,7 +6,7 @@ import type { Anuncio, AnuncioNegociacao, MensagemNegociacao, Negociacao, Partic
 import { useChat } from '../context/ChatContext';
 import { useUsuario } from '../context/UsuarioContext';
 import { formatarMoeda } from './format';
-import { Botao, cx, ImagemAnuncio } from './ui';
+import { Botao, cx, ImagemAnuncio, PagamentoPendenteBadge, StatusBadge } from './ui';
 
 /** Intervalo da atualização automática das mensagens (até existir WebSocket). */
 const ATUALIZAR_A_CADA_MS = 4000;
@@ -24,23 +24,23 @@ const iniciais = (nome: string) => nome.split(/\s+/).filter(Boolean).slice(0, 2)
 
 /** Janela de chat da negociação, presa no canto inferior direito (tela cheia no celular). */
 export function ChatJanela() {
-  const { aberta, inicial, fecharChat, marcarVista, recarregarLista, hubExpandido } = useChat();
+  const { aberta, inicial, aberturas, fecharChat, marcarVista, recarregarLista, hubExpandido } = useChat();
   const { usuarioId } = useUsuario();
   const [neg, setNeg] = useState<Negociacao | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [minimizada, setMinimizada] = useState(false);
   const [escolhendo, setEscolhendo] = useState(false);
 
-  // carrega ao abrir outra negociação
+  // carrega ao abrir uma negociação (ou reabrir a mesma: expande e traz o que mudou)
   useEffect(() => {
     setErro(null);
     setMinimizada(false);
     setEscolhendo(false);
     if (!aberta) { setNeg(null); return; }
     if (inicial?.id === aberta) { setNeg(inicial); return; }
-    setNeg(null);
+    setNeg((atual) => (atual?.id === aberta ? atual : null)); // reabrindo a mesma: mantém na tela enquanto atualiza
     api.negociacao(aberta).then(setNeg).catch((e) => setErro(e instanceof ApiError ? e.message : String(e)));
-  }, [aberta, inicial]);
+  }, [aberta, inicial, aberturas]);
 
   // atualização automática enquanto a janela estiver aberta e visível
   useEffect(() => {
@@ -84,6 +84,7 @@ export function ChatJanela() {
               <>
                 <ProdutosNegociacao neg={neg} escolhendo={escolhendo} onEscolher={() => setEscolhendo((e) => !e)} onAtualizada={atualizada}
                   onIrParaAnuncio={irParaAnuncio} />
+                <OrdensNegociacao neg={neg} onIrParaOrdem={irParaAnuncio} />
                 {escolhendo
                   ? <SeletorAnuncios neg={neg} onAtualizada={(n) => { atualizada(n); setEscolhendo(false); }} onCancelar={() => setEscolhendo(false)} />
                   : <Conversa neg={neg} usuarioId={usuarioId} onAtualizada={atualizada} onIrParaAnuncio={irParaAnuncio} />}
@@ -192,7 +193,9 @@ function Conversa({ neg, usuarioId, onAtualizada, onIrParaAnuncio }: {
           return (
             <div key={m.id}>
               {novoDia && <p className="my-2 text-center text-[0.7rem] font-semibold tracking-wide text-suave uppercase">{dia(m.dataCadastro)}</p>}
-              {m.tipo === 'ANUNCIO_ADICIONADO' || m.tipo === 'ANUNCIO_REMOVIDO'
+              {m.tipo === 'ORDEM_GERADA'
+                ? <AvisoOrdem m={m} minha={m.autorId === usuarioId} autor={nomeDe(m.autorId)} neg={neg} onIrParaOrdem={onIrParaAnuncio} />
+                : m.tipo === 'ANUNCIO_ADICIONADO' || m.tipo === 'ANUNCIO_REMOVIDO'
                 ? <AvisoProduto m={m} minha={m.autorId === usuarioId} autor={nomeDe(m.autorId)} neg={neg} onIrParaAnuncio={onIrParaAnuncio} />
                 : <Bolha m={m} minha={m.autorId === usuarioId} autor={nomeDe(m.autorId)} neg={neg} onIrParaAnuncio={onIrParaAnuncio} />}
             </div>
@@ -383,6 +386,65 @@ function SeletorAnuncios({ neg, onAtualizada, onCancelar }: {
       </ul>
       <div className="border-t border-borda bg-white p-2.5 text-right">
         <Botao tamanho="pequeno" onClick={onCancelar}>Voltar à conversa</Botao>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Ordens de pedido entre comprador e vendedor: as geradas nesta conversa e as demais entre os dois,
+ * para ninguém esquecer o que já foi fechado. Fica recolhida para não tomar espaço do chat.
+ */
+function OrdensNegociacao({ neg, onIrParaOrdem }: { neg: Negociacao; onIrParaOrdem: () => void }) {
+  const [aberta, setAberta] = useState(false);
+  if (!neg.ordens.length) return null;
+  const daConversa = neg.ordens.filter((o) => o.daNegociacao).length;
+  return (
+    <div className="shrink-0 border-b border-borda bg-white px-3 py-1.5">
+      <button type="button" onClick={() => setAberta((a) => !a)} aria-expanded={aberta}
+        className="flex w-full cursor-pointer items-center gap-2 py-0.5 text-left">
+        <span className="text-[0.7rem] font-semibold tracking-wide text-suave uppercase">📄 Ordens de pedido ({neg.ordens.length})</span>
+        {daConversa > 0 && <span className="text-[0.68rem] text-suave">· {daConversa} desta conversa</span>}
+        <span className="ml-auto text-xs font-semibold text-primaria">{aberta ? 'Ocultar' : 'Ver'}</span>
+      </button>
+      {aberta && (
+        <ul className="mt-1 max-h-40 space-y-1 overflow-y-auto pb-1" aria-label="Ordens de pedido">
+          {neg.ordens.map((o) => (
+            <li key={o.id}>
+              <Link to={`/ordens/${o.id}`} onClick={onIrParaOrdem}
+                className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-borda px-2 py-1.5 text-xs text-texto hover:bg-gray-50 hover:no-underline">
+                <strong className="font-mono">{o.codigo}</strong>
+                <StatusBadge status={o.status} />
+                <PagamentoPendenteBadge status={o.status} pendente={o.pagamentoPendente} />
+                <span className="ml-auto text-suave">{formatarMoeda(o.valorTotal)} · {new Date(o.dataCadastro).toLocaleDateString('pt-BR')}</span>
+                {!o.daNegociacao && <span className="w-full text-[0.65rem] text-suave">criada fora desta conversa</span>}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/** Aviso no meio da conversa: o vendedor gerou uma ordem a partir dela. */
+function AvisoOrdem({ m, minha, autor, neg, onIrParaOrdem }: {
+  m: MensagemNegociacao; minha: boolean; autor: string; neg: Negociacao; onIrParaOrdem: () => void;
+}) {
+  const ordem = neg.ordens.find((o) => o.id === m.ordemId);
+  return (
+    <div className="my-2 flex flex-col items-center">
+      <div className="w-full max-w-[90%] rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-center text-xs text-blue-900">
+        📄 <strong>{minha ? 'Você' : autor}</strong> gerou uma ordem de pedido · {hora(m.dataCadastro)}
+        {ordem ? (
+          <Link to={`/ordens/${ordem.id}`} onClick={onIrParaOrdem}
+            className="mt-2 flex flex-wrap items-center justify-center gap-2 rounded-lg bg-white px-2 py-1.5 text-texto hover:bg-blue-100 hover:no-underline">
+            <strong className="font-mono">{ordem.codigo}</strong>
+            <StatusBadge status={ordem.status} />
+            <span>{formatarMoeda(ordem.valorTotal)}</span>
+            <span className="font-semibold text-primaria">Ver ordem →</span>
+          </Link>
+        ) : <p className="m-0 mt-1">{m.texto}</p>}
       </div>
     </div>
   );

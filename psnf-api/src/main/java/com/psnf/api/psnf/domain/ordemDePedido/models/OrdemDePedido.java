@@ -36,6 +36,8 @@ public class OrdemDePedido extends BaseDomain {
     private LocalDateTime incidentesLidosCompradorEm;
     /** detalhes da entrega informados pelo vendedor (descrição e código de envio); null se não houver */
     private Entrega entrega;
+    /** negociação (chat) em que a ordem foi combinada; null se foi criada fora do chat */
+    private UUID negociacaoId;
     private LocalDateTime incidentesLidosVendedorEm;
     private final List<MensagemIncidente> mensagensIncidente;
     private final List<NotaFiscal> notasFiscais;
@@ -241,6 +243,13 @@ public class OrdemDePedido extends BaseDomain {
             entrega = null;
         }
     }
+
+    /** Vincula a ordem à negociação (chat) em que foi combinada. */
+    public void vincularNegociacao(UUID negociacaoId) {
+        this.negociacaoId = negociacaoId;
+    }
+
+    public UUID getNegociacaoId() { return negociacaoId; }
 
     /** Usado pela persistência. */
     public void restaurarEntrega(Entrega entrega) {

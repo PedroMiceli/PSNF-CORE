@@ -102,6 +102,8 @@ export function NovaOrdem() {
         quantidade: Number(it.quantidade),
         valorUnidade: Number(it.valorUnidade),
       })),
+      // vinda do chat: a ordem fica ligada à negociação (e aparece lá)
+      negociacaoId: negociacao.data?.id ?? null,
     }));
     if (ordem) navigate(`/ordens/${ordem.id}`);
   };

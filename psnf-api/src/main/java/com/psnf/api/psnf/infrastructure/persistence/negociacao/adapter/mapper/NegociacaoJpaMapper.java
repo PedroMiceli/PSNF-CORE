@@ -32,6 +32,7 @@ public class NegociacaoJpaMapper {
             mj.setTipo(m.getTipo());
             mj.setAutor(usuarioRef.apply(m.getAutorId()));
             mj.setAnuncio(m.getAnuncioId() == null ? null : anuncioRef.apply(m.getAnuncioId()));
+            mj.setOrdemId(m.getOrdemId());
             mj.setNegociacao(jpa);
             jpa.getMensagens().add(mj);
         });
@@ -51,7 +52,7 @@ public class NegociacaoJpaMapper {
                 jpa.getAnuncio().getId(), jpa.getComprador().getId(), jpa.getVendedor().getId(),
                 jpa.getMensagens().stream().map(m -> MensagemNegociacao.restaurar(m.getId(), m.getDataCadastro(),
                         m.getDataAlteracao(), m.getDataExcluido(), m.getAutor().getId(), m.getTexto(), m.getTipo(),
-                        m.getAnuncio() == null ? null : m.getAnuncio().getId())).toList(),
+                        m.getAnuncio() == null ? null : m.getAnuncio().getId()).comOrdem(m.getOrdemId())).toList(),
                 jpa.getAnunciosAdicionais().stream().map(a -> AnuncioNegociacao.restaurar(a.getId(), a.getDataCadastro(),
                         a.getDataAlteracao(), a.getDataExcluido(), a.getAnuncio().getId(), a.getAdicionadoPor().getId())).toList(),
                 jpa.getUltimaMensagemEm());

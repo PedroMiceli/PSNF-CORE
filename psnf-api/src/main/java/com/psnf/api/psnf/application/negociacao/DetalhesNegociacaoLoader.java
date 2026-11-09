@@ -4,6 +4,7 @@ import com.psnf.api.psnf.domain.anuncio.model.Anuncio;
 import com.psnf.api.psnf.domain.anuncio.port.out.AnuncioRepositoryPort;
 import com.psnf.api.psnf.domain.negociacao.model.Negociacao;
 import com.psnf.api.psnf.domain.negociacao.model.NegociacaoDetalhes;
+import com.psnf.api.psnf.domain.ordemDePedido.port.out.OrdemDePedidoRepositoryPort;
 import com.psnf.api.psnf.domain.usuario.port.out.UsuarioRepositoryPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -17,11 +18,14 @@ class DetalhesNegociacaoLoader {
 
     private final AnuncioRepositoryPort anuncioRepositoryPort;
     private final UsuarioRepositoryPort usuarioRepositoryPort;
+    private final OrdemDePedidoRepositoryPort ordemDePedidoRepositoryPort;
 
     NegociacaoDetalhes carregar(Negociacao n) {
         List<Anuncio> anuncios = n.getAnuncioIds().stream().map(anuncioRepositoryPort::buscarPorId).toList();
         return new NegociacaoDetalhes(n, anuncios.getFirst(), anuncios,
                 usuarioRepositoryPort.buscarPorId(n.getCompradorId()),
-                usuarioRepositoryPort.buscarPorId(n.getVendedorId()));
+                usuarioRepositoryPort.buscarPorId(n.getVendedorId()),
+                // todas as ordens entre os dois (também as criadas fora do chat), para o histórico
+                ordemDePedidoRepositoryPort.buscarPorCompradorEVendedor(n.getCompradorId(), n.getVendedorId()));
     }
 }
