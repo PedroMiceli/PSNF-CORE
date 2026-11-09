@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
@@ -16,7 +17,20 @@ public interface OrdemDePedidoJpaRepository extends JpaRepository<OrdemDePedidoJ
 
     List<OrdemDePedidoJpa> findByVendedorIdOrderByDataCadastroDesc(UUID vendedorId);
 
-    List<OrdemDePedidoJpa> findByCompradorIdAndVendedorIdOrderByDataCadastroDesc(UUID compradorId, UUID vendedorId);
+    /** [id, codigo, status, dataCadastro, negociacaoId, total dos itens, total pago com comprovante] */
+    @Query("""
+            select o.id, o.codigo, o.status, o.dataCadastro, o.negociacao.id,
+                   (select coalesce(sum(i.valorUnidade * i.quantidade), 0) from ItemPedidoJpa i where i.ordemDePedido = o),
+                   (select coalesce(sum(p.valor), 0) from PagamentoJpa p
+                     where p.ordemDePedido = o and p.comprovante is not null and p.comprovante <> '')
+            from OrdemDePedidoJpa o
+            where o.comprador.id = :c and o.vendedor.id = :v
+            order by o.dataCadastro desc
+            """)
+    List<Object[]> resumosEntre(@Param("c") UUID compradorId, @Param("v") UUID vendedorId);
+
+    @Query("select o.negociacao.id, count(o) from OrdemDePedidoJpa o where o.negociacao.id in :ids group by o.negociacao.id")
+    List<Object[]> contarPorNegociacao(@Param("ids") Collection<UUID> negociacaoIds);
 
     /** mesma regra de "não lida" da ordem: mensagem do outro lado depois da última leitura de quem pergunta */
     @Query("""

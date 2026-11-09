@@ -24,7 +24,9 @@ public class EntregaJpa extends BaseEntity {
     @Column(length = 100)
     private String codigoRastreio;
 
-    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    // ManyToOne + unique: continua uma entrega por ordem no banco, mas do lado da ordem vira uma coleção,
+    // que o Hibernate carrega em lote (ver OrdemDePedidoJpa.entregas)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "ordem_de_pedido_id", nullable = false, unique = true)
     private OrdemDePedidoJpa ordemDePedido;
 }
