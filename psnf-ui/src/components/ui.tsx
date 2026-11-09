@@ -110,7 +110,8 @@ const STATUS_COR: Record<StatusOrdem, string> = {
   AGUARDANDO_PAGAMENTO: 'bg-amber-100 text-amber-800',
   PAGO: 'bg-green-100 text-green-800',
   ENVIADO: 'bg-blue-100 text-blue-800',
-  ENTREGUE: 'bg-indigo-100 text-indigo-800',
+  // etapa final: verde forte (o azul fica para os passos em andamento)
+  ENTREGUE: 'bg-green-600 text-white',
   CANCELADO: 'bg-red-100 text-red-800',
 };
 
