@@ -9,6 +9,9 @@ public interface RegistrarPagamentoUseCase {
 
     OrdemDePedido registrarPagamento(RegistrarPagamentoCommand command);
 
-    /** O comprador exclui um pagamento registrado por engano (antes do envio do pedido). */
+    /** O vendedor exclui uma forma de pagamento cadastrada por engano (antes do comprovante). */
     OrdemDePedido removerPagamento(UUID ordemDePedidoId, UUID usuarioId, UUID pagamentoId);
+
+    /** O comprador anexa o comprovante de um pagamento. */
+    OrdemDePedido anexarComprovante(UUID ordemDePedidoId, UUID usuarioId, UUID pagamentoId, String caminho);
 }

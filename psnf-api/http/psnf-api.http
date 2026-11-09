@@ -434,8 +434,9 @@ Content-Type: application/json
 
 
 ### ====================== 4. ORDEM DE PEDIDO — FLUXO COMPLETO ==========================
-### Vendedor cria a ordem após negociar no chat -> comprador paga -> vendedor envia NF
-### e despacha -> comprador confirma a entrega.
+### Vendedor cria a ordem após negociar no chat -> comprador confere e aceita -> vendedor
+### cadastra as formas de pagamento -> comprador paga e anexa os comprovantes -> vendedor
+### envia a NF e despacha -> comprador confirma a entrega.
 
 ### 4.1 Vendedor cria a ordem para o comprador (valores negociados)
 ###     Total esperado: 200 x 10,50 + 10 x 45,00 = 2.550,00
@@ -453,7 +454,7 @@ Content-Type: application/json
 > {%
     client.test("201 - ordem criada", () => client.assert(response.status === 201, "status " + response.status));
     client.test("total 2550", () => client.assert(response.body.valorTotal == 2550));
-    client.test("status AGUARDANDO_PAGAMENTO", () => client.assert(response.body.status === "AGUARDANDO_PAGAMENTO"));
+    client.test("status AGUARDANDO_CONFIRMACAO", () => client.assert(response.body.status === "AGUARDANDO_CONFIRMACAO"));
     const item = response.body.itens.find(i => i.anuncioId === client.global.get("anuncioId"));
     client.test("item recebe as informações do produto", () => client.assert(item.informacoes.ncm === "8716.80.00"));
     client.test("com o SKU/GTIN da variação", () => client.assert(item.informacoes.sku === "CAR-MET-BP" && item.informacoes.gtin === "7891234567895"));
@@ -482,30 +483,42 @@ GET {{baseUrl}}/ordens-de-pedido/vendas
 
 > {% client.test("200", () => client.assert(response.body.length >= 1)); %}
 
-### 4.6 Comprador paga uma parte via PIX
+### 4.5b [422] Vendedor não cadastra pagamento antes do comprador aceitar
 POST {{baseUrl}}/ordens-de-pedido/{{ordemId}}/pagamentos
 Content-Type: application/json
+
+{ "tipoPagamento": "PIX", "valor": 10.00, "chavePix": "x" }
+
+> {% client.test("422", () => client.assert(response.status === 422, "status " + response.status)); %}
+
+### 4.5c Comprador confere e aceita a ordem -> ACEITO
+PATCH {{baseUrl}}/ordens-de-pedido/{{ordemId}}/aceitar
 X-Usuario-Id: {{compradorId}}
+
+> {% client.test("status ACEITO", () => client.assert(response.body.status === "ACEITO", "status " + response.body.status)); %}
+
+### 4.6 Vendedor cadastra a primeira forma de pagamento combinada: PIX (com a chave para receber)
+POST {{baseUrl}}/ordens-de-pedido/{{ordemId}}/pagamentos
+Content-Type: application/json
 
 {
   "tipoPagamento": "PIX",
   "valor": 550.00,
-  "chavePix": "financeiro@comprador.com",
+  "chavePix": "financeiro@vendedor.com",
   "nomeReferencia": "Entrada",
   "dataReferencia": "2026-11-10"
 }
 
 > {%
-    client.test("continua AGUARDANDO_PAGAMENTO", () => client.assert(response.body.status === "AGUARDANDO_PAGAMENTO"));
-    client.test("restante 2000", () => client.assert(response.body.valorRestante == 2000));
+    client.test("continua ACEITO (falta cadastrar 2000)", () => client.assert(response.body.status === "ACEITO" && response.body.valorRestante == 2000));
     client.test("data de referência e chave PIX na resposta", () => client.assert(
-        response.body.pagamentos.some(p => p.dataReferencia === "2026-11-10" && p.chavePix === "financeiro@comprador.com")));
+        response.body.pagamentos.some(p => p.dataReferencia === "2026-11-10" && p.chavePix === "financeiro@vendedor.com")));
+    client.global.set("pagamentoPixId", response.body.pagamentos.find(p => p.tipoPagamento === "PIX").id);
 %}
 
-### 4.7 Comprador paga o restante via transferência -> status PAGO
+### 4.7 Vendedor cadastra o restante via transferência -> AGUARDANDO_PAGAMENTO
 POST {{baseUrl}}/ordens-de-pedido/{{ordemId}}/pagamentos
 Content-Type: application/json
-X-Usuario-Id: {{compradorId}}
 
 {
   "tipoPagamento": "TRANSFERENCIA",
@@ -516,7 +529,45 @@ X-Usuario-Id: {{compradorId}}
   "nomeReferencia": "Saldo"
 }
 
-> {% client.test("status PAGO", () => client.assert(response.body.status === "PAGO")); %}
+> {%
+    client.test("status AGUARDANDO_PAGAMENTO", () => client.assert(response.body.status === "AGUARDANDO_PAGAMENTO"));
+    client.test("nada pago ainda", () => client.assert(response.body.valorPago == 0 && response.body.valorCadastrado == 2550));
+    client.global.set("pagamentoTransfId", response.body.pagamentos.find(p => p.tipoPagamento === "TRANSFERENCIA").id);
+%}
+
+### 4.7b [403] Só o comprador anexa comprovante
+POST {{baseUrl}}/ordens-de-pedido/{{ordemId}}/pagamentos/{{pagamentoPixId}}/comprovante
+Content-Type: application/json
+
+{ "caminho": "/arquivos/comprovante-pix.pdf" }
+
+> {% client.test("403", () => client.assert(response.status === 403, "status " + response.status)); %}
+
+### 4.7c Comprador paga o PIX e anexa o comprovante
+POST {{baseUrl}}/ordens-de-pedido/{{ordemId}}/pagamentos/{{pagamentoPixId}}/comprovante
+Content-Type: application/json
+X-Usuario-Id: {{compradorId}}
+
+{ "caminho": "/arquivos/comprovante-pix.pdf" }
+
+> {%
+    client.test("continua AGUARDANDO_PAGAMENTO", () => client.assert(response.body.status === "AGUARDANDO_PAGAMENTO"));
+    client.test("pago 550", () => client.assert(response.body.valorPago == 550));
+%}
+
+### 4.7d [422] Vendedor não exclui pagamento que já tem comprovante
+DELETE {{baseUrl}}/ordens-de-pedido/{{ordemId}}/pagamentos/{{pagamentoPixId}}
+
+> {% client.test("422", () => client.assert(response.status === 422, "status " + response.status)); %}
+
+### 4.7e Comprador anexa o comprovante da transferência -> PAGO
+POST {{baseUrl}}/ordens-de-pedido/{{ordemId}}/pagamentos/{{pagamentoTransfId}}/comprovante
+Content-Type: application/json
+X-Usuario-Id: {{compradorId}}
+
+{ "caminho": "/arquivos/comprovante-transferencia.png" }
+
+> {% client.test("status PAGO", () => client.assert(response.body.status === "PAGO" && response.body.valorPago == 2550)); %}
 
 ### 4.8 Vendedor anexa a nota fiscal
 POST {{baseUrl}}/ordens-de-pedido/{{ordemId}}/notas-fiscais
@@ -652,9 +703,10 @@ X-Usuario-Id: {{terceiroId}}
 
 > {% client.test("403", () => client.assert(response.status === 403, "status " + response.status)); %}
 
-### 6.7 [403] Vendedor tentando pagar (só o comprador paga)
+### 6.7 [403] Comprador tentando cadastrar forma de pagamento (só o vendedor cadastra)
 POST {{baseUrl}}/ordens-de-pedido/{{ordem2Id}}/pagamentos
 Content-Type: application/json
+X-Usuario-Id: {{compradorId}}
 
 {
   "tipoPagamento": "PIX",
@@ -673,7 +725,6 @@ X-Usuario-Id: {{compradorId}}
 ### 6.9 [400] PIX sem chave
 POST {{baseUrl}}/ordens-de-pedido/{{ordemId}}/pagamentos
 Content-Type: application/json
-X-Usuario-Id: {{compradorId}}
 
 {
   "tipoPagamento": "PIX",
@@ -688,8 +739,9 @@ X-Usuario-Id: {{compradorId}}
 
 > {% client.test("403", () => client.assert(response.status === 403, "status " + response.status)); %}
 
-### 6.10b [403] Só o comprador exclui pagamentos (o vendedor tenta)
+### 6.10b [403] Só o vendedor exclui formas de pagamento (o comprador tenta)
 DELETE {{baseUrl}}/ordens-de-pedido/{{ordemId}}/pagamentos/00000000-0000-0000-0000-000000000000
+X-Usuario-Id: {{compradorId}}
 
 > {% client.test("403", () => client.assert(response.status === 403, "status " + response.status)); %}
 

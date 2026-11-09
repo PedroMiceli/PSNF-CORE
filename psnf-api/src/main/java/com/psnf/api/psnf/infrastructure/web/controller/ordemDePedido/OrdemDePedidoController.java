@@ -68,10 +68,24 @@ public class OrdemDePedidoController {
                 OrdemDePedidoRequestMapper.toCommand(id, usuarioLogado(), request))));
     }
 
-    /** O comprador exclui um pagamento registrado por engano (antes do envio do pedido). */
+    /** O vendedor exclui uma forma de pagamento cadastrada por engano (antes do comprovante). */
     @DeleteMapping("/{id}/pagamentos/{pagamentoId}")
     public ResponseEntity<OrdemDePedidoResponse> removerPagamento(@PathVariable UUID id, @PathVariable UUID pagamentoId) {
         return ResponseEntity.ok(OrdemDePedidoResponse.from(registrarPagamentoUseCase.removerPagamento(id, usuarioLogado(), pagamentoId)));
+    }
+
+    /** O comprador anexa (ou troca) o comprovante de um pagamento. */
+    @PostMapping("/{id}/pagamentos/{pagamentoId}/comprovante")
+    public ResponseEntity<OrdemDePedidoResponse> anexarComprovante(@PathVariable UUID id, @PathVariable UUID pagamentoId,
+                                                                   @RequestBody @Valid ComprovanteRequest request) {
+        return ResponseEntity.ok(OrdemDePedidoResponse.from(
+                registrarPagamentoUseCase.anexarComprovante(id, usuarioLogado(), pagamentoId, request.caminho())));
+    }
+
+    /** O comprador confere produtos, quantidades e valores e aceita a ordem. */
+    @PatchMapping("/{id}/aceitar")
+    public ResponseEntity<OrdemDePedidoResponse> aceitar(@PathVariable UUID id) {
+        return ResponseEntity.ok(OrdemDePedidoResponse.from(alterarStatusOrdemDePedidoUseCase.aceitar(id, usuarioLogado())));
     }
 
     @PostMapping("/{id}/notas-fiscais")

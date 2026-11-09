@@ -15,7 +15,7 @@ import {
 } from '../components/ui';
 import { useUsuario } from '../context/UsuarioContext';
 
-const FLUXO: StatusOrdem[] = ['AGUARDANDO_PAGAMENTO', 'PAGO', 'ENVIADO', 'ENTREGUE'];
+const FLUXO: StatusOrdem[] = ['AGUARDANDO_CONFIRMACAO', 'ACEITO', 'AGUARDANDO_PAGAMENTO', 'PAGO', 'ENVIADO', 'ENTREGUE'];
 
 /** Duas colunas no computador, uma no celular. */
 const grade2 = 'grid gap-4 md:grid-cols-2 [&>*]:min-w-0';
@@ -74,8 +74,11 @@ export function OrdemDetalhe() {
           <h3>Valores</h3>
           <div className={lista}>
             <Valor rotulo="Total">{formatarMoeda(o.valorTotal)}</Valor>
-            <Valor rotulo="Pago" className="text-verde">{formatarMoeda(o.valorPago)}</Valor>
-            <Valor rotulo="A pagar" className={o.valorRestante > 0 ? 'text-laranja' : ''}>{formatarMoeda(o.valorRestante)}</Valor>
+            <Valor rotulo="Em formas de pagamento">{formatarMoeda(o.valorCadastrado)}</Valor>
+            <Valor rotulo="Pago (com comprovante)" className="text-verde">{formatarMoeda(o.valorPago)}</Valor>
+            {o.valorRestante > 0 && !['CANCELADO'].includes(o.status)
+              ? <Valor rotulo="Falta cadastrar" className="text-laranja">{formatarMoeda(o.valorRestante)}</Valor>
+              : <Valor rotulo="A pagar" className={o.valorTotal - o.valorPago > 0 ? 'text-laranja' : ''}>{formatarMoeda(o.valorTotal - o.valorPago)}</Valor>}
           </div>
         </Painel>
       </div>
@@ -120,8 +123,10 @@ export function OrdemDetalhe() {
       <DadosNotaFiscal ordem={o} aberto={souVendedor && ['PAGO', 'ENVIADO', 'ENTREGUE'].includes(o.status)} />
 
       <div className={grade2}>
-        <Pagamentos ordem={o} podePagar={souComprador && o.status === 'AGUARDANDO_PAGAMENTO'}
-          podeExcluir={souComprador && ['AGUARDANDO_PAGAMENTO', 'PAGO'].includes(o.status)} enviando={acao.enviando} executar={executar} />
+        <Pagamentos ordem={o} podeCadastrar={souVendedor && o.status === 'ACEITO'}
+          podeExcluir={souVendedor && ['ACEITO', 'AGUARDANDO_PAGAMENTO'].includes(o.status)}
+          podeAnexar={souComprador && ['ACEITO', 'AGUARDANDO_PAGAMENTO', 'PAGO'].includes(o.status)}
+          souVendedor={souVendedor} enviando={acao.enviando} executar={executar} />
         <NotasFiscais ordem={o} podeAdicionar={souVendedor && ['PAGO', 'ENVIADO', 'ENTREGUE'].includes(o.status)} enviando={acao.enviando} executar={executar} />
       </div>
 
@@ -154,13 +159,13 @@ function LinhaDoTempo({ status }: { status: StatusOrdem }) {
   }
   const atual = FLUXO.indexOf(status);
   return (
-    <ol className="mb-4 flex gap-2 max-md:flex-col">
+    <ol className="mb-4 grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
       {FLUXO.map((s, i) => {
         const feito = i < atual;
         const ehAtual = i === atual;
         return (
           <li key={s} aria-current={ehAtual ? 'step' : undefined}
-            className={cx('flex flex-1 items-center gap-2 rounded-lg border p-3 text-sm',
+            className={cx('flex items-center gap-2 rounded-lg border p-2.5 text-sm leading-tight',
               feito && 'border-green-200 bg-green-50 text-verde',
               ehAtual && 'border-primaria bg-blue-50 font-bold text-primaria',
               !feito && !ehAtual && 'border-borda bg-white text-suave')}>
@@ -182,15 +187,37 @@ function Acoes({ ordem, souComprador, souVendedor, enviando, executar }: {
   ordem: OrdemDePedido; souComprador: boolean; souVendedor: boolean; enviando: boolean; executar: Exec;
 }) {
   const [previsao, setPrevisao] = useState('');
-  const podeCancelar = (souComprador || souVendedor) && ['AGUARDANDO_PAGAMENTO', 'PAGO'].includes(ordem.status);
-  const podeDespachar = souVendedor && ordem.status === 'PAGO';
-  const podeConfirmar = souComprador && ordem.status === 'ENVIADO';
+  const st = ordem.status;
+  const podeCancelar = (souComprador || souVendedor) && ['AGUARDANDO_CONFIRMACAO', 'ACEITO', 'AGUARDANDO_PAGAMENTO', 'PAGO'].includes(st);
+  const podeAceitar = souComprador && st === 'AGUARDANDO_CONFIRMACAO';
+  const podeDespachar = souVendedor && st === 'PAGO';
+  const podeConfirmar = souComprador && st === 'ENVIADO';
   if (!podeCancelar && !podeDespachar && !podeConfirmar) return null;
+
+  // o que cada um precisa fazer agora
+  const orientacao = souComprador ? ({
+    AGUARDANDO_CONFIRMACAO: 'Confira se os produtos, as quantidades e os valores estão corretos. Se estiver tudo certo, aceite a ordem; se não, converse com o vendedor ou cancele.',
+    ACEITO: 'Aguardando o vendedor cadastrar as formas de pagamento combinadas.',
+    AGUARDANDO_PAGAMENTO: 'Faça os pagamentos e anexe o comprovante de cada um em "Formas de pagamento".',
+    PAGO: 'Pagamento concluído. Aguardando o vendedor despachar o pedido.',
+  } as Partial<Record<StatusOrdem, string>>)[st] : ({
+    AGUARDANDO_CONFIRMACAO: 'Aguardando o comprador conferir os produtos e os valores e aceitar a ordem.',
+    ACEITO: 'O comprador aceitou. Cadastre as formas de pagamento combinadas (ex.: parte no PIX, parte no boleto) até cobrir o valor total.',
+    AGUARDANDO_PAGAMENTO: 'Aguardando o comprador pagar e anexar os comprovantes.',
+    PAGO: 'Todos os comprovantes foram enviados. Confira os pagamentos e despache o pedido.',
+  } as Partial<Record<StatusOrdem, string>>)[st];
 
   return (
     <Painel className="border-blue-200 bg-blue-50/40">
       <h3>Próximo passo</h3>
+      {orientacao && <p className={cx(dica, 'mt-0')}>{orientacao}</p>}
       <div className={acoes}>
+        {podeAceitar && (
+          <Botao variante="primario" disabled={enviando}
+            onClick={() => window.confirm('Confirma que os produtos, as quantidades e os valores estão corretos?') && executar(() => api.aceitarOrdem(ordem.id))}>
+            ✔ Aceitar ordem
+          </Botao>
+        )}
         {podeDespachar && (
           <>
             <Campo label="Previsão de entrega" className="mb-0 max-w-[260px]">
@@ -214,8 +241,6 @@ function Acoes({ ordem, souComprador, souVendedor, enviando, executar }: {
           </Botao>
         )}
       </div>
-      {ordem.status === 'AGUARDANDO_PAGAMENTO' && souVendedor && <p className={cx(dica, 'mb-0')}>Aguardando o comprador registrar o pagamento.</p>}
-      {ordem.status === 'PAGO' && souComprador && <p className={cx(dica, 'mb-0')}>Aguardando o vendedor despachar o pedido.</p>}
     </Painel>
   );
 }
@@ -228,16 +253,27 @@ const hojeLocal = () => {
 
 const TIPO_LABEL: Record<TipoPagamento, string> = { PIX: 'PIX', BOLETO: 'Boleto', TRANSFERENCIA: 'Transferência' };
 
-/** Todos os dados de um pagamento; chave PIX, boleto e dados bancários são copiados com um clique. */
-function DetalhesPagamento({ pagamento: p, onFechar, podeExcluir, enviando, onExcluir }: {
-  pagamento: Pagamento | null; onFechar: () => void; podeExcluir: boolean; enviando: boolean; onExcluir: (p: Pagamento) => void;
+/** Selo do pagamento: comprovante enviado ou pendente. */
+function SituacaoPagamento({ p }: { p: Pagamento }) {
+  return p.comprovante
+    ? <span className="rounded-full bg-green-100 px-2 py-0.5 text-[0.7rem] font-bold text-green-800">✔ Comprovante enviado</span>
+    : <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[0.7rem] font-bold text-amber-800">Aguardando comprovante</span>;
+}
+
+/**
+ * Todos os dados de um pagamento. Chave PIX, boleto e dados bancários são copiados com um clique.
+ * O comprador anexa (ou troca) o comprovante por aqui.
+ */
+function DetalhesPagamento({ ordem, pagamento: p, onFechar, podeExcluir, podeAnexar, enviando, onExcluir, executar }: {
+  ordem: OrdemDePedido; pagamento: Pagamento | null; onFechar: () => void; podeExcluir: boolean; podeAnexar: boolean;
+  enviando: boolean; onExcluir: (p: Pagamento) => void; executar: Exec;
 }) {
   return (
     <Dialogo aberto={!!p} onFechar={onFechar} titulo={p ? `Pagamento via ${TIPO_LABEL[p.tipoPagamento]}` : ''}
       rodape={p && (
         <div className="flex flex-wrap items-center justify-between gap-2">
-          {podeExcluir
-            ? <Botao variante="perigo" tamanho="pequeno" disabled={enviando} onClick={() => onExcluir(p)}>Excluir pagamento</Botao>
+          {podeExcluir && !p.comprovante
+            ? <Botao variante="perigo" tamanho="pequeno" disabled={enviando} onClick={() => onExcluir(p)}>Excluir forma de pagamento</Botao>
             : <span />}
           <Botao onClick={onFechar}>Fechar</Botao>
         </div>
@@ -250,7 +286,7 @@ function DetalhesPagamento({ pagamento: p, onFechar, podeExcluir, enviando, onEx
               <strong className="text-2xl text-verde">{formatarMoeda(p.valor)}</strong>
             </div>
             <div className="text-right">
-              <span className="block text-xs text-suave">Data do pagamento</span>
+              <span className="block text-xs text-suave">Data para pagamento</span>
               <strong>{formatarData(p.dataReferencia ?? p.dataCadastro)}</strong>
             </div>
           </div>
@@ -263,9 +299,30 @@ function DetalhesPagamento({ pagamento: p, onFechar, podeExcluir, enviando, onEx
               {p.conta && <div className="sm:col-span-2"><CampoCopiavel rotulo="Conta" valor={p.conta} mono /></div>}
             </div>
           )}
+
+          {/* comprovante */}
+          <div className={cx('mb-3 rounded-lg border px-3 py-2.5', p.comprovante ? 'border-green-200 bg-green-50/50' : 'border-amber-200 bg-amber-50/50')}>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <strong className="text-sm">Comprovante</strong>
+              <SituacaoPagamento p={p} />
+            </div>
+            {p.comprovante && (
+              <p className="m-0 mt-1.5 text-sm">
+                📄 <a href={urlArquivo(p.comprovante)} target="_blank" rel="noreferrer">Ver comprovante</a>
+                {p.dataComprovante && <small className="ml-2 text-suave">enviado em {formatarData(p.dataComprovante)}</small>}
+              </p>
+            )}
+            {podeAnexar && (
+              <UploadArquivo accept={ACEITA_COMPROVANTE} compacto
+                rotulo={enviando ? 'Enviando...' : p.comprovante ? 'Trocar comprovante' : 'Anexar comprovante (imagem ou PDF)'}
+                onEnviado={(a) => void executar(() => api.anexarComprovante(ordem.id, p.id, a.caminho))} />
+            )}
+            {!p.comprovante && !podeAnexar && <p className="m-0 mt-1 text-xs text-suave">O comprador anexa o comprovante depois de pagar.</p>}
+          </div>
+
           <dl className="m-0 grid grid-cols-[max-content_minmax(0,1fr)] gap-x-4 gap-y-1.5 text-sm">
             {p.nomeReferencia && (<><dt className="text-suave">Referência</dt><dd className="m-0 break-words">{p.nomeReferencia}</dd></>)}
-            <dt className="text-suave">Registrado em</dt><dd className="m-0">{formatarData(p.dataCadastro)}</dd>
+            <dt className="text-suave">Cadastrado em</dt><dd className="m-0">{formatarData(p.dataCadastro)}</dd>
           </dl>
           <p className={cx(dica, 'mb-0')}>Clique na chave, no código ou nos dados bancários para copiar.</p>
         </>
@@ -273,6 +330,9 @@ function DetalhesPagamento({ pagamento: p, onFechar, podeExcluir, enviando, onEx
     </Dialogo>
   );
 }
+
+/** Comprovante: foto ou PDF. */
+const ACEITA_COMPROVANTE = `${ACEITA_IMAGENS},application/pdf`;
 
 type CampoPagamento = 'valor' | 'dataReferencia' | 'chavePix' | 'boleto' | 'codigoBanco' | 'agencia' | 'conta';
 
@@ -283,13 +343,19 @@ const OBRIGATORIOS: Record<TipoPagamento, [CampoPagamento, string][]> = {
   TRANSFERENCIA: [['codigoBanco', 'Informe o banco'], ['agencia', 'Informe a agência'], ['conta', 'Informe a conta']],
 };
 
-function Pagamentos({ ordem, podePagar, podeExcluir, enviando, executar }: {
-  ordem: OrdemDePedido; podePagar: boolean; podeExcluir: boolean; enviando: boolean; executar: Exec;
+/**
+ * Formas de pagamento da ordem: o VENDEDOR cadastra o que foi combinado (com os dados para o comprador pagar);
+ * o COMPRADOR paga e anexa o comprovante de cada uma.
+ */
+function Pagamentos({ ordem, podeCadastrar, podeExcluir, podeAnexar, souVendedor, enviando, executar }: {
+  ordem: OrdemDePedido; podeCadastrar: boolean; podeExcluir: boolean; podeAnexar: boolean; souVendedor: boolean;
+  enviando: boolean; executar: Exec;
 }) {
   const [tipo, setTipo] = useState<TipoPagamento>('PIX');
-  const [detalhe, setDetalhe] = useState<Pagamento | null>(null);
+  const [detalheId, setDetalheId] = useState<string | null>(null);
+  const detalhe = ordem.pagamentos.find((p) => p.id === detalheId) ?? null; // sempre a versão mais recente
+  const fecharDetalhe = useCallback(() => setDetalheId(null), []);
   const [dataReferencia, setDataReferencia] = useState(hojeLocal());
-  const fecharDetalhe = useCallback(() => setDetalhe(null), []);
   const [valor, setValor] = useState(ordem.valorRestante.toFixed(2));
   const vazio = { chavePix: '', boleto: '', codigoBanco: '', agencia: '', conta: '', nomeReferencia: '' };
   const [extra, setExtra] = useState(vazio);
@@ -299,29 +365,29 @@ function Pagamentos({ ordem, podePagar, podeExcluir, enviando, executar }: {
     setErros((atual) => ({ ...atual, [k]: undefined })); // some o aviso ao começar a preencher
   };
 
-  // o valor sugerido acompanha o restante (ex.: depois de excluir um pagamento)
+  // o valor sugerido acompanha o que falta cadastrar
   useEffect(() => { setValor(ordem.valorRestante.toFixed(2)); }, [ordem.valorRestante]);
 
   const validar = () => {
     const e: Partial<Record<CampoPagamento, string>> = {};
     const v = Number(valor);
-    if (!dataReferencia) e.dataReferencia = 'Informe a data do pagamento';
-    if (!valor || v <= 0) e.valor = 'Informe o valor do pagamento';
-    else if (v > ordem.valorRestante) e.valor = `O valor não pode passar do restante (${formatarMoeda(ordem.valorRestante)})`;
+    if (!dataReferencia) e.dataReferencia = 'Informe a data para pagamento';
+    if (!valor || v <= 0) e.valor = 'Informe o valor';
+    else if (v > ordem.valorRestante) e.valor = `O valor não pode passar do que falta cadastrar (${formatarMoeda(ordem.valorRestante)})`;
     OBRIGATORIOS[tipo].forEach(([campo, msg]) => { if (!extra[campo as keyof typeof extra].trim()) e[campo] = msg; });
     setErros(e);
     return Object.keys(e).length === 0;
   };
 
-  const pagar = async (e: FormEvent) => {
+  const cadastrar = async (e: FormEvent) => {
     e.preventDefault();
     if (!validar()) return;
     const ok = await executar(() => api.pagar(ordem.id, { tipoPagamento: tipo, valor: Number(valor), dataReferencia, ...extra }));
     if (ok) { setExtra(vazio); setErros({}); setDataReferencia(hojeLocal()); }
   };
 
-  const excluir = (p: OrdemDePedido['pagamentos'][number]) => {
-    if (window.confirm(`Excluir o pagamento de ${formatarMoeda(p.valor)} (${p.tipoPagamento})?`)) {
+  const excluir = (p: Pagamento) => {
+    if (window.confirm(`Excluir a forma de pagamento de ${formatarMoeda(p.valor)} (${TIPO_LABEL[p.tipoPagamento]})?`)) {
       void executar(() => api.removerPagamento(ordem.id, p.id));
     }
   };
@@ -334,25 +400,33 @@ function Pagamentos({ ordem, podePagar, podeExcluir, enviando, executar }: {
   );
 
   const avisos = Object.values(erros).filter(Boolean);
+  const pendentes = ordem.pagamentos.filter((p) => !p.comprovante).length;
 
   return (
     <Painel>
-      <h3>Pagamentos</h3>
-      {ordem.pagamentos.length === 0 ? <p className={dica}>Nenhum pagamento registrado.</p> : (
+      <h3>Formas de pagamento</h3>
+      {ordem.pagamentos.length === 0 ? (
+        <p className={dica}>
+          {['AGUARDANDO_CONFIRMACAO'].includes(ordem.status)
+            ? 'As formas de pagamento são cadastradas pelo vendedor depois que o comprador aceitar a ordem.'
+            : 'Nenhuma forma de pagamento cadastrada.'}
+        </p>
+      ) : (
         <ul className={lista}>
           {ordem.pagamentos.map((p) => (
             <li key={p.id} className="flex items-center gap-1 py-1">
               {/* a linha inteira abre os detalhes */}
-              <button type="button" onClick={() => setDetalhe(p)} title="Clique para ver todos os dados do pagamento"
+              <button type="button" onClick={() => setDetalheId(p.id)} title="Clique para ver todos os dados do pagamento"
                 aria-label={`Ver detalhes do pagamento de ${formatarMoeda(p.valor)}`}
                 className="group -mx-2 flex min-w-0 flex-1 cursor-pointer flex-wrap items-center gap-2 rounded-lg px-2 py-1.5 text-left hover:bg-blue-50">
                 <Badge>{TIPO_LABEL[p.tipoPagamento]}</Badge> <strong className="font-semibold">{formatarMoeda(p.valor)}</strong>
                 {p.nomeReferencia && <small className="text-suave">· {p.nomeReferencia}</small>}
+                <SituacaoPagamento p={p} />
                 <small className="ml-auto text-suave">📅 {formatarData(p.dataReferencia ?? p.dataCadastro)}</small>
                 <span className="text-xs font-semibold text-primaria opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100 max-sm:opacity-100"
-                  aria-hidden="true">Ver detalhes ›</span>
+                  aria-hidden="true">{podeAnexar && !p.comprovante ? 'Pagar e anexar ›' : 'Ver detalhes ›'}</span>
               </button>
-              {podeExcluir && (
+              {podeExcluir && !p.comprovante && (
                 <Botao variante="perigo" tamanho="pequeno" disabled={enviando} onClick={() => excluir(p)}
                   aria-label={`Excluir pagamento de ${formatarMoeda(p.valor)}`}>Excluir</Botao>
               )}
@@ -360,17 +434,22 @@ function Pagamentos({ ordem, podePagar, podeExcluir, enviando, executar }: {
           ))}
         </ul>
       )}
-      {podeExcluir && ordem.pagamentos.length > 0 && (
-        <p className={cx(dica, 'mb-0')}>Registrou algo errado? Exclua o pagamento e registre de novo (permitido até o envio do pedido).</p>
+      {podeAnexar && pendentes > 0 && ordem.valorRestante === 0 && (
+        <p className={cx(dica, 'mb-0')}>Clique em cada pagamento para ver os dados (chave PIX, boleto ou conta) e anexar o comprovante.</p>
       )}
-      {podePagar && (
-        <form onSubmit={pagar} className={subForm} noValidate>
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <h4 className="m-0">Registrar pagamento</h4>
+      {souVendedor && podeExcluir && ordem.pagamentos.length > 0 && (
+        <p className={cx(dica, 'mb-0')}>Cadastrou algo errado? Exclua e cadastre de novo (enquanto o comprador não anexar o comprovante).</p>
+      )}
+
+      {podeCadastrar && (
+        <form onSubmit={cadastrar} className={subForm} noValidate>
+          <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+            <h4 className="m-0">Cadastrar forma de pagamento</h4>
             <span className="rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-sm text-laranja">
-              Falta pagar <strong className="text-base">{formatarMoeda(ordem.valorRestante)}</strong>
+              Falta cadastrar <strong className="text-base">{formatarMoeda(ordem.valorRestante)}</strong>
             </span>
           </div>
+          <p className={cx(dica, 'mt-0')}>Informe os dados que o comprador vai usar para pagar: sua chave PIX, o código do boleto ou a conta para transferência.</p>
           {avisos.length > 0 && (
             <div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-vermelho" role="alert">
               Preencha os campos obrigatórios: {avisos.join(' · ')}.
@@ -387,8 +466,8 @@ function Pagamentos({ ordem, podePagar, podeExcluir, enviando, executar }: {
             <Campo label="Valor *" erro={erros.valor}>
               <InputMoeda valor={valor} onValor={(v) => { setValor(v); setErros((a) => ({ ...a, valor: undefined })); }} />
             </Campo>
-            <Campo label="Data do pagamento *" erro={erros.dataReferencia}>
-              <input className={controle} type="date" value={dataReferencia} title="Quando foi (ou será) pago"
+            <Campo label="Data para pagamento *" erro={erros.dataReferencia}>
+              <input className={controle} type="date" value={dataReferencia} title="Quando o comprador deve pagar (vencimento)"
                 onChange={(e) => { setDataReferencia(e.target.value); setErros((a) => ({ ...a, dataReferencia: undefined })); }} />
             </Campo>
           </div>
@@ -402,13 +481,13 @@ function Pagamentos({ ordem, podePagar, podeExcluir, enviando, executar }: {
                 {campo('conta', 'Conta')}
               </>
             )}
-            {campo('nomeReferencia', 'Referência', 'Entrada, saldo...')}
+            {campo('nomeReferencia', 'Referência', 'Entrada, parcela 2...')}
           </div>
-          <Botao type="submit" variante="primario" disabled={enviando}>Registrar pagamento</Botao>
+          <Botao type="submit" variante="primario" disabled={enviando}>Cadastrar forma de pagamento</Botao>
         </form>
       )}
-      <DetalhesPagamento pagamento={detalhe} onFechar={fecharDetalhe}
-        podeExcluir={podeExcluir} enviando={enviando} onExcluir={(p) => { setDetalhe(null); excluir(p); }} />
+      <DetalhesPagamento ordem={ordem} pagamento={detalhe} onFechar={fecharDetalhe} podeExcluir={podeExcluir} podeAnexar={podeAnexar}
+        enviando={enviando} executar={executar} onExcluir={(p) => { setDetalheId(null); excluir(p); }} />
     </Painel>
   );
 }

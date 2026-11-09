@@ -104,6 +104,8 @@ export function Voltar({ to, children }: { to: string; children: ReactNode }) {
 }
 
 const STATUS_COR: Record<StatusOrdem, string> = {
+  AGUARDANDO_CONFIRMACAO: 'bg-purple-100 text-purple-800',
+  ACEITO: 'bg-sky-100 text-sky-800',
   AGUARDANDO_PAGAMENTO: 'bg-amber-100 text-amber-800',
   PAGO: 'bg-green-100 text-green-800',
   ENVIADO: 'bg-blue-100 text-blue-800',

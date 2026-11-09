@@ -19,6 +19,8 @@ public class PagamentoJpaMapper {
         jpa.setChavePix(pagamento.getChavePix());
         jpa.setBoleto(pagamento.getBoleto());
         jpa.setDataReferencia(pagamento.getDataReferencia());
+        jpa.setComprovante(pagamento.getComprovante());
+        jpa.setDataComprovante(pagamento.getDataComprovante());
         jpa.setOrdemDePedido(ordemDePedido);
         return jpa;
     }
@@ -38,7 +40,9 @@ public class PagamentoJpaMapper {
                 jpa.getNomeReferencia(),
                 jpa.getChavePix(),
                 jpa.getBoleto(),
-                jpa.getDataReferencia()
+                jpa.getDataReferencia(),
+                jpa.getComprovante(),
+                jpa.getDataComprovante()
         );
     }
 }

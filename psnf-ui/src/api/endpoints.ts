@@ -61,7 +61,12 @@ export const api = {
   compras: () => http.get<OrdemDePedidoResumo[]>('/ordens-de-pedido/compras'),
   vendas: () => http.get<OrdemDePedidoResumo[]>('/ordens-de-pedido/vendas'),
   pagar: (id: UUID, body: PagamentoInput) => http.post<OrdemDePedido>(`/ordens-de-pedido/${id}/pagamentos`, body),
-  /** o comprador exclui um pagamento registrado por engano (antes do envio) */
+  /** o comprador confere e aceita a ordem criada pelo vendedor */
+  aceitarOrdem: (id: UUID) => http.patch<OrdemDePedido>(`/ordens-de-pedido/${id}/aceitar`),
+  /** o comprador anexa o comprovante de um pagamento (caminho vindo de enviarArquivo) */
+  anexarComprovante: (id: UUID, pagamentoId: UUID, caminho: string) =>
+    http.post<OrdemDePedido>(`/ordens-de-pedido/${id}/pagamentos/${pagamentoId}/comprovante`, { caminho }),
+  /** o vendedor exclui uma forma de pagamento cadastrada por engano (antes do comprovante) */
   removerPagamento: (id: UUID, pagamentoId: UUID) => http.delete<OrdemDePedido>(`/ordens-de-pedido/${id}/pagamentos/${pagamentoId}`),
   adicionarNotaFiscal: (id: UUID, caminho: string) =>
     http.post<OrdemDePedido>(`/ordens-de-pedido/${id}/notas-fiscais`, { caminho }),

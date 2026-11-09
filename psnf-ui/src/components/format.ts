@@ -15,6 +15,8 @@ export const UFS = [
 ] as const;
 
 export const STATUS_LABEL: Record<string, string> = {
+  AGUARDANDO_CONFIRMACAO: 'Aguardando confirmação',
+  ACEITO: 'Aceito',
   AGUARDANDO_PAGAMENTO: 'Aguardando pagamento',
   PAGO: 'Pago',
   ENVIADO: 'Enviado',

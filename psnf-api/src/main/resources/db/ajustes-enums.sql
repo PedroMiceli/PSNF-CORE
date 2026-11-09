@@ -6,3 +6,5 @@
 -- ---------------------------------------------------------------------------------------------
 
 ALTER TABLE IF EXISTS mensagem_negociacao DROP CONSTRAINT IF EXISTS mensagem_negociacao_tipo_check;
+-- status AGUARDANDO_CONFIRMACAO e ACEITO entraram depois da criação da tabela
+ALTER TABLE IF EXISTS ordem_de_pedido DROP CONSTRAINT IF EXISTS ordem_de_pedido_status_check;
