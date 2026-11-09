@@ -17,6 +17,7 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Collection;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -39,6 +40,13 @@ public class AnuncioRepositoryAdapter implements AnuncioRepositoryPort {
         );
         // valores, imagens e variações são salvos em cascata
         return AnuncioJpaMapper.toDomain(anuncioJPARepository.saveAndFlush(entity));
+    }
+
+    @Override
+    public Map<UUID, Anuncio> buscarPorIds(Collection<UUID> ids) {
+        if (ids.isEmpty()) return Map.of();
+        return anuncioJPARepository.findAllById(ids).stream().map(AnuncioJpaMapper::toDomain)
+                .collect(Collectors.toMap(Anuncio::getId, a -> a));
     }
 
     @Override

@@ -5,7 +5,7 @@ import com.psnf.api.psnf.domain.anuncio.model.ImagemAnuncio;
 import com.psnf.api.psnf.domain.negociacao.model.MensagemNegociacao;
 import com.psnf.api.psnf.domain.negociacao.model.NegociacaoDetalhes;
 import com.psnf.api.psnf.domain.negociacao.model.enums.TipoMensagemNegociacao;
-import com.psnf.api.psnf.domain.ordemDePedido.models.OrdemDePedido;
+import com.psnf.api.psnf.domain.ordemDePedido.models.ResumoOrdem;
 import com.psnf.api.psnf.domain.ordemDePedido.models.enums.EnumStatusOrdemDePedido;
 import com.psnf.api.psnf.domain.usuario.model.Endereco;
 import com.psnf.api.psnf.domain.usuario.model.Usuario;
@@ -33,9 +33,9 @@ public record NegociacaoResponse(
 ) {
     public record OrdemResumo(UUID id, String codigo, EnumStatusOrdemDePedido status, BigDecimal valorTotal,
                               LocalDateTime dataCadastro, boolean pagamentoPendente, boolean daNegociacao) {
-        static OrdemResumo from(OrdemDePedido o, UUID negociacaoId) {
-            return new OrdemResumo(o.getId(), o.getCodigo(), o.getStatus(), o.getValorTotal(), o.getDataCadastro(),
-                    o.isPagamentoPendente(), negociacaoId.equals(o.getNegociacaoId()));
+        static OrdemResumo from(ResumoOrdem o, UUID negociacaoId) {
+            return new OrdemResumo(o.id(), o.codigo(), o.status(), o.valorTotal(), o.dataCadastro(),
+                    o.pagamentoPendente(), negociacaoId.equals(o.negociacaoId()));
         }
     }
 

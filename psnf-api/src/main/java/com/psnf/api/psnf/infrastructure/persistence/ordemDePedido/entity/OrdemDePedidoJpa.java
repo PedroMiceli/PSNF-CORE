@@ -65,8 +65,13 @@ public class OrdemDePedidoJpa extends BaseEntity {
     @OrderBy("dataCadastro ASC")
     private List<NotaFiscalJpa> notasFiscais = new ArrayList<>();
 
-    @OneToOne(mappedBy = "ordemDePedido", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    private EntregaJpa entrega;
+    /**
+     * No máximo uma (ordem_de_pedido_id é único em "entrega"). É uma lista de propósito: um @OneToOne do lado
+     * inverso (mappedBy) não fica lazy no Hibernate e gera 1 SELECT por ordem carregada (N+1); como coleção, é
+     * buscada em lote junto das outras (hibernate.default_batch_fetch_size).
+     */
+    @OneToMany(mappedBy = "ordemDePedido", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<EntregaJpa> entregas = new ArrayList<>();
 
     /** última mudança relevante para o outro lado (consulta de novidades) */
     private LocalDateTime atualizadaEm;

@@ -41,6 +41,6 @@ public class ConsultarNegociacaoService implements ConsultarNegociacaoUseCase {
     @Override
     @Transactional(readOnly = true)
     public List<NegociacaoDetalhes> listarDoUsuario(UUID usuarioId) {
-        return negociacaoRepositoryPort.listarPorParticipante(usuarioId).stream().map(loader::carregar).toList();
+        return loader.carregarLista(negociacaoRepositoryPort.listarPorParticipante(usuarioId));
     }
 }

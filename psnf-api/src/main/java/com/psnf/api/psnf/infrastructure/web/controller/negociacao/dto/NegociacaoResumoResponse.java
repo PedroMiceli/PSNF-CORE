@@ -41,7 +41,7 @@ public record NegociacaoResumoResponse(
                 n.getUltimaMensagemEm() != null ? n.getUltimaMensagemEm() : n.getDataCadastro(),
                 n.getMensagens().size(),
                 n.getAnuncioIds().size(),
-                (int) d.ordens().stream().filter(o -> n.getId().equals(o.getNegociacaoId())).count(),
+                (int) d.quantidadeOrdens(),
                 n.mensagensSemResposta(usuarioLogado));
     }
 }

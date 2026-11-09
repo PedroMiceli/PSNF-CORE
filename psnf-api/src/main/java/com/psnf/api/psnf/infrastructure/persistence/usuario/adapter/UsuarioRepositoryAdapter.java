@@ -9,6 +9,9 @@ import com.psnf.api.psnf.infrastructure.persistence.usuario.repository.UsuarioJP
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.util.Collection;
+import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.UUID;
 
 @Component
@@ -21,6 +24,13 @@ public class UsuarioRepositoryAdapter implements UsuarioRepositoryPort {
     public Usuario save(Usuario usuario) {
         UsuarioJpa usuarioSalvo = usuarioJPARepository.saveAndFlush(UsuarioJpaMapper.toEntity(usuario));
         return UsuarioJpaMapper.toDomain(usuarioSalvo);
+    }
+
+    @Override
+    public Map<UUID, Usuario> buscarPorIds(Collection<UUID> ids) {
+        if (ids.isEmpty()) return Map.of();
+        return usuarioJPARepository.findAllById(ids).stream().map(UsuarioJpaMapper::toDomain)
+                .collect(Collectors.toMap(Usuario::getId, u -> u));
     }
 
     @Override
