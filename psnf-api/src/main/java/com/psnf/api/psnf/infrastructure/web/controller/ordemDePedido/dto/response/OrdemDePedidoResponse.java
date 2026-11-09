@@ -27,6 +27,8 @@ public record OrdemDePedidoResponse(
         BigDecimal valorPago,
         /** valor que ainda falta o vendedor cadastrar em formas de pagamento */
         BigDecimal valorRestante,
+        /** ainda falta pagar (algum pagamento sem comprovante), mesmo com o pedido enviado */
+        boolean pagamentoPendente,
         List<ItemResponse> itens,
         List<PagamentoResponse> pagamentos,
         List<NotaFiscalResponse> notasFiscais,
@@ -79,6 +81,7 @@ public record OrdemDePedidoResponse(
                 ordem.getValorCadastrado(),
                 ordem.getValorPago(),
                 ordem.getValorRestante(),
+                ordem.isPagamentoPendente(),
                 ordem.getItens().stream().map(ItemResponse::from).toList(),
                 ordem.getPagamentos().stream().map(PagamentoResponse::from).toList(),
                 ordem.getNotasFiscais().stream().map(NotaFiscalResponse::from).toList(),

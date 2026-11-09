@@ -125,9 +125,37 @@ class OrdemDePedidoTest {
     }
 
     @Test
-    void naoEnviaSemComprovante() {
-        aceitarECadastrarTudo();
+    void naoEnviaAntesDeCadastrarOsPagamentos() {
         assertThrows(RegraDeNegocioException.class, () -> ordem.enviar(vendedor.getId(), null));
+        ordem.aceitar(comprador.getId());
+        ordem.registrarPagamento(vendedor.getId(), pixSalvo("40.00")); // falta cadastrar 60
+        assertThrows(RegraDeNegocioException.class, () -> ordem.enviar(vendedor.getId(), null));
+    }
+
+    @Test
+    void vendaAPrazo_enviaComPagamentoPendenteEComprovanteChegaDepois() {
+        Pagamento p = aceitarECadastrarTudo();
+        assertTrue(ordem.isPagamentoPendente());
+        ordem.adicionarNotaFiscal(vendedor.getId(), NotaFiscal.criar("nf.pdf"));
+        ordem.enviar(vendedor.getId(), null); // sem comprovante
+        assertEquals(EnumStatusOrdemDePedido.ENVIADO, ordem.getStatus());
+        assertTrue(ordem.isPagamentoPendente());
+
+        ordem.confirmarEntrega(comprador.getId());
+        assertEquals(EnumStatusOrdemDePedido.ENTREGUE, ordem.getStatus());
+        assertTrue(ordem.isPagamentoPendente());
+        // o vendedor não exclui mais a forma de pagamento depois do envio
+        assertThrows(RegraDeNegocioException.class, () -> ordem.removerPagamento(vendedor.getId(), p.getId()));
+
+        ordem.anexarComprovante(comprador.getId(), p.getId(), "/arquivos/pago-depois.pdf");
+        assertEquals(EnumStatusOrdemDePedido.ENTREGUE, ordem.getStatus()); // o status não volta
+        assertFalse(ordem.isPagamentoPendente());
+    }
+
+    @Test
+    void ordemCanceladaNaoFicaComPagamentoPendente() {
+        ordem.cancelar(comprador.getId());
+        assertFalse(ordem.isPagamentoPendente());
     }
 
     @Test

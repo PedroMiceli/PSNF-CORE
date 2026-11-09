@@ -17,7 +17,9 @@ public record OrdemDePedidoResumoResponse(
         String compradorNome,
         String vendedorNome,
         int quantidadeItens,
-        BigDecimal valorTotal
+        BigDecimal valorTotal,
+        /** ainda falta pagar (mesmo com o pedido enviado ou entregue) */
+        boolean pagamentoPendente
 ) {
     public static OrdemDePedidoResumoResponse from(OrdemDePedido o) {
         return new OrdemDePedidoResumoResponse(
@@ -29,7 +31,8 @@ public record OrdemDePedidoResumoResponse(
                 o.getComprador().getNome(),
                 o.getVendedor().getNome(),
                 o.getItens().size(),
-                o.getValorTotal()
+                o.getValorTotal(),
+                o.isPagamentoPendente()
         );
     }
 }

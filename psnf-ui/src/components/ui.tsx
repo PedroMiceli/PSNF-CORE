@@ -125,6 +125,16 @@ export function StatusBadge({ status }: { status: StatusOrdem }) {
   return <Badge className={STATUS_COR[status]}>{STATUS_LABEL[status] ?? status}</Badge>;
 }
 
+/** Status já avançou (enviado/entregue) mas ainda falta pagamento: ex. venda a prazo. */
+export const pagamentoAtrasadoNoFluxo = (status: StatusOrdem, pendente: boolean) =>
+  pendente && (status === 'ENVIADO' || status === 'ENTREGUE');
+
+/** Selo "Pagamento pendente" ao lado do status, quando a ordem avançou sem estar paga. */
+export function PagamentoPendenteBadge({ status, pendente }: { status: StatusOrdem; pendente: boolean }) {
+  if (!pagamentoAtrasadoNoFluxo(status, pendente)) return null;
+  return <Badge className="border border-orange-300 bg-orange-50 text-orange-800">⚠ Pagamento pendente</Badge>;
+}
+
 export const BADGE_ATIVO = STATUS_COR.PAGO;
 export const BADGE_INATIVO = STATUS_COR.CANCELADO;
 

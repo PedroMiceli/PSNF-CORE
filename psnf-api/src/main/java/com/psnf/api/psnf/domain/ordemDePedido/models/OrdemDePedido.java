@@ -150,8 +150,9 @@ public class OrdemDePedido extends BaseDomain {
      */
     public void anexarComprovante(UUID usuarioId, UUID pagamentoId, String caminho) {
         garantirComprador(usuarioId);
-        if (status != ACEITO && status != AGUARDANDO_PAGAMENTO && status != PAGO) {
-            throw new RegraDeNegocioException("Comprovantes só podem ser anexados antes do envio do pedido (status atual: " + status + ")");
+        // também depois do envio: numa venda a prazo o comprador paga depois de receber
+        if (status == AGUARDANDO_CONFIRMACAO || status == CANCELADO) {
+            throw new RegraDeNegocioException("Não é possível anexar comprovantes com a ordem no status " + status);
         }
         buscarPagamento(pagamentoId).anexarComprovante(caminho);
         if (status == AGUARDANDO_PAGAMENTO && pagamentos.stream().allMatch(Pagamento::temComprovante)) {
@@ -166,13 +167,21 @@ public class OrdemDePedido extends BaseDomain {
 
     public void adicionarNotaFiscal(UUID usuarioId, NotaFiscal notaFiscal) {
         garantirVendedor(usuarioId);
-        garantirStatus(PAGO, ENVIADO, ENTREGUE);
+        garantirStatus(AGUARDANDO_PAGAMENTO, PAGO, ENVIADO, ENTREGUE);
         notasFiscais.add(notaFiscal);
     }
 
+    /**
+     * O vendedor despacha o pedido. Normalmente depois do pagamento, mas também com pagamento pendente
+     * (ex.: venda a prazo, o comprador paga depois de receber): a ordem segue e continua indicando
+     * {@link #isPagamentoPendente()} até todos os comprovantes chegarem.
+     */
     public void enviar(UUID usuarioId, LocalDate previsaoDeEntrega) {
         garantirVendedor(usuarioId);
-        garantirStatus(PAGO);
+        if (status == AGUARDANDO_CONFIRMACAO || status == ACEITO) {
+            throw new RegraDeNegocioException("Cadastre as formas de pagamento cobrindo o valor total antes de despachar o pedido");
+        }
+        garantirStatus(AGUARDANDO_PAGAMENTO, PAGO);
         if (previsaoDeEntrega != null && previsaoDeEntrega.isBefore(LocalDate.now())) {
             throw new RegraDeNegocioException("A previsão de entrega não pode estar no passado");
         }
@@ -211,6 +220,11 @@ public class OrdemDePedido extends BaseDomain {
     /** soma dos pagamentos com comprovante anexado pelo comprador */
     public BigDecimal getValorPago() {
         return pagamentos.stream().filter(Pagamento::temComprovante).map(Pagamento::getValor).reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    /** ainda falta pagar (algum pagamento sem comprovante), mesmo que o pedido já tenha sido enviado */
+    public boolean isPagamentoPendente() {
+        return status != CANCELADO && getValorPago().compareTo(getValorTotal()) < 0;
     }
 
     /** valor que o vendedor ainda precisa distribuir em formas de pagamento */

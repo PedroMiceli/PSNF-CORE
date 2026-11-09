@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api/endpoints';
 import { useApi } from '../api/useApi';
 import { formatarData, formatarMoeda } from '../components/format';
-import { Carregando, cx, ErroBox, LinkBotao, StatusBadge, tabela, TituloPagina, Vazio } from '../components/ui';
+import { Carregando, cx, ErroBox, LinkBotao, PagamentoPendenteBadge, StatusBadge, tabela, TituloPagina, Vazio } from '../components/ui';
 
 export function Ordens() {
   const [aba, setAba] = useState<'compras' | 'vendas'>('compras');
@@ -52,7 +52,10 @@ export function Ordens() {
               {ordens.data.map((o) => (
                 <tr key={o.id} onClick={() => navigate(`/ordens/${o.id}`)} className="cursor-pointer hover:bg-slate-50">
                   <td className={tabela.td}><Link to={`/ordens/${o.id}`} className="font-bold text-texto">{o.codigo}</Link></td>
-                  <td className={tabela.td}><StatusBadge status={o.status} /></td>
+                  <td className={tabela.td}>
+                    <span className="inline-flex flex-wrap gap-1"><StatusBadge status={o.status} />
+                      <PagamentoPendenteBadge status={o.status} pendente={o.pagamentoPendente} /></span>
+                  </td>
                   <td className={cx(tabela.td, 'whitespace-nowrap')}>{formatarData(o.dataCadastro)}</td>
                   <td className={tabela.td}>{aba === 'compras' ? o.vendedorNome : o.compradorNome}</td>
                   <td className={tabela.td}>{o.quantidadeItens}</td>

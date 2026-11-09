@@ -10,7 +10,7 @@ import { Dialogo } from '../components/Dialogo';
 import { formatarData, formatarMoeda, STATUS_LABEL } from '../components/format';
 import { ACEITA_DOCUMENTOS, ACEITA_IMAGENS, UploadArquivo } from '../components/UploadArquivo';
 import {
-  acoes, Badge, Botao, Campo, Carregando, controle, cx, dica, ErroBox, ImagemAnuncio, InputMoeda, linhaForm, Painel, StatusBadge,
+  acoes, Badge, Botao, Campo, Carregando, controle, cx, dica, ErroBox, ImagemAnuncio, InputMoeda, linhaForm, Painel, PagamentoPendenteBadge, pagamentoAtrasadoNoFluxo, StatusBadge,
   tabela, TituloPagina, Voltar,
 } from '../components/ui';
 import { useUsuario } from '../context/UsuarioContext';
@@ -53,11 +53,13 @@ export function OrdemDetalhe() {
     <section>
       <Voltar to="/ordens">Ordens de pedido</Voltar>
       <TituloPagina>
-        <h1 className="break-words">Ordem de pedido {o.codigo} <StatusBadge status={o.status} /></h1>
+        <h1 className="break-words">Ordem de pedido {o.codigo} <StatusBadge status={o.status} />{' '}
+          <PagamentoPendenteBadge status={o.status} pendente={o.pagamentoPendente} /></h1>
         <span className="text-suave">Você é o <strong>{souComprador ? 'comprador' : souVendedor ? 'vendedor' : 'observador'}</strong></span>
       </TituloPagina>
 
-      <LinhaDoTempo status={o.status} />
+      <LinhaDoTempo status={o.status} pagamentoPendente={o.pagamentoPendente} />
+      <AvisoPagamentoPendente ordem={o} souComprador={souComprador} />
       <ErroBox erro={acao.erro} />
 
       <div className={grade2}>
@@ -120,14 +122,14 @@ export function OrdemDetalhe() {
         </div>
       </Painel>
 
-      <DadosNotaFiscal ordem={o} aberto={souVendedor && ['PAGO', 'ENVIADO', 'ENTREGUE'].includes(o.status)} />
+      <DadosNotaFiscal ordem={o} aberto={souVendedor && ['AGUARDANDO_PAGAMENTO', 'PAGO', 'ENVIADO', 'ENTREGUE'].includes(o.status)} />
 
       <div className={grade2}>
         <Pagamentos ordem={o} podeCadastrar={souVendedor && o.status === 'ACEITO'}
           podeExcluir={souVendedor && ['ACEITO', 'AGUARDANDO_PAGAMENTO'].includes(o.status)}
-          podeAnexar={souComprador && ['ACEITO', 'AGUARDANDO_PAGAMENTO', 'PAGO'].includes(o.status)}
+          podeAnexar={souComprador && ['ACEITO', 'AGUARDANDO_PAGAMENTO', 'PAGO', 'ENVIADO', 'ENTREGUE'].includes(o.status)}
           souVendedor={souVendedor} enviando={acao.enviando} executar={executar} />
-        <NotasFiscais ordem={o} podeAdicionar={souVendedor && ['PAGO', 'ENVIADO', 'ENTREGUE'].includes(o.status)} enviando={acao.enviando} executar={executar} />
+        <NotasFiscais ordem={o} podeAdicionar={souVendedor && ['AGUARDANDO_PAGAMENTO', 'PAGO', 'ENVIADO', 'ENTREGUE'].includes(o.status)} enviando={acao.enviando} executar={executar} />
       </div>
 
       <Mensagens ordem={o} usuarioId={usuarioId} podeEnviar={souComprador || souVendedor} enviando={acao.enviando} executar={executar} />
@@ -153,7 +155,26 @@ function Valor({ rotulo, className, children }: { rotulo: string; className?: st
   );
 }
 
-function LinhaDoTempo({ status }: { status: StatusOrdem }) {
+/**
+ * Aviso fixo quando o pedido seguiu (enviado/entregue) sem estar todo pago, ex.: venda a prazo.
+ * Fica até o comprador anexar todos os comprovantes.
+ */
+function AvisoPagamentoPendente({ ordem, souComprador }: { ordem: OrdemDePedido; souComprador: boolean }) {
+  if (!pagamentoAtrasadoNoFluxo(ordem.status, ordem.pagamentoPendente)) return null;
+  const semComprovante = ordem.pagamentos.filter((p) => !p.comprovante);
+  return (
+    <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border border-orange-300 bg-orange-50 px-4 py-3 text-orange-900" role="status">
+      <strong>⚠ Pagamento pendente:</strong>
+      <span>
+        o pedido foi {ordem.status === 'ENTREGUE' ? 'entregue' : 'enviado'}, mas ainda faltam{' '}
+        <strong>{formatarMoeda(ordem.valorTotal - ordem.valorPago)}</strong> ({semComprovante.length} pagamento(s) sem comprovante).
+        {souComprador ? ' Anexe os comprovantes em "Formas de pagamento" assim que pagar.' : ' Aguardando o comprador pagar e anexar os comprovantes.'}
+      </span>
+    </div>
+  );
+}
+
+function LinhaDoTempo({ status, pagamentoPendente }: { status: StatusOrdem; pagamentoPendente: boolean }) {
   if (status === 'CANCELADO') {
     return <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 font-semibold text-vermelho">Esta ordem foi cancelada.</div>;
   }
@@ -161,19 +182,22 @@ function LinhaDoTempo({ status }: { status: StatusOrdem }) {
   return (
     <ol className="mb-4 grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
       {FLUXO.map((s, i) => {
-        const feito = i < atual;
+        // o pedido passou da etapa "Pago" sem estar pago (venda a prazo): a etapa fica em aberto, em laranja
+        const pagoPendente = s === 'PAGO' && i < atual && pagamentoPendente;
+        const feito = i < atual && !pagoPendente;
         const ehAtual = i === atual;
         return (
           <li key={s} aria-current={ehAtual ? 'step' : undefined}
             className={cx('flex items-center gap-2 rounded-lg border p-2.5 text-sm leading-tight',
               feito && 'border-green-200 bg-green-50 text-verde',
               ehAtual && 'border-primaria bg-blue-50 font-bold text-primaria',
-              !feito && !ehAtual && 'border-borda bg-white text-suave')}>
+              pagoPendente && 'border-orange-300 bg-orange-50 font-semibold text-orange-800',
+              !feito && !ehAtual && !pagoPendente && 'border-borda bg-white text-suave')}>
             <span className={cx('inline-flex size-6 shrink-0 items-center justify-center rounded-full text-xs',
-              feito ? 'bg-verde text-white' : ehAtual ? 'bg-primaria text-white' : 'bg-gray-200 text-suave')}>
-              {feito ? '✔' : i + 1}
+              feito ? 'bg-verde text-white' : ehAtual ? 'bg-primaria text-white' : pagoPendente ? 'bg-orange-500 text-white' : 'bg-gray-200 text-suave')}>
+              {feito ? '✔' : pagoPendente ? '!' : i + 1}
             </span>
-            {STATUS_LABEL[s]}
+            {pagoPendente ? 'Pagamento pendente' : STATUS_LABEL[s]}
           </li>
         );
       })}
@@ -190,7 +214,9 @@ function Acoes({ ordem, souComprador, souVendedor, enviando, executar }: {
   const st = ordem.status;
   const podeCancelar = (souComprador || souVendedor) && ['AGUARDANDO_CONFIRMACAO', 'ACEITO', 'AGUARDANDO_PAGAMENTO', 'PAGO'].includes(st);
   const podeAceitar = souComprador && st === 'AGUARDANDO_CONFIRMACAO';
-  const podeDespachar = souVendedor && st === 'PAGO';
+  // também com pagamento pendente (ex.: venda a prazo): o comprador paga depois de receber
+  const podeDespachar = souVendedor && (st === 'PAGO' || st === 'AGUARDANDO_PAGAMENTO');
+  const faltaPagar = ordem.valorTotal - ordem.valorPago;
   const podeConfirmar = souComprador && st === 'ENVIADO';
   if (!podeCancelar && !podeDespachar && !podeConfirmar) return null;
 
@@ -203,7 +229,7 @@ function Acoes({ ordem, souComprador, souVendedor, enviando, executar }: {
   } as Partial<Record<StatusOrdem, string>>)[st] : ({
     AGUARDANDO_CONFIRMACAO: 'Aguardando o comprador conferir os produtos e os valores e aceitar a ordem.',
     ACEITO: 'O comprador aceitou. Cadastre as formas de pagamento combinadas (ex.: parte no PIX, parte no boleto) até cobrir o valor total.',
-    AGUARDANDO_PAGAMENTO: 'Aguardando o comprador pagar e anexar os comprovantes.',
+    AGUARDANDO_PAGAMENTO: 'Aguardando o comprador pagar e anexar os comprovantes. Se a venda for a prazo, você já pode despachar o pedido.',
     PAGO: 'Todos os comprovantes foram enviados. Confira os pagamentos e despache o pedido.',
   } as Partial<Record<StatusOrdem, string>>)[st];
 
@@ -211,6 +237,12 @@ function Acoes({ ordem, souComprador, souVendedor, enviando, executar }: {
     <Painel className="border-blue-200 bg-blue-50/40">
       <h3>Próximo passo</h3>
       {orientacao && <p className={cx(dica, 'mt-0')}>{orientacao}</p>}
+      {podeDespachar && st === 'AGUARDANDO_PAGAMENTO' && (
+        <p className="mt-0 mb-3 rounded-lg border border-orange-300 bg-orange-50 px-3 py-2 text-sm text-orange-900">
+          ⚠ Ainda faltam <strong>{formatarMoeda(faltaPagar)}</strong> em pagamentos. Ao despachar agora, o pedido segue e a ordem
+          continua marcada com <strong>pagamento pendente</strong> até o comprador anexar todos os comprovantes.
+        </p>
+      )}
       <div className={acoes}>
         {podeAceitar && (
           <Botao variante="primario" disabled={enviando}
@@ -224,8 +256,12 @@ function Acoes({ ordem, souComprador, souVendedor, enviando, executar }: {
               <input className={controle} type="date" value={previsao} min={new Date().toISOString().slice(0, 10)}
                 onChange={(e) => setPrevisao(e.target.value)} />
             </Campo>
-            <Botao variante="primario" disabled={enviando} onClick={() => executar(() => api.despachar(ordem.id, previsao || null))}>
-              Pedido despachado
+            <Botao variante="primario" disabled={enviando} onClick={() => {
+              const ok = st === 'PAGO' || window.confirm(
+                `Ainda faltam ${formatarMoeda(faltaPagar)} em pagamentos. Despachar mesmo assim (ex.: venda a prazo)? A ordem continuará indicando o pagamento pendente.`);
+              if (ok) void executar(() => api.despachar(ordem.id, previsao || null));
+            }}>
+              {st === 'PAGO' ? 'Pedido despachado' : 'Despachar com pagamento pendente'}
             </Botao>
           </>
         )}

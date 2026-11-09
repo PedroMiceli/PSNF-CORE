@@ -195,6 +195,8 @@ export interface OrdemDePedido {
   valorPago: number;
   /** quanto falta o vendedor cadastrar em formas de pagamento */
   valorRestante: number;
+  /** ainda falta pagar (algum pagamento sem comprovante), mesmo com o pedido enviado */
+  pagamentoPendente: boolean;
   itens: ItemPedido[];
   pagamentos: Pagamento[];
   notasFiscais: NotaFiscal[];
@@ -211,6 +213,8 @@ export interface OrdemDePedidoResumo {
   vendedorNome: string;
   quantidadeItens: number;
   valorTotal: number;
+  /** ainda falta pagar (mesmo com o pedido enviado ou entregue) */
+  pagamentoPendente: boolean;
 }
 
 export interface NovaOrdemInput {
