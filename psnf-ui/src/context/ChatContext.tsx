@@ -12,6 +12,8 @@ interface Ctx {
   /** dados já carregados ao iniciar (evita uma segunda chamada) */
   inicial: Negociacao | null;
   abrirChat: (id: UUID) => void;
+  /** muda a cada abrirChat: reabrir a mesma conversa (ex.: estava minimizada) expande e recarrega a janela */
+  aberturas: number;
   fecharChat: () => void;
   /** comprador inicia (ou reabre) a negociação do anúncio e abre o chat */
   iniciarNegociacao: (anuncioId: UUID) => Promise<ApiError | null>;
@@ -75,7 +77,8 @@ export function ChatProvider({ usuarioId, children }: { usuarioId: string; child
     return () => clearInterval(t);
   }, [recarregarLista]);
 
-  const abrirChat = useCallback((id: UUID) => { setInicial(null); setAberta(id); }, [setAberta]);
+  const [aberturas, setAberturas] = useState(0);
+  const abrirChat = useCallback((id: UUID) => { setInicial(null); setAberta(id); setAberturas((n) => n + 1); }, [setAberta]);
   const fecharChat = useCallback(() => { setAberta(null); setInicial(null); }, [setAberta]);
   const iniciarNegociacao = useCallback(async (anuncioId: UUID) => {
     try {
@@ -110,9 +113,9 @@ export function ChatProvider({ usuarioId, children }: { usuarioId: string; child
   const alternarHub = useCallback(() => setHubExpandido((e) => { gravar(local, kHub, !e); return !e; }), [kHub]);
 
   const valor = useMemo(() => ({
-    aberta, inicial, abrirChat, fecharChat, iniciarNegociacao,
+    aberta, inicial, abrirChat, aberturas, fecharChat, iniciarNegociacao,
     lista, erroLista, recarregarLista, naoLidas, totalNaoLidas, marcarVista, hubExpandido, alternarHub,
-  }), [aberta, inicial, abrirChat, fecharChat, iniciarNegociacao, lista, erroLista, recarregarLista, naoLidas,
+  }), [aberta, inicial, abrirChat, aberturas, fecharChat, iniciarNegociacao, lista, erroLista, recarregarLista, naoLidas,
     totalNaoLidas, marcarVista, hubExpandido, alternarHub]);
   return <ChatContext.Provider value={valor}>{children}</ChatContext.Provider>;
 }

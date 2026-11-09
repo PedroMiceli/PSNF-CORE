@@ -112,4 +112,18 @@ class NegociacaoTest {
         assertEquals(TipoMensagemNegociacao.ANUNCIO_REMOVIDO, n.getUltimaMensagem().orElseThrow().getTipo());
         assertThrows(RegraDeNegocioException.class, () -> n.removerAnuncio(comprador, extra));
     }
+
+    @Test
+    void avisoDeOrdemGeradaNoChat() {
+        Negociacao n = Negociacao.iniciar(anuncio(), comprador, "Vendedor");
+        UUID ordem = UUID.randomUUID();
+        n.registrarOrdemGerada(vendedor, ordem, "PED-1234ABCD", new BigDecimal("1275.50"));
+        var aviso = n.getUltimaMensagem().orElseThrow();
+        assertEquals(TipoMensagemNegociacao.ORDEM_GERADA, aviso.getTipo());
+        assertEquals(ordem, aviso.getOrdemId());
+        assertTrue(aviso.getTexto().contains("PED-1234ABCD"), aviso.getTexto());
+        assertTrue(aviso.getTexto().contains("1.275,50"), aviso.getTexto());
+        assertEquals(1, n.mensagensSemResposta(comprador)); // o comprador vê como novidade
+        assertThrows(AcessoNegadoException.class, () -> n.registrarOrdemGerada(comprador, ordem, "X", BigDecimal.ONE));
+    }
 }

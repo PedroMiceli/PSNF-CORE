@@ -4,6 +4,7 @@ import com.psnf.api.psnf.domain.ordemDePedido.exception.OrdemDePedidoNaoEncontra
 import com.psnf.api.psnf.domain.ordemDePedido.models.OrdemDePedido;
 import com.psnf.api.psnf.domain.ordemDePedido.port.out.OrdemDePedidoRepositoryPort;
 import com.psnf.api.psnf.infrastructure.persistence.anuncio.repository.AnuncioJPARepository;
+import com.psnf.api.psnf.infrastructure.persistence.negociacao.repository.NegociacaoJpaRepository;
 import com.psnf.api.psnf.infrastructure.persistence.ordemDePedido.adapter.mapper.OrdemDePedidoJpaMapper;
 import com.psnf.api.psnf.infrastructure.persistence.ordemDePedido.entity.OrdemDePedidoJpa;
 import com.psnf.api.psnf.infrastructure.persistence.ordemDePedido.repository.OrdemDePedidoJpaRepository;
@@ -21,13 +22,15 @@ public class OrdemDePedidoRepositoryAdapter implements OrdemDePedidoRepositoryPo
     private final OrdemDePedidoJpaRepository ordemDePedidoJpaRepository;
     private final UsuarioJPARepository usuarioJPARepository;
     private final AnuncioJPARepository anuncioJPARepository;
+    private final NegociacaoJpaRepository negociacaoJpaRepository;
 
     @Override
     public OrdemDePedido save(OrdemDePedido ordemDePedido) {
         OrdemDePedidoJpa entity = OrdemDePedidoJpaMapper.toEntity(
                 ordemDePedido,
                 usuarioJPARepository::getReferenceById,
-                anuncioJPARepository::getReferenceById
+                anuncioJPARepository::getReferenceById,
+                negociacaoJpaRepository::getReferenceById
         );
         // itens, pagamentos, mensagens e notas fiscais são salvos em cascata
         return OrdemDePedidoJpaMapper.toDomain(ordemDePedidoJpaRepository.saveAndFlush(entity));
@@ -43,6 +46,13 @@ public class OrdemDePedidoRepositoryAdapter implements OrdemDePedidoRepositoryPo
     @Override
     public List<OrdemDePedido> buscarPorComprador(UUID compradorId) {
         return ordemDePedidoJpaRepository.findByCompradorIdOrderByDataCadastroDesc(compradorId).stream()
+                .map(OrdemDePedidoJpaMapper::toDomain)
+                .toList();
+    }
+
+    @Override
+    public List<OrdemDePedido> buscarPorCompradorEVendedor(UUID compradorId, UUID vendedorId) {
+        return ordemDePedidoJpaRepository.findByCompradorIdAndVendedorIdOrderByDataCadastroDesc(compradorId, vendedorId).stream()
                 .map(OrdemDePedidoJpaMapper::toDomain)
                 .toList();
     }

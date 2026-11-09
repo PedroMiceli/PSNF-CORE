@@ -14,6 +14,8 @@ public record OrdemDePedidoRequest(
         @NotNull(message = "O comprador é obrigatório")
         UUID compradorId,
         @NotEmpty(message = "É necessário informar ao menos um item")
-        List<@Valid ItemPedidoRequest> itens
+        List<@Valid ItemPedidoRequest> itens,
+        /** opcional: negociação (chat) de onde a ordem saiu, para ficarem vinculadas */
+        UUID negociacaoId
 ) {
 }

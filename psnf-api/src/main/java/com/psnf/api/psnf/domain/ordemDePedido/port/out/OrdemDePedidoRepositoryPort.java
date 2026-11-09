@@ -14,4 +14,7 @@ public interface OrdemDePedidoRepositoryPort {
     List<OrdemDePedido> buscarPorComprador(UUID compradorId);
 
     List<OrdemDePedido> buscarPorVendedor(UUID vendedorId);
+
+    /** Ordens entre este comprador e este vendedor, da mais recente para a mais antiga. */
+    List<OrdemDePedido> buscarPorCompradorEVendedor(UUID compradorId, UUID vendedorId);
 }

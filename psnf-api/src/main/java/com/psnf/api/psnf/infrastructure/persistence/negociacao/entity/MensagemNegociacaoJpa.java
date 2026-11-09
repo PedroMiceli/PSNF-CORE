@@ -9,6 +9,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.UUID;
+
 /**
  * Relações:
  *  - N:1 Negociacao
@@ -36,6 +38,9 @@ public class MensagemNegociacaoJpa extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "anuncio_id")
     private AnuncioJpa anuncio;
+
+    /** ordem de pedido citada no aviso de ordem gerada (sem FK: a ordem referencia a negociação) */
+    private UUID ordemId;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "negociacao_id", nullable = false)

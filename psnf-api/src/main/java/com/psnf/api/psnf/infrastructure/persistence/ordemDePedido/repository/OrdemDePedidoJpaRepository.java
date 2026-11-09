@@ -13,4 +13,6 @@ public interface OrdemDePedidoJpaRepository extends JpaRepository<OrdemDePedidoJ
     List<OrdemDePedidoJpa> findByCompradorIdOrderByDataCadastroDesc(UUID compradorId);
 
     List<OrdemDePedidoJpa> findByVendedorIdOrderByDataCadastroDesc(UUID vendedorId);
+
+    List<OrdemDePedidoJpa> findByCompradorIdAndVendedorIdOrderByDataCadastroDesc(UUID compradorId, UUID vendedorId);
 }

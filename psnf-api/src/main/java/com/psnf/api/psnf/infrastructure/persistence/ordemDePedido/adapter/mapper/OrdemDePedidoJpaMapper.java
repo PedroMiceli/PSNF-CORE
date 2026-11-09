@@ -3,6 +3,7 @@ package com.psnf.api.psnf.infrastructure.persistence.ordemDePedido.adapter.mappe
 import com.psnf.api.psnf.domain.ordemDePedido.models.Entrega;
 import com.psnf.api.psnf.domain.ordemDePedido.models.OrdemDePedido;
 import com.psnf.api.psnf.infrastructure.persistence.anuncio.entity.jpa.AnuncioJpa;
+import com.psnf.api.psnf.infrastructure.persistence.negociacao.entity.NegociacaoJpa;
 import com.psnf.api.psnf.infrastructure.persistence.ordemDePedido.entity.EntregaJpa;
 import com.psnf.api.psnf.infrastructure.persistence.ordemDePedido.entity.OrdemDePedidoJpa;
 import com.psnf.api.psnf.infrastructure.persistence.usuario.adapter.mapper.UsuarioJpaMapper;
@@ -20,13 +21,15 @@ public class OrdemDePedidoJpaMapper {
      */
     public static OrdemDePedidoJpa toEntity(OrdemDePedido ordem,
                                            Function<UUID, UsuarioJpa> usuarioRef,
-                                           Function<UUID, AnuncioJpa> anuncioRef) {
+                                           Function<UUID, AnuncioJpa> anuncioRef,
+                                           Function<UUID, NegociacaoJpa> negociacaoRef) {
         OrdemDePedidoJpa jpa = new OrdemDePedidoJpa();
         jpa.restaurarBase(ordem.getId(), ordem.getDataCadastro(), ordem.getDataAlteracao(), ordem.getDataExcluido());
         jpa.setCodigo(ordem.getCodigo());
         jpa.setPrevisaoDeEntrega(ordem.getPrevisaoDeEntrega());
         jpa.setIncidentesLidosCompradorEm(ordem.getIncidentesLidosCompradorEm());
         jpa.setIncidentesLidosVendedorEm(ordem.getIncidentesLidosVendedorEm());
+        jpa.setNegociacao(ordem.getNegociacaoId() == null ? null : negociacaoRef.apply(ordem.getNegociacaoId()));
         if (ordem.getEntrega() != null) {
             var e = ordem.getEntrega();
             EntregaJpa ej = new EntregaJpa();
@@ -69,6 +72,7 @@ public class OrdemDePedidoJpaMapper {
                 jpa.getNotasFiscais().stream().map(NotaFiscalJpaMapper::toDomain).toList()
         );
         ordem.restaurarLeituraIncidentes(jpa.getIncidentesLidosCompradorEm(), jpa.getIncidentesLidosVendedorEm());
+        if (jpa.getNegociacao() != null) ordem.vincularNegociacao(jpa.getNegociacao().getId());
         EntregaJpa e = jpa.getEntrega();
         if (e != null) {
             ordem.restaurarEntrega(Entrega.restaurar(e.getId(), e.getDataCadastro(), e.getDataAlteracao(), e.getDataExcluido(),

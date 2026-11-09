@@ -13,7 +13,8 @@ public class OrdemDePedidoRequestMapper {
                 request.compradorId(),
                 request.itens().stream()
                         .map(i -> new ItemPedidoCommand(i.anuncioId(), i.variacaoId(), i.quantidade(), i.valorUnidade()))
-                        .toList()
+                        .toList(),
+                request.negociacaoId()
         );
     }
 

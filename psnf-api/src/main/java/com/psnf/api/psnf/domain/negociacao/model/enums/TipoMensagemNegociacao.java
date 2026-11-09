@@ -8,5 +8,7 @@ public enum TipoMensagemNegociacao {
     /** Aviso automático: um participante incluiu outro anúncio do vendedor na negociação. */
     ANUNCIO_ADICIONADO,
     /** Aviso automático: um anúncio foi retirado da negociação. */
-    ANUNCIO_REMOVIDO
+    ANUNCIO_REMOVIDO,
+    /** Aviso automático: o vendedor gerou uma ordem de pedido a partir desta negociação. */
+    ORDEM_GERADA
 }

@@ -33,6 +33,8 @@ public record OrdemDePedidoResponse(
         int mensagensNaoLidas,
         /** descrição e código de envio informados pelo vendedor; null se ainda não informou */
         EntregaResponse entrega,
+        /** negociação (chat) em que a ordem foi combinada; null se foi criada fora do chat */
+        UUID negociacaoId,
         List<ItemResponse> itens,
         List<PagamentoResponse> pagamentos,
         List<NotaFiscalResponse> notasFiscais,
@@ -99,6 +101,7 @@ public record OrdemDePedidoResponse(
                 ordem.isPagamentoPendente(),
                 ordem.mensagensIncidenteNaoLidas(usuarioLogado),
                 ordem.getEntrega() == null ? null : EntregaResponse.from(ordem.getEntrega()),
+                ordem.getNegociacaoId(),
                 ordem.getItens().stream().map(ItemResponse::from).toList(),
                 ordem.getPagamentos().stream().map(PagamentoResponse::from).toList(),
                 ordem.getNotasFiscais().stream().map(NotaFiscalResponse::from).toList(),

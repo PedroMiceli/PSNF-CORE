@@ -15,6 +15,8 @@ public class MensagemNegociacao extends BaseDomain {
     private final TipoMensagemNegociacao tipo;
     /** anúncio a que a mensagem se refere (abordagem, anúncio adicionado/removido); null nas mensagens de texto */
     private final UUID anuncioId;
+    /** ordem de pedido citada (aviso de ordem gerada) */
+    private UUID ordemId;
 
     private MensagemNegociacao(UUID id, LocalDateTime dataCadastro, LocalDateTime dataAlteracao, LocalDateTime dataExcluido,
                                UUID autorId, String texto, TipoMensagemNegociacao tipo, UUID anuncioId) {
@@ -48,4 +50,11 @@ public class MensagemNegociacao extends BaseDomain {
     public String getTexto() { return texto; }
     public TipoMensagemNegociacao getTipo() { return tipo; }
     public UUID getAnuncioId() { return anuncioId; }
+    public UUID getOrdemId() { return ordemId; }
+
+    /** Usado ao criar o aviso de ordem gerada e pela persistência. */
+    public MensagemNegociacao comOrdem(UUID ordemId) {
+        this.ordemId = ordemId;
+        return this;
+    }
 }
