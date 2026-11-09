@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { urlArquivo } from '../api/client';
 import { api } from '../api/endpoints';
@@ -10,9 +10,10 @@ import { Dialogo } from '../components/Dialogo';
 import { formatarData, formatarMoeda, STATUS_LABEL } from '../components/format';
 import { ACEITA_DOCUMENTOS, ACEITA_IMAGENS, UploadArquivo } from '../components/UploadArquivo';
 import {
-  acoes, Badge, Botao, Campo, Carregando, controle, cx, dica, ErroBox, ImagemAnuncio, InputMoeda, linhaForm, Painel, StatusBadge,
+  acoes, Badge, Botao, Campo, Carregando, controle, cx, dica, ErroBox, ImagemAnuncio, InputMoeda, linhaForm, Painel, PagamentoPendenteBadge, pagamentoAtrasadoNoFluxo, StatusBadge,
   tabela, TituloPagina, Voltar,
 } from '../components/ui';
+import { useAlertas } from '../context/AlertasContext';
 import { useUsuario } from '../context/UsuarioContext';
 
 const FLUXO: StatusOrdem[] = ['AGUARDANDO_CONFIRMACAO', 'ACEITO', 'AGUARDANDO_PAGAMENTO', 'PAGO', 'ENVIADO', 'ENTREGUE'];
@@ -29,6 +30,44 @@ export function OrdemDetalhe() {
   const { usuarioId } = useUsuario();
   const ordem = useApi(() => api.ordem(id), [id]);
   const acao = useAcao();
+  const { definirOrdemAberta, recarregar: recarregarAlertas } = useAlertas();
+  // mensagens que chegaram sem o usuário ter visto: ficam destacadas enquanto ele está na página
+  const [novas, setNovas] = useState<Set<string>>(new Set());
+  const qtdMensagens = useRef(0);
+
+  // esta ordem está na tela: o aviso no canto não aparece para ela
+  useEffect(() => { definirOrdemAberta(id); return () => definirOrdemAberta(null); }, [id, definirOrdemAberta]);
+
+  // separa as mensagens novas (as últimas do outro lado, segundo a API) e acompanha a quantidade
+  useEffect(() => {
+    const d = ordem.data;
+    if (!d) return;
+    qtdMensagens.current = d.mensagensIncidente.length;
+    if (d.mensagensNaoLidas > 0) {
+      const ids = d.mensagensIncidente.filter((m) => m.usuarioCriadorId !== usuarioId).slice(-d.mensagensNaoLidas).map((m) => m.id);
+      setNovas((atual) => (ids.every((x) => atual.has(x)) ? atual : new Set([...atual, ...ids])));
+    }
+  }, [ordem.data, usuarioId]);
+
+  // mensagens novas aparecem sem recarregar a página
+  useEffect(() => {
+    const t = setInterval(() => {
+      if (document.hidden) return;
+      api.ordem(id).then((n) => { if (n.mensagensIncidente.length !== qtdMensagens.current) ordem.setData(n); }).catch(() => {});
+    }, 15000);
+    return () => clearInterval(t);
+  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // vindo do aviso ou da lista (#mensagens): rola até os incidentes
+  useEffect(() => {
+    if (ordem.data && window.location.hash === '#mensagens') {
+      setTimeout(() => document.getElementById('mensagens')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+    }
+  }, [!!ordem.data]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const marcarLidas = useCallback(() => {
+    api.marcarMensagensLidas(id).then((r) => { ordem.setData(r); recarregarAlertas(); }).catch(() => {});
+  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (ordem.loading) return <Carregando />;
   if (ordem.error || !ordem.data) {
@@ -53,11 +92,25 @@ export function OrdemDetalhe() {
     <section>
       <Voltar to="/ordens">Ordens de pedido</Voltar>
       <TituloPagina>
-        <h1 className="break-words">Ordem de pedido {o.codigo} <StatusBadge status={o.status} /></h1>
+        <h1 className="break-words">Ordem de pedido {o.codigo} <StatusBadge status={o.status} />{' '}
+          <PagamentoPendenteBadge status={o.status} pendente={o.pagamentoPendente} /></h1>
         <span className="text-suave">Você é o <strong>{souComprador ? 'comprador' : souVendedor ? 'vendedor' : 'observador'}</strong></span>
       </TituloPagina>
 
-      <LinhaDoTempo status={o.status} />
+      {o.mensagensNaoLidas > 0 && (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-900" role="status">
+          <span>
+            💬 <strong>{o.mensagensNaoLidas === 1 ? '1 mensagem nova' : `${o.mensagensNaoLidas} mensagens novas`}</strong> de{' '}
+            {souComprador ? o.vendedor.nome : o.comprador.nome} em Incidentes e mensagens.
+          </span>
+          <Botao tamanho="pequeno" variante="primario"
+            onClick={() => document.getElementById('mensagens')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+            Ver mensagens
+          </Botao>
+        </div>
+      )}
+      <LinhaDoTempo status={o.status} pagamentoPendente={o.pagamentoPendente} />
+      <AvisoPagamentoPendente ordem={o} souComprador={souComprador} />
       <ErroBox erro={acao.erro} />
 
       <div className={grade2}>
@@ -84,6 +137,8 @@ export function OrdemDetalhe() {
       </div>
 
       <Acoes ordem={o} souComprador={souComprador} souVendedor={souVendedor} enviando={acao.enviando} executar={executar} />
+
+      <PainelEntrega ordem={o} souVendedor={souVendedor} enviando={acao.enviando} executar={executar} />
 
       <Painel>
         <h3>Itens</h3>
@@ -120,17 +175,18 @@ export function OrdemDetalhe() {
         </div>
       </Painel>
 
-      <DadosNotaFiscal ordem={o} aberto={souVendedor && ['PAGO', 'ENVIADO', 'ENTREGUE'].includes(o.status)} />
+      <DadosNotaFiscal ordem={o} aberto={souVendedor && ['AGUARDANDO_PAGAMENTO', 'PAGO', 'ENVIADO', 'ENTREGUE'].includes(o.status)} />
 
       <div className={grade2}>
         <Pagamentos ordem={o} podeCadastrar={souVendedor && o.status === 'ACEITO'}
           podeExcluir={souVendedor && ['ACEITO', 'AGUARDANDO_PAGAMENTO'].includes(o.status)}
-          podeAnexar={souComprador && ['ACEITO', 'AGUARDANDO_PAGAMENTO', 'PAGO'].includes(o.status)}
+          podeAnexar={souComprador && ['ACEITO', 'AGUARDANDO_PAGAMENTO', 'PAGO', 'ENVIADO', 'ENTREGUE'].includes(o.status)}
           souVendedor={souVendedor} enviando={acao.enviando} executar={executar} />
-        <NotasFiscais ordem={o} podeAdicionar={souVendedor && ['PAGO', 'ENVIADO', 'ENTREGUE'].includes(o.status)} enviando={acao.enviando} executar={executar} />
+        <NotasFiscais ordem={o} podeAdicionar={souVendedor && ['AGUARDANDO_PAGAMENTO', 'PAGO', 'ENVIADO', 'ENTREGUE'].includes(o.status)} enviando={acao.enviando} executar={executar} />
       </div>
 
-      <Mensagens ordem={o} usuarioId={usuarioId} podeEnviar={souComprador || souVendedor} enviando={acao.enviando} executar={executar} />
+      <Mensagens ordem={o} usuarioId={usuarioId} podeEnviar={souComprador || souVendedor} enviando={acao.enviando} executar={executar}
+        novas={novas} onVisto={marcarLidas} />
     </section>
   );
 }
@@ -153,7 +209,26 @@ function Valor({ rotulo, className, children }: { rotulo: string; className?: st
   );
 }
 
-function LinhaDoTempo({ status }: { status: StatusOrdem }) {
+/**
+ * Aviso fixo quando o pedido seguiu (enviado/entregue) sem estar todo pago, ex.: venda a prazo.
+ * Fica até o comprador anexar todos os comprovantes.
+ */
+function AvisoPagamentoPendente({ ordem, souComprador }: { ordem: OrdemDePedido; souComprador: boolean }) {
+  if (!pagamentoAtrasadoNoFluxo(ordem.status, ordem.pagamentoPendente)) return null;
+  const semComprovante = ordem.pagamentos.filter((p) => !p.comprovante);
+  return (
+    <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border border-orange-300 bg-orange-50 px-4 py-3 text-orange-900" role="status">
+      <strong>⚠ Pagamento pendente:</strong>
+      <span>
+        o pedido foi {ordem.status === 'ENTREGUE' ? 'entregue' : 'enviado'}, mas ainda faltam{' '}
+        <strong>{formatarMoeda(ordem.valorTotal - ordem.valorPago)}</strong> ({semComprovante.length} pagamento(s) sem comprovante).
+        {souComprador ? ' Anexe os comprovantes em "Formas de pagamento" assim que pagar.' : ' Aguardando o comprador pagar e anexar os comprovantes.'}
+      </span>
+    </div>
+  );
+}
+
+function LinhaDoTempo({ status, pagamentoPendente }: { status: StatusOrdem; pagamentoPendente: boolean }) {
   if (status === 'CANCELADO') {
     return <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 font-semibold text-vermelho">Esta ordem foi cancelada.</div>;
   }
@@ -161,19 +236,22 @@ function LinhaDoTempo({ status }: { status: StatusOrdem }) {
   return (
     <ol className="mb-4 grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
       {FLUXO.map((s, i) => {
-        const feito = i < atual;
+        // o pedido passou da etapa "Pago" sem estar pago (venda a prazo): a etapa fica em aberto, em laranja
+        const pagoPendente = s === 'PAGO' && i < atual && pagamentoPendente;
+        const feito = i < atual && !pagoPendente;
         const ehAtual = i === atual;
         return (
           <li key={s} aria-current={ehAtual ? 'step' : undefined}
             className={cx('flex items-center gap-2 rounded-lg border p-2.5 text-sm leading-tight',
               feito && 'border-green-200 bg-green-50 text-verde',
               ehAtual && 'border-primaria bg-blue-50 font-bold text-primaria',
-              !feito && !ehAtual && 'border-borda bg-white text-suave')}>
+              pagoPendente && 'border-orange-300 bg-orange-50 font-semibold text-orange-800',
+              !feito && !ehAtual && !pagoPendente && 'border-borda bg-white text-suave')}>
             <span className={cx('inline-flex size-6 shrink-0 items-center justify-center rounded-full text-xs',
-              feito ? 'bg-verde text-white' : ehAtual ? 'bg-primaria text-white' : 'bg-gray-200 text-suave')}>
-              {feito ? '✔' : i + 1}
+              feito ? 'bg-verde text-white' : ehAtual ? 'bg-primaria text-white' : pagoPendente ? 'bg-orange-500 text-white' : 'bg-gray-200 text-suave')}>
+              {feito ? '✔' : pagoPendente ? '!' : i + 1}
             </span>
-            {STATUS_LABEL[s]}
+            {pagoPendente ? 'Pagamento pendente' : STATUS_LABEL[s]}
           </li>
         );
       })}
@@ -187,10 +265,13 @@ function Acoes({ ordem, souComprador, souVendedor, enviando, executar }: {
   ordem: OrdemDePedido; souComprador: boolean; souVendedor: boolean; enviando: boolean; executar: Exec;
 }) {
   const [previsao, setPrevisao] = useState('');
+  const [entrega, setEntrega] = useState({ descricao: ordem.entrega?.descricao ?? '', codigoRastreio: ordem.entrega?.codigoRastreio ?? '' });
   const st = ordem.status;
   const podeCancelar = (souComprador || souVendedor) && ['AGUARDANDO_CONFIRMACAO', 'ACEITO', 'AGUARDANDO_PAGAMENTO', 'PAGO'].includes(st);
   const podeAceitar = souComprador && st === 'AGUARDANDO_CONFIRMACAO';
-  const podeDespachar = souVendedor && st === 'PAGO';
+  // também com pagamento pendente (ex.: venda a prazo): o comprador paga depois de receber
+  const podeDespachar = souVendedor && (st === 'PAGO' || st === 'AGUARDANDO_PAGAMENTO');
+  const faltaPagar = ordem.valorTotal - ordem.valorPago;
   const podeConfirmar = souComprador && st === 'ENVIADO';
   if (!podeCancelar && !podeDespachar && !podeConfirmar) return null;
 
@@ -203,7 +284,7 @@ function Acoes({ ordem, souComprador, souVendedor, enviando, executar }: {
   } as Partial<Record<StatusOrdem, string>>)[st] : ({
     AGUARDANDO_CONFIRMACAO: 'Aguardando o comprador conferir os produtos e os valores e aceitar a ordem.',
     ACEITO: 'O comprador aceitou. Cadastre as formas de pagamento combinadas (ex.: parte no PIX, parte no boleto) até cobrir o valor total.',
-    AGUARDANDO_PAGAMENTO: 'Aguardando o comprador pagar e anexar os comprovantes.',
+    AGUARDANDO_PAGAMENTO: 'Aguardando o comprador pagar e anexar os comprovantes. Se a venda for a prazo, você já pode despachar o pedido.',
     PAGO: 'Todos os comprovantes foram enviados. Confira os pagamentos e despache o pedido.',
   } as Partial<Record<StatusOrdem, string>>)[st];
 
@@ -211,6 +292,12 @@ function Acoes({ ordem, souComprador, souVendedor, enviando, executar }: {
     <Painel className="border-blue-200 bg-blue-50/40">
       <h3>Próximo passo</h3>
       {orientacao && <p className={cx(dica, 'mt-0')}>{orientacao}</p>}
+      {podeDespachar && st === 'AGUARDANDO_PAGAMENTO' && (
+        <p className="mt-0 mb-3 rounded-lg border border-orange-300 bg-orange-50 px-3 py-2 text-sm text-orange-900">
+          ⚠ Ainda faltam <strong>{formatarMoeda(faltaPagar)}</strong> em pagamentos. Ao despachar agora, o pedido segue e a ordem
+          continua marcada com <strong>pagamento pendente</strong> até o comprador anexar todos os comprovantes.
+        </p>
+      )}
       <div className={acoes}>
         {podeAceitar && (
           <Botao variante="primario" disabled={enviando}
@@ -220,12 +307,30 @@ function Acoes({ ordem, souComprador, souVendedor, enviando, executar }: {
         )}
         {podeDespachar && (
           <>
+            <div className="w-full">
+              <p className="mt-0 mb-2 text-sm font-semibold">Despacho <small className="font-normal text-suave">(os dados da entrega são opcionais e podem ser editados depois)</small></p>
+              <div className={cx(linhaForm, 'items-start')}>
+                <Campo label="Código de envio / rastreio" className="max-w-[320px]">
+                  <input className={controle} value={entrega.codigoRastreio} maxLength={100} placeholder="Ex.: BR123456789BR"
+                    onChange={(e) => setEntrega({ ...entrega, codigoRastreio: e.target.value })} />
+                </Campo>
+                <Campo label="Detalhes da entrega" className="grow-2 basis-80">
+                  <textarea className={controle} rows={2} maxLength={2000} value={entrega.descricao}
+                    placeholder="Transportadora, horário, quem recebe, instruções..."
+                    onChange={(e) => setEntrega({ ...entrega, descricao: e.target.value })} />
+                </Campo>
+              </div>
+            </div>
             <Campo label="Previsão de entrega" className="mb-0 max-w-[260px]">
               <input className={controle} type="date" value={previsao} min={new Date().toISOString().slice(0, 10)}
                 onChange={(e) => setPrevisao(e.target.value)} />
             </Campo>
-            <Botao variante="primario" disabled={enviando} onClick={() => executar(() => api.despachar(ordem.id, previsao || null))}>
-              Pedido despachado
+            <Botao variante="primario" disabled={enviando} onClick={() => {
+              const ok = st === 'PAGO' || window.confirm(
+                `Ainda faltam ${formatarMoeda(faltaPagar)} em pagamentos. Despachar mesmo assim (ex.: venda a prazo)? A ordem continuará indicando o pagamento pendente.`);
+              if (ok) void executar(() => api.despachar(ordem.id, previsao || null, entrega));
+            }}>
+              {st === 'PAGO' ? 'Pedido despachado' : 'Despachar com pagamento pendente'}
             </Botao>
           </>
         )}
@@ -252,6 +357,77 @@ const hojeLocal = () => {
 };
 
 const TIPO_LABEL: Record<TipoPagamento, string> = { PIX: 'PIX', BOLETO: 'Boleto', TRANSFERENCIA: 'Transferência' };
+
+/**
+ * Dados da entrega (descrição e código de envio, ambos opcionais). O vendedor informa ao despachar ou aqui,
+ * a qualquer momento depois do aceite; o comprador acompanha.
+ */
+function PainelEntrega({ ordem, souVendedor, enviando, executar }: {
+  ordem: OrdemDePedido; souVendedor: boolean; enviando: boolean; executar: Exec;
+}) {
+  const e = ordem.entrega;
+  const enviado = ['ENVIADO', 'ENTREGUE'].includes(ordem.status);
+  const podeEditar = souVendedor && !['AGUARDANDO_CONFIRMACAO', 'CANCELADO'].includes(ordem.status);
+  const [editando, setEditando] = useState(false);
+  const [form, setForm] = useState({ descricao: '', codigoRastreio: '' });
+
+  // só aparece quando faz sentido: já tem dados, o pedido saiu, ou o vendedor pode adiantar
+  if (!e && !enviado && !(podeEditar && ['PAGO'].includes(ordem.status))) return null;
+
+  const abrirEdicao = () => { setForm({ descricao: e?.descricao ?? '', codigoRastreio: e?.codigoRastreio ?? '' }); setEditando(true); };
+  const salvar = async (ev: FormEvent) => {
+    ev.preventDefault();
+    if (await executar(() => api.registrarEntrega(ordem.id, { descricao: form.descricao || null, codigoRastreio: form.codigoRastreio || null }))) {
+      setEditando(false);
+    }
+  };
+
+  return (
+    <Painel id="entrega" aria-labelledby="entrega-titulo">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 id="entrega-titulo" className="m-0">🚚 Entrega</h3>
+        {podeEditar && !editando && (
+          <Botao tamanho="pequeno" onClick={abrirEdicao}>{e ? 'Editar dados da entrega' : '+ Informar dados da entrega'}</Botao>
+        )}
+      </div>
+      {editando ? (
+        <form onSubmit={salvar} className="mt-3">
+          <div className={cx(linhaForm, 'items-start')}>
+            <Campo label="Código de envio / rastreio" className="max-w-[320px]">
+              <input className={controle} value={form.codigoRastreio} maxLength={100} placeholder="Ex.: BR123456789BR"
+                onChange={(ev) => setForm({ ...form, codigoRastreio: ev.target.value })} />
+            </Campo>
+            <Campo label="Detalhes da entrega" className="grow-2 basis-80">
+              <textarea className={controle} rows={3} maxLength={2000} value={form.descricao}
+                placeholder="Transportadora, horário, quem recebe, instruções..."
+                onChange={(ev) => setForm({ ...form, descricao: ev.target.value })} />
+            </Campo>
+          </div>
+          <p className={cx(dica, 'mt-0')}>Os dois campos são opcionais. Deixe os dois vazios para remover os dados da entrega.</p>
+          <div className={acoes}>
+            <Botao type="submit" variante="primario" disabled={enviando}>Salvar</Botao>
+            <Botao onClick={() => setEditando(false)}>Cancelar</Botao>
+          </div>
+        </form>
+      ) : (
+        <div className="mt-3">
+          <dl className="m-0 mb-3 grid grid-cols-[max-content_minmax(0,1fr)] gap-x-4 gap-y-1.5 text-sm">
+            <dt className="text-suave">Previsão de entrega</dt><dd className="m-0">{formatarData(ordem.previsaoDeEntrega)}</dd>
+          </dl>
+          {e?.codigoRastreio && <div className="max-w-[420px]"><CampoCopiavel rotulo="Código de envio / rastreio" valor={e.codigoRastreio} mono /></div>}
+          {e?.descricao && (
+            <div className="mb-1">
+              <span className="mb-1 block text-xs font-semibold text-gray-700">Detalhes da entrega</span>
+              <p className="m-0 rounded-lg bg-gray-50 px-3 py-2 text-sm whitespace-pre-wrap break-words">{e.descricao}</p>
+            </div>
+          )}
+          {!e && <p className={cx(dica, 'mb-0')}>{souVendedor ? 'Informe o código de envio ou detalhes da entrega para o comprador acompanhar.' : 'O vendedor ainda não informou código de envio nem detalhes da entrega.'}</p>}
+          {e?.dataAlteracao && <p className={cx(dica, 'mb-0')}>Atualizado em {formatarData(e.dataAlteracao)}.</p>}
+        </div>
+      )}
+    </Painel>
+  );
+}
 
 /** Selo do pagamento: comprovante enviado ou pendente. */
 function SituacaoPagamento({ p }: { p: Pagamento }) {
@@ -518,9 +694,25 @@ function NotasFiscais({ ordem, podeAdicionar, enviando, executar }: { ordem: Ord
   );
 }
 
-function Mensagens({ ordem, usuarioId, podeEnviar, enviando, executar }: {
+function Mensagens({ ordem, usuarioId, podeEnviar, enviando, executar, novas, onVisto }: {
   ordem: OrdemDePedido; usuarioId: string; podeEnviar: boolean; enviando: boolean; executar: Exec;
+  /** ids das mensagens que chegaram sem o usuário ter visto */
+  novas: Set<string>;
+  /** chamado quando o usuário vê a seção com mensagens não lidas */
+  onVisto: () => void;
 }) {
+  const secao = useRef<HTMLDivElement>(null);
+  const temNaoLidas = ordem.mensagensNaoLidas > 0;
+
+  // marca como lidas quando a seção aparece na tela
+  useEffect(() => {
+    const el = secao.current;
+    if (!el || !temNaoLidas) return;
+    const obs = new IntersectionObserver((e) => { if (e.some((x) => x.isIntersecting)) { obs.disconnect(); onVisto(); } }, { threshold: 0.3 });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [temNaoLidas, onVisto]);
+
   const [texto, setTexto] = useState('');
   const [anexo, setAnexo] = useState<string | null>(null);
   const autor = (id: string) => (id === ordem.comprador.id ? `${ordem.comprador.nome} (comprador)` : id === ordem.vendedor.id ? `${ordem.vendedor.nome} (vendedor)` : id);
@@ -531,17 +723,31 @@ function Mensagens({ ordem, usuarioId, podeEnviar, enviando, executar }: {
       setAnexo(null);
     }
   };
+  const qtdNovas = ordem.mensagensIncidente.filter((m) => novas.has(m.id)).length;
   return (
-    <Painel>
-      <h3>Incidentes e mensagens</h3>
+    <Painel id="mensagens" ref={secao}
+      className={cx('scroll-mt-20 transition-shadow', qtdNovas > 0 && 'border-red-300 ring-2 ring-red-200')}>
+      <h3 className="flex flex-wrap items-center gap-2">
+        Incidentes e mensagens
+        {qtdNovas > 0 && (
+          <span className="rounded-full bg-vermelho px-2 py-0.5 text-xs font-bold text-white">
+            {qtdNovas === 1 ? '1 nova' : `${qtdNovas} novas`}
+          </span>
+        )}
+      </h3>
       <div className="flex max-h-[360px] flex-col gap-2.5 overflow-y-auto">
         {ordem.mensagensIncidente.length === 0 && <p className={dica}>Nenhuma mensagem. Use para relatar problemas com a carga, entrega ou NF.</p>}
         {ordem.mensagensIncidente.map((m) => {
           const minha = m.usuarioCriadorId === usuarioId;
+          const nova = novas.has(m.id);
           return (
             <div key={m.id} className={cx('max-w-[75%] px-3.5 py-2.5 max-md:max-w-[90%]',
-              minha ? 'self-end rounded-[12px_12px_2px_12px] bg-blue-100' : 'self-start rounded-[12px_12px_12px_2px] bg-slate-100')}>
-              <small className="text-xs text-suave">{autor(m.usuarioCriadorId)} · {formatarData(m.dataCadastro)}</small>
+              minha ? 'self-end rounded-[12px_12px_2px_12px] bg-blue-100' : 'self-start rounded-[12px_12px_12px_2px] bg-slate-100',
+              nova && 'bg-red-50 ring-2 ring-red-300')}>
+              <small className="text-xs text-suave">
+                {nova && <span className="mr-1.5 rounded bg-vermelho px-1.5 py-px text-[0.65rem] font-bold text-white uppercase">Nova</span>}
+                {autor(m.usuarioCriadorId)} · {formatarData(m.dataCadastro)}
+              </small>
               <p className="my-1 break-words">{m.mensagem}</p>
               {m.imagem && (
                 <a href={urlArquivo(m.imagem)} target="_blank" rel="noreferrer">

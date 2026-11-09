@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.stream.Stream;
 import java.util.UUID;
 
 @Service
@@ -26,5 +27,13 @@ public class ListarOrdensDePedidoService implements ListarOrdensDePedidoUseCase 
     @Transactional(readOnly = true)
     public List<OrdemDePedido> listarVendas(UUID usuarioId) {
         return ordemDePedidoRepositoryPort.buscarPorVendedor(usuarioId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<OrdemDePedido> listarComMensagensNaoLidas(UUID usuarioId) {
+        return Stream.concat(listarCompras(usuarioId).stream(), listarVendas(usuarioId).stream())
+                .filter(o -> o.mensagensIncidenteNaoLidas(usuarioId) > 0)
+                .toList();
     }
 }

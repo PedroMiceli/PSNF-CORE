@@ -195,6 +195,12 @@ export interface OrdemDePedido {
   valorPago: number;
   /** quanto falta o vendedor cadastrar em formas de pagamento */
   valorRestante: number;
+  /** ainda falta pagar (algum pagamento sem comprovante), mesmo com o pedido enviado */
+  pagamentoPendente: boolean;
+  /** mensagens de incidente do outro lado que o usuário logado ainda não viu */
+  mensagensNaoLidas: number;
+  /** descrição e código de envio informados pelo vendedor; null se ainda não informou */
+  entrega: Entrega | null;
   itens: ItemPedido[];
   pagamentos: Pagamento[];
   notasFiscais: NotaFiscal[];
@@ -211,6 +217,34 @@ export interface OrdemDePedidoResumo {
   vendedorNome: string;
   quantidadeItens: number;
   valorTotal: number;
+  /** ainda falta pagar (mesmo com o pedido enviado ou entregue) */
+  pagamentoPendente: boolean;
+  /** mensagens de incidente do outro lado que o usuário logado ainda não viu */
+  mensagensNaoLidas: number;
+}
+
+/** Detalhes da entrega informados pelo vendedor (os dois campos são opcionais). */
+export interface Entrega {
+  id: UUID;
+  descricao: string | null;
+  codigoRastreio: string | null;
+  dataCadastro: string;
+  dataAlteracao: string | null;
+}
+export interface EntregaInput {
+  descricao: string | null;
+  codigoRastreio: string | null;
+}
+
+/** Ordem com mensagens de incidente novas para o usuário logado. */
+export interface AlertaMensagem {
+  ordemId: UUID;
+  codigo: string;
+  papel: 'COMPRADOR' | 'VENDEDOR';
+  outroParticipanteNome: string;
+  naoLidas: number;
+  ultimaMensagem: string | null;
+  ultimaMensagemEm: string | null;
 }
 
 export interface NovaOrdemInput {

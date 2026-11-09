@@ -1,5 +1,7 @@
 import { NavLink, Outlet } from 'react-router-dom';
+import { AlertasProvider, useAlertas } from '../context/AlertasContext';
 import { ChatProvider } from '../context/ChatContext';
+import { AvisosMensagens } from './AvisosMensagens';
 import { COMPRADOR_MOCK, VENDEDOR_MOCK, useUsuario } from '../context/UsuarioContext';
 import { ChatHub } from './ChatHub';
 import { ChatJanela } from './ChatJanela';
@@ -15,6 +17,7 @@ export function Layout() {
 
   return (
     // key: ao trocar de usuário o chat aberto é fechado
+    <AlertasProvider key={usuarioId}>
     <ChatProvider key={usuarioId} usuarioId={usuarioId}>
     <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-10 bg-topo text-white">
@@ -24,7 +27,7 @@ export function Layout() {
             <NavLink to="/" end className={itemMenu}>Vitrine</NavLink>
             <NavLink to="/meus-anuncios" className={itemMenu}>Meus anúncios</NavLink>
             <NavLink to="/negociacoes" className={itemMenu}>Negociações</NavLink>
-            <NavLink to="/ordens" className={itemMenu}>Ordens de pedido</NavLink>
+            <NavLink to="/ordens" className={itemMenu}>Ordens de pedido <ContadorOrdens /></NavLink>
             <NavLink to="/perfil" className={itemMenu}>Perfil</NavLink>
           </nav>
           <label className={cx('flex items-center gap-2 rounded-full py-1 pr-1 pl-3 text-xs text-slate-300', corPapel)}
@@ -53,7 +56,21 @@ export function Layout() {
         <ChatHub />
       </div>
       <ChatJanela />
+      <AvisosMensagens />
     </div>
     </ChatProvider>
+    </AlertasProvider>
+  );
+}
+
+/** Quantas ordens têm mensagens novas nos incidentes (no menu "Ordens de pedido"). */
+function ContadorOrdens() {
+  const { alertas } = useAlertas();
+  if (!alertas.length) return null;
+  return (
+    <span className="ml-1 inline-flex min-w-5 items-center justify-center rounded-full bg-vermelho px-1.5 text-[0.68rem] font-bold text-white"
+      title={`${alertas.length} ordem(ns) com mensagens novas`} aria-label={`${alertas.length} ordem(ns) com mensagens novas`}>
+      {alertas.length}
+    </span>
   );
 }

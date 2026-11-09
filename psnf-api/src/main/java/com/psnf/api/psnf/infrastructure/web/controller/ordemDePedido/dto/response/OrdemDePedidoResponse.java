@@ -27,6 +27,12 @@ public record OrdemDePedidoResponse(
         BigDecimal valorPago,
         /** valor que ainda falta o vendedor cadastrar em formas de pagamento */
         BigDecimal valorRestante,
+        /** ainda falta pagar (algum pagamento sem comprovante), mesmo com o pedido enviado */
+        boolean pagamentoPendente,
+        /** mensagens de incidente do outro lado que o usuário logado ainda não viu */
+        int mensagensNaoLidas,
+        /** descrição e código de envio informados pelo vendedor; null se ainda não informou */
+        EntregaResponse entrega,
         List<ItemResponse> itens,
         List<PagamentoResponse> pagamentos,
         List<NotaFiscalResponse> notasFiscais,
@@ -54,6 +60,12 @@ public record OrdemDePedidoResponse(
         }
     }
 
+    public record EntregaResponse(UUID id, String descricao, String codigoRastreio, LocalDateTime dataCadastro, LocalDateTime dataAlteracao) {
+        static EntregaResponse from(Entrega e) {
+            return new EntregaResponse(e.getId(), e.getDescricao(), e.getCodigoRastreio(), e.getDataCadastro(), e.getDataAlteracao());
+        }
+    }
+
     public record NotaFiscalResponse(UUID id, String caminho, LocalDateTime dataCadastro) {
         static NotaFiscalResponse from(NotaFiscal n) {
             return new NotaFiscalResponse(n.getId(), n.getCaminho(), n.getDataCadastro());
@@ -67,6 +79,11 @@ public record OrdemDePedidoResponse(
     }
 
     public static OrdemDePedidoResponse from(OrdemDePedido ordem) {
+        return from(ordem, null);
+    }
+
+    /** @param usuarioLogado para calcular as mensagens não lidas de quem está vendo */
+    public static OrdemDePedidoResponse from(OrdemDePedido ordem, UUID usuarioLogado) {
         return new OrdemDePedidoResponse(
                 ordem.getId(),
                 ordem.getCodigo(),
@@ -79,6 +96,9 @@ public record OrdemDePedidoResponse(
                 ordem.getValorCadastrado(),
                 ordem.getValorPago(),
                 ordem.getValorRestante(),
+                ordem.isPagamentoPendente(),
+                ordem.mensagensIncidenteNaoLidas(usuarioLogado),
+                ordem.getEntrega() == null ? null : EntregaResponse.from(ordem.getEntrega()),
                 ordem.getItens().stream().map(ItemResponse::from).toList(),
                 ordem.getPagamentos().stream().map(PagamentoResponse::from).toList(),
                 ordem.getNotasFiscais().stream().map(NotaFiscalResponse::from).toList(),

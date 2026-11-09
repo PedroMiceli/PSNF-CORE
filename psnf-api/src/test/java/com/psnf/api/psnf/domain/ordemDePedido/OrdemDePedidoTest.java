@@ -125,9 +125,37 @@ class OrdemDePedidoTest {
     }
 
     @Test
-    void naoEnviaSemComprovante() {
-        aceitarECadastrarTudo();
+    void naoEnviaAntesDeCadastrarOsPagamentos() {
         assertThrows(RegraDeNegocioException.class, () -> ordem.enviar(vendedor.getId(), null));
+        ordem.aceitar(comprador.getId());
+        ordem.registrarPagamento(vendedor.getId(), pixSalvo("40.00")); // falta cadastrar 60
+        assertThrows(RegraDeNegocioException.class, () -> ordem.enviar(vendedor.getId(), null));
+    }
+
+    @Test
+    void vendaAPrazo_enviaComPagamentoPendenteEComprovanteChegaDepois() {
+        Pagamento p = aceitarECadastrarTudo();
+        assertTrue(ordem.isPagamentoPendente());
+        ordem.adicionarNotaFiscal(vendedor.getId(), NotaFiscal.criar("nf.pdf"));
+        ordem.enviar(vendedor.getId(), null); // sem comprovante
+        assertEquals(EnumStatusOrdemDePedido.ENVIADO, ordem.getStatus());
+        assertTrue(ordem.isPagamentoPendente());
+
+        ordem.confirmarEntrega(comprador.getId());
+        assertEquals(EnumStatusOrdemDePedido.ENTREGUE, ordem.getStatus());
+        assertTrue(ordem.isPagamentoPendente());
+        // o vendedor não exclui mais a forma de pagamento depois do envio
+        assertThrows(RegraDeNegocioException.class, () -> ordem.removerPagamento(vendedor.getId(), p.getId()));
+
+        ordem.anexarComprovante(comprador.getId(), p.getId(), "/arquivos/pago-depois.pdf");
+        assertEquals(EnumStatusOrdemDePedido.ENTREGUE, ordem.getStatus()); // o status não volta
+        assertFalse(ordem.isPagamentoPendente());
+    }
+
+    @Test
+    void ordemCanceladaNaoFicaComPagamentoPendente() {
+        ordem.cancelar(comprador.getId());
+        assertFalse(ordem.isPagamentoPendente());
     }
 
     @Test
@@ -197,5 +225,51 @@ class OrdemDePedidoTest {
         Pagamento antigo = Pagamento.restaurar(UUID.randomUUID(), registrado, null, null, EnumTipoPagamento.PIX, BigDecimal.ONE,
                 null, null, null, null, "chave", null, null);
         assertEquals(LocalDate.of(2026, 10, 1), antigo.getDataReferencia());
+    }
+
+    @Test
+    void mensagensDeIncidenteNovasParaCadaLado() throws InterruptedException {
+        assertEquals(0, ordem.mensagensIncidenteNaoLidas(vendedor.getId()));
+        ordem.registrarMensagemIncidente(comprador.getId(), MensagemIncidente.criar("Carga avariada", null, comprador.getId()));
+        ordem.registrarMensagemIncidente(comprador.getId(), MensagemIncidente.criar("Segue a foto", "/arquivos/f.png", comprador.getId()));
+        assertEquals(2, ordem.mensagensIncidenteNaoLidas(vendedor.getId()));
+        assertEquals(0, ordem.mensagensIncidenteNaoLidas(comprador.getId())); // as próprias não contam
+
+        ordem.marcarIncidentesLidos(vendedor.getId());
+        assertEquals(0, ordem.mensagensIncidenteNaoLidas(vendedor.getId()));
+
+        Thread.sleep(5);
+        ordem.registrarMensagemIncidente(vendedor.getId(), MensagemIncidente.criar("Vamos repor", null, vendedor.getId()));
+        assertEquals(1, ordem.mensagensIncidenteNaoLidas(comprador.getId()));
+        assertEquals(0, ordem.mensagensIncidenteNaoLidas(vendedor.getId()));
+        assertEquals(0, ordem.mensagensIncidenteNaoLidas(UUID.randomUUID())); // quem não participa
+        assertThrows(AcessoNegadoException.class, () -> ordem.marcarIncidentesLidos(UUID.randomUUID()));
+    }
+
+    @Test
+    void entregaComDescricaoECodigoOpcionais() {
+        Pagamento p = aceitarECadastrarTudo();
+        // ao despachar, com só o código de envio
+        ordem.enviar(vendedor.getId(), null, "  ", " BR123456789BR ");
+        assertEquals("BR123456789BR", ordem.getEntrega().getCodigoRastreio());
+        assertNull(ordem.getEntrega().getDescricao());
+
+        // depois, o vendedor completa com a descrição
+        ordem.registrarEntrega(vendedor.getId(), "Transportadora Rápida, entrega em horário comercial", "BR123456789BR");
+        assertEquals("Transportadora Rápida, entrega em horário comercial", ordem.getEntrega().getDescricao());
+
+        // só o vendedor informa; com os dois vazios a entrega sai
+        assertThrows(AcessoNegadoException.class, () -> ordem.registrarEntrega(comprador.getId(), "x", null));
+        ordem.registrarEntrega(vendedor.getId(), null, "");
+        assertNull(ordem.getEntrega());
+        assertThrows(IllegalArgumentException.class, () -> ordem.registrarEntrega(vendedor.getId(), null, "x".repeat(101)));
+    }
+
+    @Test
+    void entregaSoDepoisDoAceite() {
+        assertThrows(RegraDeNegocioException.class, () -> ordem.registrarEntrega(vendedor.getId(), "x", null));
+        ordem.aceitar(comprador.getId());
+        ordem.registrarEntrega(vendedor.getId(), "Retirada no CD", null); // pode adiantar antes do envio
+        assertEquals("Retirada no CD", ordem.getEntrega().getDescricao());
     }
 }

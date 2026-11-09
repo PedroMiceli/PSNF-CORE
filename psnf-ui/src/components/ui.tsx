@@ -1,4 +1,4 @@
-import { useState, type ButtonHTMLAttributes, type HTMLAttributes, type InputHTMLAttributes, type ReactNode } from 'react';
+import { useState, type ButtonHTMLAttributes, type ComponentProps, type InputHTMLAttributes, type ReactNode } from 'react';
 import { Link, type LinkProps } from 'react-router-dom';
 import { urlArquivo, type ApiError } from '../api/client';
 import type { StatusOrdem } from '../api/types';
@@ -90,7 +90,8 @@ export function LinkBotao({ variante, tamanho, className, ...props }: LinkProps 
 /** Caixa branca com borda (use em <form>, <section>...; para <div> use <Painel>). */
 export const painel = 'mb-4 rounded-card border border-borda bg-white p-5';
 
-export function Painel({ className, children, ...props }: HTMLAttributes<HTMLDivElement>) {
+/** No React 19 o ref chega como prop comum e é repassado para a div. */
+export function Painel({ className, children, ...props }: ComponentProps<'div'>) {
   return <div className={cx(painel, className)} {...props}>{children}</div>;
 }
 
@@ -123,6 +124,16 @@ export function Badge({ className, children }: { className?: string; children: R
 
 export function StatusBadge({ status }: { status: StatusOrdem }) {
   return <Badge className={STATUS_COR[status]}>{STATUS_LABEL[status] ?? status}</Badge>;
+}
+
+/** Status já avançou (enviado/entregue) mas ainda falta pagamento: ex. venda a prazo. */
+export const pagamentoAtrasadoNoFluxo = (status: StatusOrdem, pendente: boolean) =>
+  pendente && (status === 'ENVIADO' || status === 'ENTREGUE');
+
+/** Selo "Pagamento pendente" ao lado do status, quando a ordem avançou sem estar paga. */
+export function PagamentoPendenteBadge({ status, pendente }: { status: StatusOrdem; pendente: boolean }) {
+  if (!pagamentoAtrasadoNoFluxo(status, pendente)) return null;
+  return <Badge className="border border-orange-300 bg-orange-50 text-orange-800">⚠ Pagamento pendente</Badge>;
 }
 
 export const BADGE_ATIVO = STATUS_COR.PAGO;

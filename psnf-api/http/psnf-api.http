@@ -590,6 +590,14 @@ X-Usuario-Id: {{compradorId}}
 
 > {% client.test("1 mensagem", () => client.assert(response.body.mensagensIncidente.length === 1)); %}
 
+### 4.9b O vendedor recebe o alerta da mensagem nova
+GET {{baseUrl}}/ordens-de-pedido/mensagens-nao-lidas
+
+> {%
+    const alerta = response.body.find(a => a.ordemId === client.global.get("ordemId"));
+    client.test("alerta com 1 mensagem nova", () => client.assert(alerta && alerta.naoLidas === 1 && alerta.papel === "VENDEDOR"));
+%}
+
 ### 4.10 Vendedor responde a mensagem
 POST {{baseUrl}}/ordens-de-pedido/{{ordemId}}/mensagens
 Content-Type: application/json
@@ -601,15 +609,45 @@ Content-Type: application/json
 
 > {% client.test("2 mensagens", () => client.assert(response.body.mensagensIncidente.length === 2)); %}
 
+### 4.10b O comprador vê a resposta como nova e marca como lida
+PATCH {{baseUrl}}/ordens-de-pedido/{{ordemId}}/mensagens/lidas
+X-Usuario-Id: {{compradorId}}
+
+> {% client.test("200 e nada mais pendente", () => client.assert(response.status === 200 && response.body.mensagensNaoLidas === 0)); %}
+
 ### 4.11 Vendedor despacha o pedido -> ENVIADO
 PATCH {{baseUrl}}/ordens-de-pedido/{{ordemId}}/enviar
 Content-Type: application/json
 
 {
-  "previsaoDeEntrega": "2030-12-31"
+  "previsaoDeEntrega": "2030-12-31",
+  "codigoRastreio": "BR123456789BR"
 }
 
-> {% client.test("status ENVIADO", () => client.assert(response.body.status === "ENVIADO")); %}
+> {%
+    client.test("status ENVIADO", () => client.assert(response.body.status === "ENVIADO"));
+    client.test("entrega com o código de envio", () => client.assert(response.body.entrega.codigoRastreio === "BR123456789BR" && response.body.entrega.descricao === null));
+%}
+
+### 4.11b Vendedor completa os dados da entrega (descrição e código, ambos opcionais)
+PUT {{baseUrl}}/ordens-de-pedido/{{ordemId}}/entrega
+Content-Type: application/json
+
+{
+  "descricao": "Transportadora Rápida Ltda. Entrega em horário comercial, procurar o almoxarifado.",
+  "codigoRastreio": "BR123456789BR"
+}
+
+> {% client.test("descrição salva", () => client.assert(response.body.entrega.descricao.startsWith("Transportadora Rápida"))); %}
+
+### 4.11c [403] Só o vendedor informa a entrega
+PUT {{baseUrl}}/ordens-de-pedido/{{ordemId}}/entrega
+Content-Type: application/json
+X-Usuario-Id: {{compradorId}}
+
+{ "descricao": "x" }
+
+> {% client.test("403", () => client.assert(response.status === 403, "status " + response.status)); %}
 
 ### 4.12 Comprador confirma a entrega -> ENTREGUE
 PATCH {{baseUrl}}/ordens-de-pedido/{{ordemId}}/confirmar-entrega
@@ -636,6 +674,69 @@ PATCH {{baseUrl}}/ordens-de-pedido/{{ordem2Id}}/cancelar
 X-Usuario-Id: {{compradorId}}
 
 > {% client.test("status CANCELADO", () => client.assert(response.body.status === "CANCELADO")); %}
+
+
+### =================== 5B. ORDEM DE PEDIDO — VENDA A PRAZO =============================
+### O vendedor despacha antes de receber: a ordem segue para ENVIADO/ENTREGUE marcada com
+### pagamentoPendente até o comprador anexar o comprovante.
+
+### 5B.1 Vendedor cria a ordem
+POST {{baseUrl}}/ordens-de-pedido
+Content-Type: application/json
+
+{
+  "compradorId": "{{compradorId}}",
+  "itens": [ { "anuncioId": "{{anuncio2Id}}", "quantidade": 2, "valorUnidade": 45.00 } ]
+}
+
+> {% client.global.set("ordemPrazoId", response.body.id); %}
+
+### 5B.2 Comprador aceita
+PATCH {{baseUrl}}/ordens-de-pedido/{{ordemPrazoId}}/aceitar
+X-Usuario-Id: {{compradorId}}
+
+> {% client.test("ACEITO", () => client.assert(response.body.status === "ACEITO")); %}
+
+### 5B.3 [422] Não despacha antes de cadastrar as formas de pagamento
+PATCH {{baseUrl}}/ordens-de-pedido/{{ordemPrazoId}}/enviar
+
+> {% client.test("422", () => client.assert(response.status === 422, "status " + response.status)); %}
+
+### 5B.4 Vendedor cadastra um boleto para 30 dias -> AGUARDANDO_PAGAMENTO
+POST {{baseUrl}}/ordens-de-pedido/{{ordemPrazoId}}/pagamentos
+Content-Type: application/json
+
+{
+  "tipoPagamento": "BOLETO",
+  "valor": 90.00,
+  "boleto": "34191.79001 01043.510047 91020.150008 5 12340000009000",
+  "nomeReferencia": "30 dias",
+  "dataReferencia": "2026-12-09"
+}
+
+> {%
+    client.test("AGUARDANDO_PAGAMENTO e pendente", () => client.assert(response.body.status === "AGUARDANDO_PAGAMENTO" && response.body.pagamentoPendente === true));
+    client.global.set("pagamentoPrazoId", response.body.pagamentos[0].id);
+%}
+
+### 5B.5 Vendedor despacha sem o pagamento -> ENVIADO, ainda com pagamento pendente
+PATCH {{baseUrl}}/ordens-de-pedido/{{ordemPrazoId}}/enviar
+
+> {% client.test("ENVIADO com pagamento pendente", () => client.assert(response.body.status === "ENVIADO" && response.body.pagamentoPendente === true)); %}
+
+### 5B.6 Lista de vendas indica o pagamento pendente
+GET {{baseUrl}}/ordens-de-pedido/vendas
+
+> {% client.test("pagamentoPendente no resumo", () => client.assert(response.body.find(o => o.id === client.global.get("ordemPrazoId")).pagamentoPendente === true)); %}
+
+### 5B.7 Comprador paga depois de receber e anexa o comprovante -> pendência some
+POST {{baseUrl}}/ordens-de-pedido/{{ordemPrazoId}}/pagamentos/{{pagamentoPrazoId}}/comprovante
+Content-Type: application/json
+X-Usuario-Id: {{compradorId}}
+
+{ "caminho": "/arquivos/comprovante-boleto-prazo.pdf" }
+
+> {% client.test("continua ENVIADO, sem pendência", () => client.assert(response.body.status === "ENVIADO" && response.body.pagamentoPendente === false)); %}
 
 
 ### ============================ 6. CENÁRIOS DE ERRO ===================================

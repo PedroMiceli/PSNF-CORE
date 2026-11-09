@@ -17,9 +17,13 @@ public record OrdemDePedidoResumoResponse(
         String compradorNome,
         String vendedorNome,
         int quantidadeItens,
-        BigDecimal valorTotal
+        BigDecimal valorTotal,
+        /** ainda falta pagar (mesmo com o pedido enviado ou entregue) */
+        boolean pagamentoPendente,
+        /** mensagens de incidente do outro lado que o usuário logado ainda não viu */
+        int mensagensNaoLidas
 ) {
-    public static OrdemDePedidoResumoResponse from(OrdemDePedido o) {
+    public static OrdemDePedidoResumoResponse from(OrdemDePedido o, UUID usuarioLogado) {
         return new OrdemDePedidoResumoResponse(
                 o.getId(),
                 o.getCodigo(),
@@ -29,7 +33,9 @@ public record OrdemDePedidoResumoResponse(
                 o.getComprador().getNome(),
                 o.getVendedor().getNome(),
                 o.getItens().size(),
-                o.getValorTotal()
+                o.getValorTotal(),
+                o.isPagamentoPendente(),
+                o.mensagensIncidenteNaoLidas(usuarioLogado)
         );
     }
 }
