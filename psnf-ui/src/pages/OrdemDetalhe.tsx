@@ -238,12 +238,15 @@ function LinhaDoTempo({ status, pagamentoPendente }: { status: StatusOrdem; paga
       {FLUXO.map((s, i) => {
         // o pedido passou da etapa "Pago" sem estar pago (venda a prazo): a etapa fica em aberto, em laranja
         const pagoPendente = s === 'PAGO' && i < atual && pagamentoPendente;
-        const feito = i < atual && !pagoPendente;
-        const ehAtual = i === atual;
+        // "Entregue" é a etapa final: aparece concluída (verde), não como passo em andamento (azul)
+        const final = status === 'ENTREGUE' && i === atual;
+        const feito = (i < atual && !pagoPendente) || final;
+        const ehAtual = i === atual && !final;
         return (
-          <li key={s} aria-current={ehAtual ? 'step' : undefined}
+          <li key={s} aria-current={ehAtual || final ? 'step' : undefined}
             className={cx('flex items-center gap-2 rounded-lg border p-2.5 text-sm leading-tight',
               feito && 'border-green-200 bg-green-50 text-verde',
+              final && 'border-green-500 font-bold',
               ehAtual && 'border-primaria bg-blue-50 font-bold text-primaria',
               pagoPendente && 'border-orange-300 bg-orange-50 font-semibold text-orange-800',
               !feito && !ehAtual && !pagoPendente && 'border-borda bg-white text-suave')}>
