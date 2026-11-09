@@ -58,7 +58,7 @@ public record NegociacaoResponse(
 
     public record Mensagem(UUID id, UUID autorId, String texto, TipoMensagemNegociacao tipo, UUID anuncioId, UUID ordemId,
                            LocalDateTime dataCadastro) {
-        static Mensagem from(MensagemNegociacao m) {
+        public static Mensagem from(MensagemNegociacao m) {
             return new Mensagem(m.getId(), m.getAutorId(), m.getTexto(), m.getTipo(), m.getAnuncioId(), m.getOrdemId(), m.getDataCadastro());
         }
     }

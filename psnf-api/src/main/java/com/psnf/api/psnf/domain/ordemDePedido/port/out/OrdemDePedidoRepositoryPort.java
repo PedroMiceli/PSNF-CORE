@@ -15,6 +15,9 @@ public interface OrdemDePedidoRepositoryPort {
 
     List<OrdemDePedido> buscarPorVendedor(UUID vendedorId);
 
+    /** Ids das ordens com mensagens de incidente do outro lado que o usuário ainda não viu (consulta agregada). */
+    List<UUID> idsComMensagensNaoLidas(UUID usuarioId);
+
     /** O usuário comprou e recebeu o anúncio (ordem ENTREGUE com um item dele). */
     boolean existeCompraEntregue(UUID compradorId, UUID anuncioId);
 

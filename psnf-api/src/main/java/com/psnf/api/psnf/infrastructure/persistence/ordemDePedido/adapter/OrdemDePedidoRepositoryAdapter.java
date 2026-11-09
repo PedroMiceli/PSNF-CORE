@@ -51,6 +51,11 @@ public class OrdemDePedidoRepositoryAdapter implements OrdemDePedidoRepositoryPo
     }
 
     @Override
+    public List<UUID> idsComMensagensNaoLidas(UUID usuarioId) {
+        return ordemDePedidoJpaRepository.idsComMensagensNaoLidas(usuarioId);
+    }
+
+    @Override
     public boolean existeCompraEntregue(UUID compradorId, UUID anuncioId) {
         return ordemDePedidoJpaRepository.existeCompraEntregue(compradorId, anuncioId);
     }

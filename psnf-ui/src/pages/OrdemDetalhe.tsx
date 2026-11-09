@@ -14,6 +14,7 @@ import {
   tabela, TituloPagina, Voltar,
 } from '../components/ui';
 import { useAlertas } from '../context/AlertasContext';
+import { useAoMudar, useNovidades } from '../context/NovidadesContext';
 import { useChat } from '../context/ChatContext';
 import { useUsuario } from '../context/UsuarioContext';
 
@@ -35,30 +36,25 @@ export function OrdemDetalhe() {
   const { abrirChat } = useChat();
   // mensagens que chegaram sem o usuário ter visto: ficam destacadas enquanto ele está na página
   const [novas, setNovas] = useState<Set<string>>(new Set());
-  const qtdMensagens = useRef(0);
 
   // esta ordem está na tela: o aviso no canto não aparece para ela
   useEffect(() => { definirOrdemAberta(id); return () => definirOrdemAberta(null); }, [id, definirOrdemAberta]);
 
-  // separa as mensagens novas (as últimas do outro lado, segundo a API) e acompanha a quantidade
+  // separa as mensagens novas (as últimas do outro lado, segundo a API)
   useEffect(() => {
     const d = ordem.data;
     if (!d) return;
-    qtdMensagens.current = d.mensagensIncidente.length;
     if (d.mensagensNaoLidas > 0) {
       const ids = d.mensagensIncidente.filter((m) => m.usuarioCriadorId !== usuarioId).slice(-d.mensagensNaoLidas).map((m) => m.id);
       setNovas((atual) => (ids.every((x) => atual.has(x)) ? atual : new Set([...atual, ...ids])));
     }
   }, [ordem.data, usuarioId]);
 
-  // mensagens novas aparecem sem recarregar a página
-  useEffect(() => {
-    const t = setInterval(() => {
-      if (document.hidden) return;
-      api.ordem(id).then((n) => { if (n.mensagensIncidente.length !== qtdMensagens.current) ordem.setData(n); }).catch(() => {});
-    }, 15000);
-    return () => clearInterval(t);
-  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+  // o outro lado mexeu numa ordem minha (pagamento, comprovante, status, mensagem...): recarrega esta
+  // (antes: a ordem inteira era buscada a cada 15 s)
+  const { novidades } = useNovidades();
+  const recarregarOrdem = () => { api.ordem(id).then((n) => ordem.setData(n)).catch(() => {}); };
+  useAoMudar(novidades?.ordens.versao, recarregarOrdem);
 
   // vindo do aviso ou da lista (#mensagens): rola até os incidentes
   useEffect(() => {

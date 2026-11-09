@@ -1,6 +1,6 @@
 import { http } from './client';
 import type {
-  AlertaMensagem, ArquivoEnviado, AvaliacaoInput, AvaliacoesAnuncio, EntregaInput, Anuncio, EnderecoConsultado, AnuncioInput, Categoria, EnderecoInput, Ncm, Negociacao, NegociacaoResumo, NovaOrdemInput, OrdemDePedido,
+  AlertaMensagem, ArquivoEnviado, MensagemNegociacao, Novidades, AvaliacaoInput, AvaliacoesAnuncio, EntregaInput, Anuncio, EnderecoConsultado, AnuncioInput, Categoria, EnderecoInput, Ncm, Negociacao, NegociacaoResumo, NovaOrdemInput, OrdemDePedido,
   OrdemDePedidoResumo, Pagina, PagamentoInput, Usuario, UUID,
 } from './types';
 
@@ -50,6 +50,12 @@ export const api = {
   iniciarNegociacao: (anuncioId: UUID) => http.post<Negociacao>('/negociacoes', { anuncioId }),
   negociacoes: () => http.get<NegociacaoResumo[]>('/negociacoes'),
   negociacao: (id: UUID) => http.get<Negociacao>(`/negociacoes/${id}`),
+  /** chat por delta: só as mensagens depois da última que a tela já tem (quase sempre vem vazio) */
+  mensagensNegociacao: (id: UUID, depois: UUID) =>
+    http.get<MensagemNegociacao[]>(`/negociacoes/${id}/mensagens?depois=${encodeURIComponent(depois)}`),
+
+  /** consulta leve e periódica: versões e contadores, para saber se vale recarregar alguma tela */
+  novidades: () => http.get<Novidades>('/me/novidades'),
   enviarMensagemNegociacao: (id: UUID, texto: string) => http.post<Negociacao>(`/negociacoes/${id}/mensagens`, { texto }),
   /** inclui outro anúncio do mesmo vendedor na negociação */
   adicionarAnuncioNegociacao: (id: UUID, anuncioId: UUID) => http.post<Negociacao>(`/negociacoes/${id}/anuncios`, { anuncioId }),

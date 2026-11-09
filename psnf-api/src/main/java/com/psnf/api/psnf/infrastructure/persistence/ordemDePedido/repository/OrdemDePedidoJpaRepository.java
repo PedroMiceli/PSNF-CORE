@@ -18,6 +18,15 @@ public interface OrdemDePedidoJpaRepository extends JpaRepository<OrdemDePedidoJ
 
     List<OrdemDePedidoJpa> findByCompradorIdAndVendedorIdOrderByDataCadastroDesc(UUID compradorId, UUID vendedorId);
 
+    /** mesma regra de "não lida" da ordem: mensagem do outro lado depois da última leitura de quem pergunta */
+    @Query("""
+            select distinct o.id from OrdemDePedidoJpa o join o.mensagensIncidente m
+            where m.usuarioCriador.id <> :u
+              and ((o.comprador.id = :u and (o.incidentesLidosCompradorEm is null or m.dataCadastro > o.incidentesLidosCompradorEm))
+                or (o.vendedor.id = :u and (o.incidentesLidosVendedorEm is null or m.dataCadastro > o.incidentesLidosVendedorEm)))
+            """)
+    List<UUID> idsComMensagensNaoLidas(@Param("u") UUID usuarioId);
+
     @Query("""
             select count(o) > 0 from OrdemDePedidoJpa o join o.itens i
             where o.comprador.id = :compradorId and i.anuncio.id = :anuncioId

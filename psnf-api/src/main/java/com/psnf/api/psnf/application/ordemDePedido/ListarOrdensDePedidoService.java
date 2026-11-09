@@ -8,7 +8,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Stream;
 import java.util.UUID;
 
 @Service
@@ -32,8 +31,9 @@ public class ListarOrdensDePedidoService implements ListarOrdensDePedidoUseCase 
     @Override
     @Transactional(readOnly = true)
     public List<OrdemDePedido> listarComMensagensNaoLidas(UUID usuarioId) {
-        return Stream.concat(listarCompras(usuarioId).stream(), listarVendas(usuarioId).stream())
-                .filter(o -> o.mensagensIncidenteNaoLidas(usuarioId) > 0)
+        // antes: carregava TODAS as ordens do usuário só para contar; agora o banco devolve só as que têm novidade
+        return ordemDePedidoRepositoryPort.idsComMensagensNaoLidas(usuarioId).stream()
+                .map(ordemDePedidoRepositoryPort::buscarPorId)
                 .toList();
     }
 }

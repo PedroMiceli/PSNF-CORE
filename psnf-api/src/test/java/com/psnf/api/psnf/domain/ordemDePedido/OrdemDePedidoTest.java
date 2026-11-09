@@ -272,4 +272,21 @@ class OrdemDePedidoTest {
         ordem.registrarEntrega(vendedor.getId(), "Retirada no CD", null); // pode adiantar antes do envio
         assertEquals("Retirada no CD", ordem.getEntrega().getDescricao());
     }
+
+    @Test
+    void atualizadaEmMudaQuandoAOrdemMudaMasNaoAoLerMensagens() throws InterruptedException {
+        var inicio = ordem.getAtualizadaEm(); // sem mudanças: a data de criação
+        Thread.sleep(5);
+        ordem.aceitar(comprador.getId());
+        var depoisDoAceite = ordem.getAtualizadaEm();
+        assertTrue(depoisDoAceite.isAfter(inicio));
+
+        Thread.sleep(5);
+        ordem.marcarIncidentesLidos(vendedor.getId()); // só leitura: o outro lado não precisa recarregar
+        assertEquals(depoisDoAceite, ordem.getAtualizadaEm());
+
+        Thread.sleep(5);
+        ordem.registrarMensagemIncidente(vendedor.getId(), MensagemIncidente.criar("Separando o pedido", null, vendedor.getId()));
+        assertTrue(ordem.getAtualizadaEm().isAfter(depoisDoAceite));
+    }
 }
