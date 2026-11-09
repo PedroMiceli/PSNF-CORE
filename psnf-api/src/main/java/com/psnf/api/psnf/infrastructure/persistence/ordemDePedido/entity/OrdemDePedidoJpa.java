@@ -68,6 +68,9 @@ public class OrdemDePedidoJpa extends BaseEntity {
     @OneToOne(mappedBy = "ordemDePedido", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private EntregaJpa entrega;
 
+    /** última mudança relevante para o outro lado (consulta de novidades) */
+    private LocalDateTime atualizadaEm;
+
     /** negociação (chat) em que a ordem foi combinada; opcional */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "negociacao_id")

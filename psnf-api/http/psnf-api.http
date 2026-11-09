@@ -349,6 +349,7 @@ X-Usuario-Id: {{compradorId}}
     client.test("começa com a abordagem", () => client.assert(response.body.mensagens[0].tipo === "ABORDAGEM"));
     client.test("vendedor do anúncio (Vendedor Mock)", () => client.assert(response.body.vendedor.id === "3c288400-f58f-4d28-905c-f7dba388d6c9"));
     client.global.set("negociacaoId", response.body.id);
+    client.global.set("primeiraMensagemId", response.body.mensagens[0].id);
 %}
 
 ### 3B.2 Iniciar de novo reabre a mesma negociação (200)
@@ -369,6 +370,39 @@ Content-Type: application/json
 { "texto": "Olá! Temos pronta entrega. Qual a quantidade?" }
 
 > {% client.test("200 - mensagem registrada", () => client.assert(response.status === 200 && response.body.mensagens.at(-1).tipo === "TEXTO")); %}
+
+### 3B.3b Chat por delta: só as mensagens depois da primeira (o que o chat aberto consulta)
+GET {{baseUrl}}/negociacoes/{{negociacaoId}}/mensagens?depois={{primeiraMensagemId}}
+X-Usuario-Id: {{compradorId}}
+
+> {%
+    client.test("200 e só mensagens novas", () => client.assert(response.status === 200 && response.body.length >= 1
+        && response.body.every(m => m.id !== client.global.get("primeiraMensagemId"))));
+    client.global.set("ultimaMensagemId", response.body[response.body.length - 1].id);
+%}
+
+### 3B.3c Chat por delta sem novidade: lista vazia (o caso mais comum)
+GET {{baseUrl}}/negociacoes/{{negociacaoId}}/mensagens?depois={{ultimaMensagemId}}
+X-Usuario-Id: {{compradorId}}
+
+> {% client.test("vazio", () => client.assert(response.status === 200 && response.body.length === 0)); %}
+
+### 3B.3d [403] Quem não participa não consulta o delta
+GET {{baseUrl}}/negociacoes/{{negociacaoId}}/mensagens?depois={{ultimaMensagemId}}
+X-Usuario-Id: {{terceiroId}}
+
+> {% client.test("403", () => client.assert(response.status === 403, "status " + response.status)); %}
+
+### 3B.3e Novidades: versões e contadores para o front decidir se recarrega alguma tela
+GET {{baseUrl}}/me/novidades
+X-Usuario-Id: {{compradorId}}
+
+> {%
+    client.test("200 com as três áreas", () => client.assert(response.status === 200
+        && response.body.negociacoes.total >= 1 && typeof response.body.ordens.versao === "string"
+        && response.body.incidentes.naoLidas >= 0));
+    client.global.set("versaoNegociacoes", response.body.negociacoes.versao);
+%}
 
 ### 3B.4 Negociações do vendedor logado (conversa mais recente primeiro)
 GET {{baseUrl}}/negociacoes

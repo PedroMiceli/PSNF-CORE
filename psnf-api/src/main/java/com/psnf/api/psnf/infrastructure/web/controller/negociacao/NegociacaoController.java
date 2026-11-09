@@ -52,6 +52,16 @@ public class NegociacaoController {
         return ResponseEntity.ok(NegociacaoResponse.from(consultarNegociacaoUseCase.buscarPorId(id, usuarioLogado())));
     }
 
+    /**
+     * Chat por delta: só as mensagens depois de {@code depois} (a última que a tela já tem).
+     * É o que o chat aberto consulta periodicamente; quase sempre volta vazio.
+     */
+    @GetMapping("/{id}/mensagens")
+    public ResponseEntity<List<NegociacaoResponse.Mensagem>> mensagensDepois(@PathVariable UUID id, @RequestParam UUID depois) {
+        return ResponseEntity.ok(consultarNegociacaoUseCase.mensagensDepois(id, usuarioLogado(), depois).stream()
+                .map(NegociacaoResponse.Mensagem::from).toList());
+    }
+
     @PostMapping("/{id}/mensagens")
     public ResponseEntity<NegociacaoResponse> enviarMensagem(@PathVariable UUID id, @RequestBody @Valid MensagemNegociacaoRequest request) {
         return ResponseEntity.ok(NegociacaoResponse.from(enviarMensagemNegociacaoUseCase.enviar(id, usuarioLogado(), request.texto())));

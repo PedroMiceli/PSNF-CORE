@@ -2,9 +2,8 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { ApiError } from '../api/client';
 import { api } from '../api/endpoints';
 import type { Negociacao, NegociacaoResumo, UUID } from '../api/types';
+import { useAoMudar, useNovidades } from './NovidadesContext';
 
-/** Intervalo da atualização automática da lista de conversas (até existir WebSocket). */
-const ATUALIZAR_LISTA_MS = 8000;
 
 interface Ctx {
   /** negociação aberta na janela de chat */
@@ -70,12 +69,11 @@ export function ChatProvider({ usuarioId, children }: { usuarioId: string; child
       .catch((e) => setErroLista(e instanceof ApiError ? e : new ApiError(0, String(e))));
   }, []);
 
-  // carrega ao entrar e atualiza sozinho (só com a aba visível)
-  useEffect(() => {
-    recarregarLista();
-    const t = setInterval(() => { if (!document.hidden) recarregarLista(); }, ATUALIZAR_LISTA_MS);
-    return () => clearInterval(t);
-  }, [recarregarLista]);
+  // carrega ao entrar; depois só recarrega quando a consulta de novidades indica conversa nova ou mensagem nova
+  // (antes: a lista inteira era buscada a cada 8 s, mesmo sem nada novo)
+  const { novidades } = useNovidades();
+  useEffect(() => { recarregarLista(); }, [recarregarLista]);
+  useAoMudar(novidades?.negociacoes.versao, recarregarLista);
 
   const [aberturas, setAberturas] = useState(0);
   const abrirChat = useCallback((id: UUID) => { setInicial(null); setAberta(id); setAberturas((n) => n + 1); }, [setAberta]);

@@ -30,6 +30,7 @@ public class OrdemDePedidoJpaMapper {
         jpa.setIncidentesLidosCompradorEm(ordem.getIncidentesLidosCompradorEm());
         jpa.setIncidentesLidosVendedorEm(ordem.getIncidentesLidosVendedorEm());
         jpa.setNegociacao(ordem.getNegociacaoId() == null ? null : negociacaoRef.apply(ordem.getNegociacaoId()));
+        jpa.setAtualizadaEm(ordem.getAtualizadaEm());
         if (ordem.getEntrega() != null) {
             var e = ordem.getEntrega();
             EntregaJpa ej = new EntregaJpa();
@@ -73,6 +74,7 @@ public class OrdemDePedidoJpaMapper {
         );
         ordem.restaurarLeituraIncidentes(jpa.getIncidentesLidosCompradorEm(), jpa.getIncidentesLidosVendedorEm());
         if (jpa.getNegociacao() != null) ordem.vincularNegociacao(jpa.getNegociacao().getId());
+        ordem.restaurarAtualizadaEm(jpa.getAtualizadaEm());
         EntregaJpa e = jpa.getEntrega();
         if (e != null) {
             ordem.restaurarEntrega(Entrega.restaurar(e.getId(), e.getDataCadastro(), e.getDataAlteracao(), e.getDataExcluido(),

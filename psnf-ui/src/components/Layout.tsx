@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { AlertasProvider, useAlertas } from '../context/AlertasContext';
+import { NovidadesProvider } from '../context/NovidadesContext';
 import { ChatProvider } from '../context/ChatContext';
 import { AvisosMensagens } from './AvisosMensagens';
 import { COMPRADOR_MOCK, VENDEDOR_MOCK, useUsuario } from '../context/UsuarioContext';
@@ -17,6 +18,7 @@ export function Layout() {
 
   return (
     // key: ao trocar de usuário o chat aberto é fechado
+    <NovidadesProvider key={usuarioId}>
     <AlertasProvider key={usuarioId}>
     <ChatProvider key={usuarioId} usuarioId={usuarioId}>
     <div className="flex min-h-screen flex-col">
@@ -60,6 +62,7 @@ export function Layout() {
     </div>
     </ChatProvider>
     </AlertasProvider>
+    </NovidadesProvider>
   );
 }
 

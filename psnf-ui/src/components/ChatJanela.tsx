@@ -8,8 +8,19 @@ import { useUsuario } from '../context/UsuarioContext';
 import { formatarMoeda } from './format';
 import { Botao, cx, ImagemAnuncio, PagamentoPendenteBadge, StatusBadge } from './ui';
 
-/** Intervalo da atualização automática das mensagens (até existir WebSocket). */
-const ATUALIZAR_A_CADA_MS = 4000;
+/**
+ * Intervalo do chat aberto, conforme a conversa: rápido quando os dois estão conversando agora,
+ * mais lento quando ela esfria. Cada consulta busca só as mensagens novas (chat por delta).
+ */
+export const intervaloChat = (ultimaMensagemEm: string | undefined, agora = Date.now()) => {
+  const idade = ultimaMensagemEm ? agora - new Date(ultimaMensagemEm).getTime() : Infinity;
+  if (idade < 2 * 60_000) return 3_000; //   conversa acontecendo agora
+  if (idade < 10 * 60_000) return 10_000; // conversa recente
+  return 30_000; //                          conversa parada
+};
+
+/** Mensagens que mudam o cabeçalho (produtos, ordens): pedem recarregar a conversa inteira. */
+const MUDA_CABECALHO = new Set(['ANUNCIO_ADICIONADO', 'ANUNCIO_REMOVIDO', 'ORDEM_GERADA']);
 
 const hora = (iso: string) => new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 const dia = (iso: string) => {
@@ -42,17 +53,40 @@ export function ChatJanela() {
     api.negociacao(aberta).then(setNeg).catch((e) => setErro(e instanceof ApiError ? e.message : String(e)));
   }, [aberta, inicial, aberturas]);
 
-  // atualização automática enquanto a janela estiver aberta e visível
+  // mensagens novas enquanto a janela estiver aberta: pergunta só pelo que veio DEPOIS da última mensagem
+  // que já está na tela (antes: a conversa inteira, com anúncios e ordens, a cada 4 s)
+  const negRef = useRef(neg);
+  negRef.current = neg;
   useEffect(() => {
     if (!aberta || minimizada) return;
-    const t = setInterval(() => {
-      if (document.hidden) return;
-      api.negociacao(aberta)
-        .then((n) => setNeg((atual) => (atual && atual.mensagens.length === n.mensagens.length ? atual : n)))
-        .catch(() => { /* tenta de novo no próximo ciclo */ });
-    }, ATUALIZAR_A_CADA_MS);
-    return () => clearInterval(t);
-  }, [aberta, minimizada]);
+    let timer: ReturnType<typeof setTimeout>;
+    let ativo = true;
+    const agendar = () => { if (ativo) timer = setTimeout(ciclo, intervaloChat(negRef.current?.mensagens.at(-1)?.dataCadastro)); };
+    const ciclo = async () => {
+      const atual = negRef.current;
+      const ultima = atual?.mensagens.at(-1);
+      if (!document.hidden && atual && ultima) {
+        try {
+          const novas = await api.mensagensNegociacao(atual.id, ultima.id);
+          if (novas.length && ativo) {
+            if (novas.some((m) => MUDA_CABECALHO.has(m.tipo))) {
+              setNeg(await api.negociacao(atual.id)); // produto incluído ou ordem gerada: cabeçalho muda
+            } else {
+              setNeg((n) => (n && n.id === atual.id ? { ...n, mensagens: [...n.mensagens, ...novas.filter((m) => !n.mensagens.some((x) => x.id === m.id))] } : n));
+            }
+            recarregarLista();
+          }
+        } catch { /* tenta de novo no próximo ciclo */ }
+      }
+      agendar();
+    };
+    agendar();
+    // voltou para a aba: confere na hora
+    const aoVoltar = () => { if (!document.hidden) { clearTimeout(timer); void ciclo(); } };
+    document.addEventListener('visibilitychange', aoVoltar);
+    return () => { ativo = false; clearTimeout(timer); document.removeEventListener('visibilitychange', aoVoltar); };
+    // neg?.id: recomeça quando a conversa termina de carregar (antes disso não há "última mensagem" para medir o ritmo)
+  }, [aberta, minimizada, neg?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // o que está na tela já foi visto (inclui as mensagens que o próprio usuário enviou)
   useEffect(() => {

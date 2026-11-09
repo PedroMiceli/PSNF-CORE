@@ -392,3 +392,13 @@ export interface NegociacaoResumo {
   /** mensagens da outra pessoa depois da última mensagem do usuário logado */
   mensagensSemResposta: number;
 }
+
+/**
+ * "Mudou alguma coisa para mim?" (GET /me/novidades): só versões e contadores.
+ * A tela compara a versão com a que já tem e só busca os dados completos quando ela muda.
+ */
+export interface Novidades {
+  negociacoes: { versao: string; total: number };
+  ordens: { versao: string; total: number };
+  incidentes: { versao: string; naoLidas: number; ordens: number };
+}

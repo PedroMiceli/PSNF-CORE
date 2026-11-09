@@ -1,6 +1,7 @@
 package com.psnf.api.psnf.infrastructure.persistence.negociacao.adapter;
 
 import com.psnf.api.psnf.domain.negociacao.exception.NegociacaoNaoEncontradaException;
+import com.psnf.api.psnf.domain.negociacao.model.MensagemNegociacao;
 import com.psnf.api.psnf.domain.negociacao.model.Negociacao;
 import com.psnf.api.psnf.domain.negociacao.port.out.NegociacaoRepositoryPort;
 import com.psnf.api.psnf.infrastructure.persistence.anuncio.repository.AnuncioJPARepository;
@@ -41,6 +42,18 @@ public class NegociacaoRepositoryAdapter implements NegociacaoRepositoryPort {
     @Transactional(readOnly = true)
     public Optional<Negociacao> buscarPorAnuncioEComprador(UUID anuncioId, UUID compradorId) {
         return negociacaoJpaRepository.findByAnuncioIdAndCompradorId(anuncioId, compradorId).map(NegociacaoJpaMapper::toDomain);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean participa(UUID negociacaoId, UUID usuarioId) {
+        return negociacaoJpaRepository.participa(negociacaoId, usuarioId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<MensagemNegociacao> mensagensDepois(UUID negociacaoId, UUID mensagemId) {
+        return negociacaoJpaRepository.mensagensDepois(negociacaoId, mensagemId).stream().map(NegociacaoJpaMapper::mensagemToDomain).toList();
     }
 
     @Override

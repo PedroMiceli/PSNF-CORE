@@ -38,6 +38,11 @@ public class OrdemDePedido extends BaseDomain {
     private Entrega entrega;
     /** negociação (chat) em que a ordem foi combinada; null se foi criada fora do chat */
     private UUID negociacaoId;
+    /**
+     * Última mudança que o outro lado precisa ver (status, pagamento, comprovante, NF, entrega, mensagem).
+     * Usada pela consulta leve de novidades: a tela só recarrega a ordem quando este valor muda.
+     */
+    private LocalDateTime atualizadaEm;
     private LocalDateTime incidentesLidosVendedorEm;
     private final List<MensagemIncidente> mensagensIncidente;
     private final List<NotaFiscal> notasFiscais;
@@ -109,6 +114,7 @@ public class OrdemDePedido extends BaseDomain {
 
     /** O comprador conferiu produtos, quantidades e valores e aceita a ordem. */
     public void aceitar(UUID usuarioId) {
+        tocar();
         garantirComprador(usuarioId);
         garantirStatus(AGUARDANDO_CONFIRMACAO);
         status = ACEITO;
@@ -119,6 +125,7 @@ public class OrdemDePedido extends BaseDomain {
      * com os dados para o comprador pagar. Quando as formas cobrem o valor total, a ordem passa a aguardar pagamento.
      */
     public void registrarPagamento(UUID usuarioId, Pagamento pagamento) {
+        tocar();
         garantirVendedor(usuarioId);
         if (status == AGUARDANDO_CONFIRMACAO) {
             throw new RegraDeNegocioException("Aguarde o comprador aceitar a ordem para cadastrar as formas de pagamento");
@@ -138,6 +145,7 @@ public class OrdemDePedido extends BaseDomain {
      * anexado o comprovante. Se a ordem já aguardava pagamento, volta para ACEITO (falta valor a cadastrar).
      */
     public Pagamento removerPagamento(UUID usuarioId, UUID pagamentoId) {
+        tocar();
         garantirVendedor(usuarioId);
         if (status != ACEITO && status != AGUARDANDO_PAGAMENTO) {
             throw new RegraDeNegocioException("Formas de pagamento só podem ser excluídas antes do pagamento (status atual: " + status + ")");
@@ -156,6 +164,7 @@ public class OrdemDePedido extends BaseDomain {
      * têm comprovante, a ordem fica PAGA e o vendedor pode despachar.
      */
     public void anexarComprovante(UUID usuarioId, UUID pagamentoId, String caminho) {
+        tocar();
         garantirComprador(usuarioId);
         // também depois do envio: numa venda a prazo o comprador paga depois de receber
         if (status == AGUARDANDO_CONFIRMACAO || status == CANCELADO) {
@@ -173,6 +182,7 @@ public class OrdemDePedido extends BaseDomain {
     }
 
     public void adicionarNotaFiscal(UUID usuarioId, NotaFiscal notaFiscal) {
+        tocar();
         garantirVendedor(usuarioId);
         garantirStatus(AGUARDANDO_PAGAMENTO, PAGO, ENVIADO, ENTREGUE);
         notasFiscais.add(notaFiscal);
@@ -189,6 +199,7 @@ public class OrdemDePedido extends BaseDomain {
 
     /** Despacha informando, se quiser, a descrição da entrega e o código de envio. */
     public void enviar(UUID usuarioId, LocalDate previsaoDeEntrega, String descricaoEntrega, String codigoRastreio) {
+        tocar();
         garantirVendedor(usuarioId);
         if (status == AGUARDANDO_CONFIRMACAO || status == ACEITO) {
             throw new RegraDeNegocioException("Cadastre as formas de pagamento cobrindo o valor total antes de despachar o pedido");
@@ -205,21 +216,36 @@ public class OrdemDePedido extends BaseDomain {
     }
 
     public void confirmarEntrega(UUID usuarioId) {
+        tocar();
         garantirComprador(usuarioId);
         garantirStatus(ENVIADO);
         this.status = ENTREGUE;
     }
 
     public void cancelar(UUID usuarioId) {
+        tocar();
         garantirParticipante(usuarioId);
         garantirStatus(AGUARDANDO_CONFIRMACAO, ACEITO, AGUARDANDO_PAGAMENTO, PAGO);
         this.status = CANCELADO;
     }
 
     public void registrarMensagemIncidente(UUID usuarioId, MensagemIncidente mensagem) {
+        tocar();
         garantirParticipante(usuarioId);
         mensagensIncidente.add(mensagem);
         marcarIncidentesLidos(usuarioId); // quem escreve já viu a conversa até aqui
+    }
+
+    /** Registra que a ordem mudou agora (ver {@link #atualizadaEm}). As validações vêm depois e, se falharem, nada é salvo. */
+    private void tocar() {
+        this.atualizadaEm = LocalDateTime.now();
+    }
+
+    public LocalDateTime getAtualizadaEm() { return atualizadaEm != null ? atualizadaEm : getDataCadastro(); }
+
+    /** Usado pela persistência. */
+    public void restaurarAtualizadaEm(LocalDateTime atualizadaEm) {
+        this.atualizadaEm = atualizadaEm;
     }
 
     /******************************************* ENTREGA *******************************************/
@@ -229,6 +255,7 @@ public class OrdemDePedido extends BaseDomain {
      * do comprador até a entrega. Com os dois campos vazios, a entrega é removida.
      */
     public void registrarEntrega(UUID usuarioId, String descricao, String codigoRastreio) {
+        tocar();
         garantirVendedor(usuarioId);
         if (status == AGUARDANDO_CONFIRMACAO || status == CANCELADO) {
             throw new RegraDeNegocioException("Os dados da entrega só podem ser informados depois que o comprador aceitar a ordem");

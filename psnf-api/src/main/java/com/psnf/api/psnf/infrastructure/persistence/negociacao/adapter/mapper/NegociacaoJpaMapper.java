@@ -47,6 +47,11 @@ public class NegociacaoJpaMapper {
         return jpa;
     }
 
+    public static MensagemNegociacao mensagemToDomain(MensagemNegociacaoJpa m) {
+        return MensagemNegociacao.restaurar(m.getId(), m.getDataCadastro(), m.getDataAlteracao(), m.getDataExcluido(),
+                m.getAutor().getId(), m.getTexto(), m.getTipo(), m.getAnuncio() == null ? null : m.getAnuncio().getId()).comOrdem(m.getOrdemId());
+    }
+
     public static Negociacao toDomain(NegociacaoJpa jpa) {
         return Negociacao.restaurar(jpa.getId(), jpa.getDataCadastro(), jpa.getDataAlteracao(), jpa.getDataExcluido(),
                 jpa.getAnuncio().getId(), jpa.getComprador().getId(), jpa.getVendedor().getId(),
