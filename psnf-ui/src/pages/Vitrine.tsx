@@ -1,3 +1,4 @@
+import { Estrelas, formatarNota } from '../components/Estrelas';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api/endpoints';
@@ -108,7 +109,13 @@ export function Vitrine() {
                     <ImagemAnuncio caminho={principal?.caminho} alt={a.titulo} className="h-[170px] w-full" />
                     <div className="p-3.5">
                       <span className="text-[0.72rem] tracking-wider text-suave uppercase">{nomeCategoria(a.categoriaId)}</span>
-                      <h3 className="mt-1 mb-1.5 text-base">{a.titulo}</h3>
+                      <h3 className="mt-1 mb-1 text-base">{a.titulo}</h3>
+                      {a.quantidadeAvaliacoes > 0 && (
+                        <p className="mb-1 flex items-center gap-1 text-xs">
+                          <Estrelas nota={a.notaMedia ?? 0} tamanho="text-sm" />
+                          <strong>{formatarNota(a.notaMedia)}</strong> <span className="text-suave">({a.quantidadeAvaliacoes})</span>
+                        </p>
+                      )}
                       <p className="text-lg font-extrabold text-verde">
                         <small className="text-[0.72rem] font-medium text-suave">a partir de</small> {formatarMoeda(a.precoMenor)}
                       </p>

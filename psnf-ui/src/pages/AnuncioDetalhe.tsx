@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api/endpoints';
 import { useAcao, useApi } from '../api/useApi';
+import { AvaliacoesAnuncio } from '../components/AvaliacoesAnuncio';
 import { DetalhesProduto } from '../components/DetalhesProduto';
+import { Estrelas, formatarNota } from '../components/Estrelas';
 import { formatarMoeda } from '../components/format';
 import { acoes, Badge, BADGE_INATIVO, Botao, Carregando, chip, cx, dica, ErroBox, ImagemAnuncio, Voltar } from '../components/ui';
 import { useChat } from '../context/ChatContext';
@@ -18,11 +20,14 @@ export function AnuncioDetalhe() {
   const { iniciarNegociacao } = useChat();
   const [iniciando, setIniciando] = useState(false);
   const [imagemSelecionada, setImagemSelecionada] = useState<string | null>(null);
+  // nota no topo: vem do anúncio e acompanha quando o usuário avalia na própria página
+  const [notaLocal, setNota] = useState<{ media: number | null; total: number } | null>(null);
 
   if (anuncio.loading) return <Carregando />;
   if (anuncio.error || !anuncio.data) return <ErroBox erro={anuncio.error} />;
 
   const a = anuncio.data;
+  const nota = notaLocal ?? { media: a.notaMedia, total: a.quantidadeAvaliacoes };
   const ehDono = a.vendedorId === usuarioId;
   const faixas = [...a.valores].sort((x, y) => x.quantidadeMinima - y.quantidadeMinima);
   const principal = imagemSelecionada ?? (a.imagens.find((i) => i.principal) ?? a.imagens[0])?.caminho;
@@ -55,6 +60,13 @@ export function AnuncioDetalhe() {
           <h1>
             {a.titulo} {!a.ativo && <Badge className={BADGE_INATIVO}>Inativo</Badge>}
           </h1>
+          <a href="#avaliacoes" className="-mt-2 mb-4 inline-flex items-center gap-2 text-sm hover:no-underline"
+            onClick={(e) => { e.preventDefault(); document.getElementById('avaliacoes')?.scrollIntoView({ behavior: 'smooth' }); }}>
+            {nota.total > 0 ? (
+              <><Estrelas nota={nota.media ?? 0} /> <strong className="text-texto">{formatarNota(nota.media)}</strong>
+                <span className="text-suave">({nota.total} avaliação(ões))</span></>
+            ) : <span className="text-suave">☆ Ainda sem avaliações</span>}
+          </a>
 
           {a.variacoes.length > 0 && (
             <>
@@ -119,6 +131,7 @@ export function AnuncioDetalhe() {
           <DetalhesProduto anuncio={a} />
         </div>
       </div>
+      <AvaliacoesAnuncio anuncioId={a.id} onAtualizado={(media, total) => setNota({ media, total })} />
     </section>
   );
 }

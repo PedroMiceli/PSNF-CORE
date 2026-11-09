@@ -164,6 +164,13 @@ export function OrdemDetalhe() {
                 <tr key={i.id}>
                   <td className={tabela.td}>
                     <Link to={`/anuncios/${i.anuncioId}`}>{i.tituloAnuncio}</Link>
+                    {/* recebeu: pode avaliar o produto */}
+                    {souComprador && o.status === 'ENTREGUE' && (
+                      <Link to={`/anuncios/${i.anuncioId}#avaliacoes`}
+                        className="ml-2 inline-block rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[0.7rem] font-semibold whitespace-nowrap text-amber-800 hover:no-underline">
+                        ⭐ Avaliar
+                      </Link>
+                    )}
                     {resumoItem(i) && <small className="block text-xs text-suave">{resumoItem(i)}</small>}
                   </td>
                   <td className={tabela.td}>{i.variacao ?? '—'}</td>

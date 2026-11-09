@@ -15,6 +15,9 @@ public interface OrdemDePedidoRepositoryPort {
 
     List<OrdemDePedido> buscarPorVendedor(UUID vendedorId);
 
+    /** O usuário comprou e recebeu o anúncio (ordem ENTREGUE com um item dele). */
+    boolean existeCompraEntregue(UUID compradorId, UUID anuncioId);
+
     /** Ordens entre este comprador e este vendedor, da mais recente para a mais antiga. */
     List<OrdemDePedido> buscarPorCompradorEVendedor(UUID compradorId, UUID vendedorId);
 }

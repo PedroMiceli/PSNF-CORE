@@ -122,6 +122,40 @@ export interface Anuncio {
   variacoes: Variacao[];
   informacoes: InformacoesProduto | null;
   caracteristicas: Caracteristica[];
+  /** média das avaliações dos compradores (1 casa); null sem avaliações */
+  notaMedia: number | null;
+  quantidadeAvaliacoes: number;
+}
+
+/** Avaliação de um produto por quem comprou e recebeu. */
+export interface Avaliacao {
+  id: UUID;
+  autorId: UUID;
+  autorNome: string;
+  /** 1 a 5 estrelas */
+  nota: number;
+  texto: string | null;
+  /** até 3 fotos */
+  imagens: string[];
+  dataCadastro: string;
+  dataAlteracao: string | null;
+}
+
+export interface AvaliacoesAnuncio {
+  media: number | null;
+  total: number;
+  /** quantidade com 1, 2, 3, 4 e 5 estrelas */
+  porNota: number[];
+  avaliacoes: Avaliacao[];
+  minha: Avaliacao | null;
+  podeAvaliar: boolean;
+  motivoNaoPode: string | null;
+}
+
+export interface AvaliacaoInput {
+  nota: number;
+  texto: string | null;
+  imagens: string[];
 }
 
 export interface AnuncioInput {
