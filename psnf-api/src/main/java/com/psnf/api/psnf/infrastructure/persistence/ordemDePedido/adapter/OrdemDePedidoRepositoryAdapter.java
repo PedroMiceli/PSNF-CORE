@@ -51,6 +51,11 @@ public class OrdemDePedidoRepositoryAdapter implements OrdemDePedidoRepositoryPo
     }
 
     @Override
+    public boolean existeCompraEntregue(UUID compradorId, UUID anuncioId) {
+        return ordemDePedidoJpaRepository.existeCompraEntregue(compradorId, anuncioId);
+    }
+
+    @Override
     public List<OrdemDePedido> buscarPorCompradorEVendedor(UUID compradorId, UUID vendedorId) {
         return ordemDePedidoJpaRepository.findByCompradorIdAndVendedorIdOrderByDataCadastroDesc(compradorId, vendedorId).stream()
                 .map(OrdemDePedidoJpaMapper::toDomain)

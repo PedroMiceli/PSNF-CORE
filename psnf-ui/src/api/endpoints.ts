@@ -1,6 +1,6 @@
 import { http } from './client';
 import type {
-  AlertaMensagem, ArquivoEnviado, EntregaInput, Anuncio, EnderecoConsultado, AnuncioInput, Categoria, EnderecoInput, Ncm, Negociacao, NegociacaoResumo, NovaOrdemInput, OrdemDePedido,
+  AlertaMensagem, ArquivoEnviado, AvaliacaoInput, AvaliacoesAnuncio, EntregaInput, Anuncio, EnderecoConsultado, AnuncioInput, Categoria, EnderecoInput, Ncm, Negociacao, NegociacaoResumo, NovaOrdemInput, OrdemDePedido,
   OrdemDePedidoResumo, Pagina, PagamentoInput, Usuario, UUID,
 } from './types';
 
@@ -54,6 +54,12 @@ export const api = {
   /** inclui outro anúncio do mesmo vendedor na negociação */
   adicionarAnuncioNegociacao: (id: UUID, anuncioId: UUID) => http.post<Negociacao>(`/negociacoes/${id}/anuncios`, { anuncioId }),
   removerAnuncioNegociacao: (id: UUID, anuncioId: UUID) => http.delete<Negociacao>(`/negociacoes/${id}/anuncios/${anuncioId}`),
+
+  // avaliações dos produtos (só quem comprou e recebeu avalia)
+  avaliacoes: (anuncioId: UUID) => http.get<AvaliacoesAnuncio>(`/anuncios/${anuncioId}/avaliacoes`),
+  /** publica ou edita a avaliação do usuário logado */
+  avaliar: (anuncioId: UUID, body: AvaliacaoInput) => http.put<AvaliacoesAnuncio>(`/anuncios/${anuncioId}/avaliacoes/minha`, body),
+  removerAvaliacao: (anuncioId: UUID) => http.delete<AvaliacoesAnuncio>(`/anuncios/${anuncioId}/avaliacoes/minha`),
 
   // ordens de pedido
   criarOrdem: (body: NovaOrdemInput) => http.post<OrdemDePedido>('/ordens-de-pedido', body),

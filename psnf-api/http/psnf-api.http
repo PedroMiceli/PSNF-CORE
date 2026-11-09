@@ -680,6 +680,70 @@ X-Usuario-Id: {{compradorId}}
 > {% client.test("status ENTREGUE", () => client.assert(response.body.status === "ENTREGUE")); %}
 
 
+### ======================== 4B. AVALIAÇÃO DO PRODUTO =================================
+### Só avalia quem comprou e recebeu (a ordem 4.x acabou de ser ENTREGUE). Nota de 1 a 5,
+### texto opcional de até 250 caracteres e até 3 imagens. Uma avaliação por comprador.
+
+### 4B.1 [403] O vendedor não avalia o próprio anúncio
+PUT {{baseUrl}}/anuncios/{{anuncioId}}/avaliacoes/minha
+Content-Type: application/json
+
+{ "nota": 5, "texto": "Meu produto é ótimo" }
+
+> {% client.test("403", () => client.assert(response.status === 403, "status " + response.status)); %}
+
+### 4B.2 [400] Nota fora de 1 a 5 e mais de 3 imagens
+PUT {{baseUrl}}/anuncios/{{anuncioId}}/avaliacoes/minha
+Content-Type: application/json
+X-Usuario-Id: {{compradorId}}
+
+{ "nota": 6, "imagens": ["/a.png", "/b.png", "/c.png", "/d.png"] }
+
+> {%
+    client.test("400", () => client.assert(response.status === 400, "status " + response.status));
+    client.test("erro na nota e nas imagens", () => client.assert(!!response.body.nota && !!response.body.imagens));
+%}
+
+### 4B.3 Comprador que recebeu avalia o produto
+PUT {{baseUrl}}/anuncios/{{anuncioId}}/avaliacoes/minha
+Content-Type: application/json
+X-Usuario-Id: {{compradorId}}
+
+{
+  "nota": 4,
+  "texto": "Carrinho resistente, chegou bem embalado. Só demorou um pouco.",
+  "imagens": ["/arquivos/avaliacao-1.png"]
+}
+
+> {%
+    client.test("200 com a minha avaliação", () => client.assert(response.status === 200 && response.body.minha.nota === 4));
+    client.test("conta no resumo", () => client.assert(response.body.total >= 1 && response.body.porNota[3] >= 1));
+%}
+
+### 4B.4 Editar a avaliação (continua sendo uma só)
+PUT {{baseUrl}}/anuncios/{{anuncioId}}/avaliacoes/minha
+Content-Type: application/json
+X-Usuario-Id: {{compradorId}}
+
+{ "nota": 5, "texto": "Atualizando: o vendedor resolveu o atraso, nota 5." }
+
+> {% client.test("nota 5", () => client.assert(response.body.minha.nota === 5)); %}
+
+### 4B.5 O anúncio traz a nota média
+GET {{baseUrl}}/anuncios/{{anuncioId}}
+
+> {% client.test("notaMedia e quantidade", () => client.assert(response.body.quantidadeAvaliacoes >= 1 && response.body.notaMedia >= 1)); %}
+
+### 4B.6 [403] Quem não recebeu o produto não avalia
+PUT {{baseUrl}}/anuncios/{{anuncio2Id}}/avaliacoes/minha
+Content-Type: application/json
+X-Usuario-Id: {{novoUsuarioId}}
+
+{ "nota": 1 }
+
+> {% client.test("403", () => client.assert(response.status === 403, "status " + response.status)); %}
+
+
 ### ========================= 5. ORDEM DE PEDIDO — CANCELAMENTO =========================
 
 ### 5.1 Vendedor cria outra ordem

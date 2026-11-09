@@ -2,6 +2,8 @@ package com.psnf.api.psnf.infrastructure.persistence.ordemDePedido.repository;
 
 import com.psnf.api.psnf.infrastructure.persistence.ordemDePedido.entity.OrdemDePedidoJpa;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -15,4 +17,11 @@ public interface OrdemDePedidoJpaRepository extends JpaRepository<OrdemDePedidoJ
     List<OrdemDePedidoJpa> findByVendedorIdOrderByDataCadastroDesc(UUID vendedorId);
 
     List<OrdemDePedidoJpa> findByCompradorIdAndVendedorIdOrderByDataCadastroDesc(UUID compradorId, UUID vendedorId);
+
+    @Query("""
+            select count(o) > 0 from OrdemDePedidoJpa o join o.itens i
+            where o.comprador.id = :compradorId and i.anuncio.id = :anuncioId
+              and o.status = com.psnf.api.psnf.domain.ordemDePedido.models.enums.EnumStatusOrdemDePedido.ENTREGUE
+            """)
+    boolean existeCompraEntregue(@Param("compradorId") UUID compradorId, @Param("anuncioId") UUID anuncioId);
 }
