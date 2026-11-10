@@ -18,7 +18,7 @@ Os usuários criados aparecem no seletor **"Logado como"** do front (lista vinda
 endpoint só de desenvolvimento, ativo junto com os usuários mock).
 
 As **categorias são fixas** e não são criadas por script nem por usuários: a API as carrega ao iniciar,
-a partir de `psnf-api/src/main/resources/db/categorias.sql`. Para incluir uma categoria, adicione-a
+a partir de `psnf-api/src/main/resources/db/migration/R__categorias.sql` (migração repetível do Flyway). Para incluir uma categoria, adicione-a
 nesse arquivo e reinicie a API.
 
 Opções do `popular-anuncios.py`:
