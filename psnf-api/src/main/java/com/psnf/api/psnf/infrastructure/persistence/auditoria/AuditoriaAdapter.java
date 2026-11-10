@@ -7,9 +7,12 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
@@ -32,7 +35,10 @@ public class AuditoriaAdapter implements AuditoriaPort {
      * <ul>
      *   <li>fica registrado mesmo quando a operação é desfeita (ex.: login com senha errada);</li>
      *   <li>a requisição não segura duas conexões do pool ao mesmo tempo. Com REQUIRES_NEW, 30 logins
-     *       simultâneos ocupariam as 30 conexões e todos esperariam a segunda: o pool travaria.</li>
+     *       simultâneos ocupariam as 30 conexões e todos esperariam a segunda: o pool travaria;</li>
+     *   <li>só DEPOIS que a transação de quem chamou termina (commit ou rollback). Antes disso, os dados
+     *       dela não são visíveis para outras conexões: no cadastro, o INSERT do evento chegava ao banco
+     *       antes do commit do usuário e a chave estrangeira recusava ("usuario_id não existe").</li>
      * </ul>
      * IP e navegador são lidos agora, enquanto a requisição existe.
      */
@@ -49,13 +55,26 @@ public class AuditoriaAdapter implements AuditoriaPort {
             e.setIp(cortar(req.getRemoteAddr(), 64));
             e.setUserAgent(cortar(req.getHeader(HttpHeaders.USER_AGENT), 255));
         }
-        EXECUTOR.submit(() -> {
+        Runnable gravar = () -> EXECUTOR.submit(() -> {
             try {
                 repo.save(e); // o save do Spring Data abre a própria transação
+            } catch (DataIntegrityViolationException ex) {
+                // a operação foi desfeita e o usuário não chegou a existir (ex.: cadastro que falhou no meio)
+                logger.warn("Evento de auditoria {} descartado: usuário {} não existe", tipo, usuarioId);
             } catch (RuntimeException ex) {
                 logger.error("Falha ao gravar auditoria {} (usuário {})", tipo, usuarioId, ex);
             }
         });
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCompletion(int status) {
+                    gravar.run(); // commit ou rollback: o login que falhou também precisa ficar registrado
+                }
+            });
+        } else {
+            gravar.run();
+        }
         // também no log, para ferramentas de monitoramento (alertas de muitas falhas, por exemplo)
         logger.info("{} usuario={} ip={} {}", tipo, usuarioId, e.getIp(), detalhe == null ? "" : detalhe);
     }
