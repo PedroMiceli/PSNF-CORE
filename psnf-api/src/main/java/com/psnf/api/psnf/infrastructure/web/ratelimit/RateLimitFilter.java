@@ -8,7 +8,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -16,6 +15,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.server.PathContainer;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import com.psnf.api.psnf.infrastructure.web.controller.UsuarioAutenticadoUtil;
 import org.springframework.web.util.pattern.PathPattern;
 import org.springframework.web.util.pattern.PathPatternParser;
 
@@ -28,19 +28,24 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongSupplier;
 
 /**
- * Rate limit em todas as rotas, por IP do cliente. Roda antes de tudo (inclusive de rotas inexistentes),
- * então uma rajada abusiva não chega a abrir transação nem conexão com o banco.
+ * Rate limit em todas as rotas. Roda logo DEPOIS do Spring Security (que só valida o JWT, sem banco) e
+ * antes dos controllers, então uma rajada abusiva não chega a abrir transação nem conexão com o banco.
  *
- * <p>Por que IP e não o header X-Usuario-Id: o header ainda não é autenticado, qualquer um pode trocar o
- * valor a cada requisição e escapar do limite. Quando houver autenticação de verdade, a chave pode passar
- * a ser o usuário. Atrás de load balancer/proxy, configure server.forward-headers-strategy para o IP real
- * do cliente ser usado (senão todos compartilham o IP do proxy).
+ * <p>Chave do balde:
+ * <ul>
+ *   <li>usuário logado: o id dele (o "sub" do JWT, que ninguém consegue forjar). Vários funcionários
+ *       atrás do mesmo IP de uma empresa não dividem o limite.</li>
+ *   <li>sem login (login, cadastro, renovação): o IP. Atrás de load balancer/proxy, configure
+ *       server.forward-headers-strategy para o IP real do cliente ser usado.</li>
+ * </ul>
+ * Requisições sem login para rotas protegidas param no Spring Security (401) antes de chegar aqui.
  *
  * <p>Os baldes ficam em memória, por instância da API: com N instâncias, o limite efetivo é até N vezes
  * maior. Para um limite global, o mesmo algoritmo pode guardar os baldes no Redis.
  */
 @Component
-@Order(Ordered.HIGHEST_PRECEDENCE + 10)
+// o Spring Security roda em -100 (SecurityProperties.DEFAULT_FILTER_ORDER): este vem logo depois
+@Order(-90)
 @EnableConfigurationProperties(RateLimitProperties.class)
 public class RateLimitFilter extends OncePerRequestFilter {
 
@@ -97,13 +102,14 @@ public class RateLimitFilter extends OncePerRequestFilter {
         PathContainer path = PathContainer.parsePath(caminho);
         RegraCompilada regra = regras.stream().filter(r -> r.casa(request.getMethod(), path)).findFirst().orElse(padrao);
 
-        String chave = regra.nome() + '|' + request.getRemoteAddr();
+        String cliente = UsuarioAutenticadoUtil.usuarioLogadoId().map(id -> "u:" + id).orElseGet(() -> "ip:" + request.getRemoteAddr());
+        String chave = regra.nome() + '|' + cliente;
         TokenBucket balde = baldes.get(chave);
         if (balde == null) {
             if (baldes.size() >= props.maxClientes()) {
                 // proteção de memória: em vez de crescer sem fim (ex.: IPs forjados), deixa passar e avisa
                 logger.warn("Rate limit: {} clientes em memória (máximo); requisição de {} não foi limitada",
-                        baldes.size(), request.getRemoteAddr());
+                        baldes.size(), cliente);
                 chain.doFilter(request, response);
                 return;
             }
@@ -118,7 +124,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
             return;
         }
 
-        logger.debug("Rate limit: {} {} de {} negado (regra {})", request.getMethod(), caminho, request.getRemoteAddr(), regra.nome());
+        logger.debug("Rate limit: {} {} de {} negado (regra {})", request.getMethod(), caminho, cliente, regra.nome());
         response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
         response.setHeader(HttpHeaders.RETRY_AFTER, String.valueOf(r.esperarSegundos()));
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);

@@ -54,6 +54,27 @@ class RateLimitFilterTest {
     }
 
     @Test
+    void usuarioLogadoTemBaldeProprioMesmoNoMesmoIp() throws Exception {
+        RateLimitFilter f = filtro(new RateLimitProperties.Limite(1, 60));
+        try {
+            logar("11111111-1111-1111-1111-111111111111");
+            assertThat(chamar(f, "GET", "/a", "1.1.1.1").getStatus()).isEqualTo(200);
+            assertThat(chamar(f, "GET", "/a", "1.1.1.1").getStatus()).isEqualTo(429);
+            logar("22222222-2222-2222-2222-222222222222"); // colega da mesma empresa, mesmo IP
+            assertThat(chamar(f, "GET", "/a", "1.1.1.1").getStatus()).isEqualTo(200);
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+    }
+
+    private static void logar(String usuarioId) {
+        org.springframework.security.oauth2.jwt.Jwt jwt = org.springframework.security.oauth2.jwt.Jwt.withTokenValue("t")
+                .header("alg", "HS256").subject(usuarioId).build();
+        org.springframework.security.core.context.SecurityContextHolder.getContext()
+                .setAuthentication(new org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken(jwt));
+    }
+
+    @Test
     void cadaIpTemSeuProprioLimite() throws Exception {
         RateLimitFilter f = filtro(new RateLimitProperties.Limite(1, 60));
         assertThat(chamar(f, "GET", "/a", "1.1.1.1").getStatus()).isEqualTo(200);

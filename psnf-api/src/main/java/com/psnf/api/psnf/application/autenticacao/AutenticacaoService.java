@@ -1,6 +1,7 @@
 package com.psnf.api.psnf.application.autenticacao;
 
 import com.psnf.api.psnf.domain.autenticacao.exception.CredenciaisInvalidasException;
+import com.psnf.api.psnf.domain.autenticacao.exception.MuitasTentativasException;
 import com.psnf.api.psnf.domain.autenticacao.exception.SessaoInvalidaException;
 import com.psnf.api.psnf.domain.autenticacao.model.ClienteInfo;
 import com.psnf.api.psnf.domain.autenticacao.model.RefreshToken;
@@ -9,6 +10,7 @@ import com.psnf.api.psnf.domain.autenticacao.model.TokenEmitido;
 import com.psnf.api.psnf.domain.autenticacao.port.in.AutenticacaoUseCase;
 import com.psnf.api.psnf.domain.autenticacao.port.out.AccessTokenPort;
 import com.psnf.api.psnf.domain.autenticacao.port.out.GeradorTokenPort;
+import com.psnf.api.psnf.domain.autenticacao.port.out.LimiteTentativasLoginPort;
 import com.psnf.api.psnf.domain.autenticacao.port.out.RefreshTokenRepositoryPort;
 import com.psnf.api.psnf.domain.usuario.model.Usuario;
 import com.psnf.api.psnf.domain.usuario.port.out.SenhaEncoderPort;
@@ -38,6 +40,7 @@ public class AutenticacaoService implements AutenticacaoUseCase {
     private final AccessTokenPort accessTokens;
     private final RefreshTokenRepositoryPort refreshTokens;
     private final GeradorTokenPort gerador;
+    private final LimiteTentativasLoginPort tentativas;
     private final Duration validadeRefresh;
     private final Clock relogio;
     /** hash de uma senha qualquer: e-mail inexistente também paga o custo do BCrypt (mesmo tempo de resposta) */
@@ -45,6 +48,7 @@ public class AutenticacaoService implements AutenticacaoUseCase {
 
     public AutenticacaoService(UsuarioRepositoryPort usuarios, SenhaEncoderPort senhas, AccessTokenPort accessTokens,
                                RefreshTokenRepositoryPort refreshTokens, GeradorTokenPort gerador,
+                               LimiteTentativasLoginPort tentativas,
                                @Value("${psnf.auth.refresh-validade:30d}") Duration validadeRefresh,
                                Optional<Clock> relogio) {
         this.usuarios = usuarios;
@@ -52,6 +56,7 @@ public class AutenticacaoService implements AutenticacaoUseCase {
         this.accessTokens = accessTokens;
         this.refreshTokens = refreshTokens;
         this.gerador = gerador;
+        this.tentativas = tentativas;
         this.validadeRefresh = validadeRefresh;
         this.relogio = relogio.orElse(Clock.systemDefaultZone());
         this.hashFicticio = senhas.criptografar(UUID.randomUUID().toString());
@@ -60,13 +65,21 @@ public class AutenticacaoService implements AutenticacaoUseCase {
     @Override
     @Transactional
     public SessaoAutenticada entrar(String email, String senha, ClienteInfo cliente) {
-        Optional<Usuario> encontrado = email == null ? Optional.empty() : usuarios.buscarPorEmail(email);
+        String chave = email == null ? "" : email.trim().toLowerCase();
+        // bloqueado: recusa ANTES de conferir a senha (senão a adivinhação continuaria, só sem resposta)
+        long espera = tentativas.esperaSegundos(chave);
+        if (espera > 0) throw new MuitasTentativasException(espera);
+
+        Optional<Usuario> encontrado = chave.isEmpty() ? Optional.empty() : usuarios.buscarPorEmail(chave);
         String hash = encontrado.map(Usuario::getSenha).orElse(hashFicticio);
         boolean senhaConfere = senha != null && senhas.confere(senha, hash);
-        Usuario usuario = encontrado.filter(u -> senhaConfere && u.getDataExcluido() == null)
-                .orElseThrow(CredenciaisInvalidasException::new);
-
-        return abrirSessao(usuario, UUID.randomUUID(), cliente);
+        Optional<Usuario> autenticado = encontrado.filter(u -> senhaConfere && u.getDataExcluido() == null);
+        if (autenticado.isEmpty()) {
+            tentativas.registrarFalha(chave);
+            throw new CredenciaisInvalidasException();
+        }
+        tentativas.registrarSucesso(chave);
+        return abrirSessao(autenticado.get(), UUID.randomUUID(), cliente);
     }
 
     // noRollbackFor: ao detectar reuso, a revogação da família precisa ficar gravada mesmo lançando 401

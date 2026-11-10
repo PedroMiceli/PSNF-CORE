@@ -44,6 +44,14 @@ class AutenticacaoServiceTest {
     private final Usuario usuario = Usuario.restaurar(UUID.randomUUID(), LocalDateTime.now(), null, null,
             "Fulano", "fulano@psnf.com", "hash:segredo", null, null, null, List.of());
     private AutenticacaoService service;
+    /** freio por e-mail simplificado: bloqueia depois de 3 falhas */
+    private final Map<String, Integer> falhas = new HashMap<>();
+    private final com.psnf.api.psnf.domain.autenticacao.port.out.LimiteTentativasLoginPort tentativas =
+            new com.psnf.api.psnf.domain.autenticacao.port.out.LimiteTentativasLoginPort() {
+                public long esperaSegundos(String e) { return falhas.getOrDefault(e, 0) >= 3 ? 300 : 0; }
+                public void registrarFalha(String e) { falhas.merge(e, 1, Integer::sum); }
+                public void registrarSucesso(String e) { falhas.remove(e); }
+            };
 
     @BeforeEach
     void setUp() {
@@ -83,7 +91,7 @@ class AutenticacaoServiceTest {
             public int apagarExpirados(LocalDateTime limite) { return 0; }
         };
         service = new AutenticacaoService(usuarios, senhas, u -> new TokenEmitido("jwt-" + u.getId(), Duration.ofMinutes(15)),
-                repo, gerador, Duration.ofDays(30), Optional.of(relogio));
+                repo, gerador, tentativas, Duration.ofDays(30), Optional.of(relogio));
     }
 
     private static RefreshToken com(RefreshToken t, LocalDateTime usado, LocalDateTime revogado) {
@@ -155,5 +163,23 @@ class AutenticacaoServiceTest {
         service.sairDeTodos(usuario.getId());
         assertThatThrownBy(() -> service.renovar(a, CLIENTE)).isInstanceOf(SessaoInvalidaException.class);
         assertThatThrownBy(() -> service.renovar(b, CLIENTE)).isInstanceOf(SessaoInvalidaException.class);
+    }
+
+    @Test
+    void bloqueadoPorTentativasRecusaAteASenhaCerta() {
+        for (int i = 0; i < 3; i++) {
+            assertThatThrownBy(() -> service.entrar("Fulano@psnf.com", "errada", CLIENTE)).isInstanceOf(CredenciaisInvalidasException.class);
+        }
+        assertThatThrownBy(() -> service.entrar("fulano@psnf.com", "segredo", CLIENTE))
+                .isInstanceOf(com.psnf.api.psnf.domain.autenticacao.exception.MuitasTentativasException.class);
+    }
+
+    @Test
+    void senhaCertaZeraAsFalhas() {
+        for (int i = 0; i < 2; i++) {
+            assertThatThrownBy(() -> service.entrar("fulano@psnf.com", "errada", CLIENTE)).isInstanceOf(CredenciaisInvalidasException.class);
+        }
+        service.entrar("fulano@psnf.com", "segredo", CLIENTE);
+        assertThat(falhas).doesNotContainKey("fulano@psnf.com");
     }
 }

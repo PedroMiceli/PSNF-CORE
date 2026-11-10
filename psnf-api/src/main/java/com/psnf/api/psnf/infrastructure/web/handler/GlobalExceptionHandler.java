@@ -1,5 +1,6 @@
 package com.psnf.api.psnf.infrastructure.web.handler;
 
+import com.psnf.api.psnf.domain.autenticacao.exception.MuitasTentativasException;
 import com.psnf.api.psnf.domain.shared.exception.AcessoNegadoException;
 import com.psnf.api.psnf.domain.shared.exception.NaoAutenticadoException;
 import com.psnf.api.psnf.domain.shared.exception.RecursoNaoEncontradoException;
@@ -55,6 +56,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(NaoAutenticadoException.class)
     public ResponseEntity<Map<String, String>> handleNaoAutenticado(NaoAutenticadoException ex) {
         return erro(HttpStatus.UNAUTHORIZED, ex.getMessage());
+    }
+
+    @ExceptionHandler(MuitasTentativasException.class)
+    public ResponseEntity<Map<String, String>> handleMuitasTentativas(MuitasTentativasException ex) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header("Retry-After", String.valueOf(ex.getEsperaSegundos()))
+                .body(Map.of("erro", ex.getMessage()));
     }
 
     @ExceptionHandler(AcessoNegadoException.class)
