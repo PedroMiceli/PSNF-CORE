@@ -14,7 +14,7 @@ O que ele faz:
   3. cadastra cada anúncio com faixas de preço por quantidade, variações e imagens.
 
 Pode ser executado várias vezes: anúncios com o mesmo título para o mesmo fornecedor são pulados.
-Cada fornecedor entra com o próprio login (POST /auth/token, senha 123456) para cadastrar os seus anúncios.
+Cada fornecedor entra com o próprio login (POST /auth/token, senha teste123) para cadastrar os seus anúncios.
 Só usa a biblioteca padrão do Python 3 (nada para instalar).
 """
 import argparse
@@ -30,7 +30,9 @@ import urllib.request
 import uuid
 import zlib
 
-SENHA = "123456"
+SENHA = "teste123"
+# usuários criados antes da regra de 8 caracteres continuam com a senha antiga
+SENHA_ANTIGA = "123456"
 
 # Fornecedores fictícios. O primeiro é o Vendedor Mock da API (já existe).
 FORNECEDORES = [
@@ -403,7 +405,12 @@ def todos_anuncios_ativos():
 
 def entrar(email):
     """Login de script: devolve o token de acesso e o id do usuário (POST /auth/token)."""
-    r = chamar("POST", "/auth/token", {"email": email, "senha": SENHA})
+    try:
+        r = chamar("POST", "/auth/token", {"email": email, "senha": SENHA})
+    except ApiErro as e:
+        if e.status != 401:
+            raise
+        r = chamar("POST", "/auth/token", {"email": email, "senha": SENHA_ANTIGA})
     return {"id": r["usuario"]["id"], "token": r["accessToken"]}
 
 
@@ -411,7 +418,7 @@ def garantir_fornecedores():
     """Cria os fornecedores que faltam e faz login com cada um.
 
     O cadastro devolve 422 se o e-mail já existe; tudo bem: o login a seguir funciona do mesmo jeito
-    (a senha de todos é 123456). Um fornecedor que exista com outra senha é pulado."""
+    (a senha de todos é teste123, ou 123456 nos criados antes da regra de 8 caracteres). Um fornecedor que exista com outra senha é pulado."""
     global TOKEN_PADRAO
     logados = []
     for f in FORNECEDORES:

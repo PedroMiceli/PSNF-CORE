@@ -137,7 +137,7 @@ Content-Type: application/json
 
 {
   "email": "teste-{{$random.alphanumeric(8)}}@psnf.com",
-  "senha": "123456",
+  "senha": "teste123",
   "nome": "Usuário de Teste",
   "telefone": "11987654321",
   "enderecos": [
@@ -163,7 +163,7 @@ Content-Type: application/json
 POST {{baseUrl}}/auth/token
 Content-Type: application/json
 
-{ "email": "{{novoUsuarioEmail}}", "senha": "123456" }
+{ "email": "{{novoUsuarioEmail}}", "senha": "teste123" }
 
 > {%
     client.test("200", () => client.assert(response.status === 200));
@@ -1011,13 +1011,26 @@ Content-Type: application/json
 
 > {% client.test("400", () => client.assert(response.status === 400, "status " + response.status)); %}
 
+### 6.2a [400] Senha curta (mínimo 8 caracteres)
+POST {{baseUrl}}/usuarios
+Content-Type: application/json
+
+{
+  "email": "curta-{{$random.alphanumeric(8)}}@psnf.com",
+  "senha": "123456",
+  "nome": "Senha Curta",
+  "telefone": "11999999999"
+}
+
+> {% client.test("400 na senha", () => client.assert(response.status === 400 && !!response.body.senha, "status " + response.status)); %}
+
 ### 6.2 [422] Email já cadastrado
 POST {{baseUrl}}/usuarios
 Content-Type: application/json
 
 {
   "email": "{{novoUsuarioEmail}}",
-  "senha": "123456",
+  "senha": "teste123",
   "nome": "Duplicado",
   "telefone": "11999999999"
 }

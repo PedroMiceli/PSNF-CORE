@@ -12,7 +12,7 @@ public record UsuarioRequest(
         @Email(message = "Email inválido")
         String email,
         @NotBlank(message = "Uma senha é obrigatória")
-        @Size(min = 6, message = "A senha deve ter ao menos 6 caracteres")
+        @Size(min = 8, max = 72, message = "A senha deve ter de 8 a 72 caracteres")
         String senha,
         @NotBlank(message = "O nome é obrigatório")
         String nome,

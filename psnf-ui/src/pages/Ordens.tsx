@@ -41,7 +41,7 @@ export function Ordens() {
       ) : !ordens.data?.length ? (
         <Vazio>
           {aba === 'compras'
-            ? 'Nenhuma compra. Troque de usuário no topo para ver as ordens geradas pelos vendedores.'
+            ? 'Nenhuma compra ainda. Quando um vendedor gerar uma ordem de pedido para você numa negociação, ela aparece aqui.'
             : 'Nenhuma venda. Gere uma ordem de pedido para um comprador.'}
         </Vazio>
       ) : (

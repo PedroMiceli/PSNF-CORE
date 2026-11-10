@@ -15,11 +15,16 @@ export const api = {
   // arquivos (MinIO/S3): devolve o caminho a ser usado em imagens, NF, mensagens...
   enviarArquivo: (arquivo: File) => http.upload<ArquivoEnviado>('/arquivos', 'arquivo', arquivo),
 
+  // autenticação (tokens em cookies HttpOnly: o corpo da resposta traz só o usuário)
+  entrar: (email: string, senha: string) => http.post<Usuario>('/auth/login', { email, senha }),
+  sair: () => http.post<void>('/auth/logout'),
+  /** encerra a sessão em todos os dispositivos */
+  sairDeTodos: () => http.post<void>('/auth/logout-todos'),
+  cadastrar: (body: { nome: string; email: string; senha: string; telefone: string }) => http.post<Usuario>('/usuarios', body),
+
   // usuários
   usuarioLogado: () => http.get<Usuario>('/usuarios/me'),
   usuario: (id: UUID) => http.get<Usuario>(`/usuarios/${id}`),
-  /** SOMENTE DESENVOLVIMENTO: usuários para o seletor "Logado como" (login simulado). */
-  usuariosDev: () => http.get<{ id: UUID; nome: string; email: string }[]>('/dev/usuarios'),
   atualizarUsuario: (body: { nome: string; telefone?: string; imagem?: string }) => http.put<Usuario>('/usuarios/me', body),
   adicionarEndereco: (body: EnderecoInput) => http.post<Usuario>('/usuarios/me/enderecos', body),
   removerEndereco: (id: UUID) => http.delete<Usuario>(`/usuarios/me/enderecos/${id}`),

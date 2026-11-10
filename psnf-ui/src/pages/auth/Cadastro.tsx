@@ -1,0 +1,76 @@
+import { useState, type FormEvent } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ApiError } from '../../api/client';
+import { api } from '../../api/endpoints';
+import { mascaraTelefone, telefoneValido } from '../../components/format';
+import { Botao, Campo, controle, ErroBox } from '../../components/ui';
+import { useUsuario } from '../../context/UsuarioContext';
+import { AuthLayout } from './AuthLayout';
+
+const SENHA_MIN = 8;
+
+export function Cadastro() {
+  const { entrar } = useUsuario();
+  const navigate = useNavigate();
+  const [form, setForm] = useState({ nome: '', email: '', telefone: '', senha: '', confirmacao: '' });
+  const [erro, setErro] = useState<ApiError | null>(null);
+  const [tentou, setTentou] = useState(false);
+  const [enviando, setEnviando] = useState(false);
+  const mudar = (campo: keyof typeof form) => (e: { target: { value: string } }) =>
+    setForm((f) => ({ ...f, [campo]: campo === 'telefone' ? mascaraTelefone(e.target.value) : e.target.value }));
+
+  const erros: Partial<Record<keyof typeof form, string>> = {
+    nome: !form.nome.trim() ? 'Informe o nome da empresa ou o seu' : undefined,
+    email: !/^\S+@\S+\.\S+$/.test(form.email.trim()) ? 'Informe um e-mail válido' : undefined,
+    telefone: !telefoneValido(form.telefone) ? 'Informe DDD + número' : undefined,
+    senha: form.senha.length < SENHA_MIN ? `Use pelo menos ${SENHA_MIN} caracteres` : form.senha.length > 72 ? 'Use no máximo 72 caracteres' : undefined,
+    confirmacao: form.confirmacao !== form.senha ? 'As senhas não conferem' : undefined,
+  };
+  const valido = Object.values(erros).every((v) => !v);
+  const erroDe = (campo: keyof typeof form) => (tentou ? erros[campo] : undefined) ?? erro?.campos?.[campo];
+
+  const enviar = async (e: FormEvent) => {
+    e.preventDefault();
+    setTentou(true);
+    if (!valido) return;
+    setEnviando(true);
+    try {
+      await api.cadastrar({ nome: form.nome.trim(), email: form.email.trim(), telefone: form.telefone, senha: form.senha });
+      // conta nova vai direto ao perfil (completar endereço e foto); quem decide o destino é o App.tsx
+      navigate('/cadastro', { replace: true, state: { de: '/perfil' } });
+      const falha = await entrar(form.email.trim(), form.senha);
+      if (falha) throw falha;
+    } catch (e) {
+      setErro(e instanceof ApiError ? e : new ApiError(0, String(e)));
+    } finally {
+      setEnviando(false);
+    }
+  };
+
+  return (
+    <AuthLayout titulo="Criar conta" subtitulo="Uma conta serve para comprar e para vender."
+      rodape={<>Já tem conta? <Link to="/login">Entrar</Link></>}>
+      <ErroBox erro={erro && !erro.campos ? erro : null} />
+      <form onSubmit={enviar} noValidate>
+        <Campo label="Nome ou razão social" erro={erroDe('nome')}>
+          <input className={controle} autoComplete="organization" autoFocus value={form.nome} onChange={mudar('nome')} />
+        </Campo>
+        <Campo label="E-mail" erro={erroDe('email')}>
+          <input className={controle} type="email" autoComplete="email" value={form.email} onChange={mudar('email')} />
+        </Campo>
+        <Campo label="Telefone" erro={erroDe('telefone')}>
+          <input className={controle} type="tel" autoComplete="tel" placeholder="(11) 99999-0001" value={form.telefone} onChange={mudar('telefone')} />
+        </Campo>
+        <Campo label="Senha" erro={erroDe('senha')} dica={`Pelo menos ${SENHA_MIN} caracteres. Uma frase é mais fácil de lembrar e mais difícil de adivinhar.`}>
+          <input className={controle} type="password" autoComplete="new-password" value={form.senha} onChange={mudar('senha')} />
+        </Campo>
+        <Campo label="Confirme a senha" erro={erroDe('confirmacao')}>
+          <input className={controle} type="password" autoComplete="new-password" value={form.confirmacao} onChange={mudar('confirmacao')} />
+        </Campo>
+        <Botao type="submit" variante="primario" disabled={enviando} className="mt-2 w-full justify-center">
+          {enviando ? 'Criando conta...' : 'Criar conta'}
+        </Botao>
+      </form>
+    </AuthLayout>
+  );
+}

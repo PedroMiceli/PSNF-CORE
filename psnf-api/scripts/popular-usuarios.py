@@ -7,7 +7,7 @@ Uso (com a API rodando):
     python3 psnf-api/scripts/popular-usuarios.py
     API_URL=http://localhost:8081 python3 psnf-api/scripts/popular-usuarios.py
 
-Todos usam a senha 123456. Depois de rodar, os usuários aparecem no seletor "Logado como" do front.
+Todos usam a senha teste123 (criados antes da regra de 8 caracteres: 123456). Entre no front com eles.
 Pode ser executado várias vezes: usuários com email já cadastrado são apenas informados.
 Só usa a biblioteca padrão do Python 3 (nada para instalar).
 """
@@ -19,7 +19,9 @@ import time
 import urllib.error
 import urllib.request
 
-SENHA = "123456"
+SENHA = "teste123"
+# usuários criados antes da regra de 8 caracteres continuam com a senha antiga
+SENHA_ANTIGA = "123456"
 
 # nome, email, telefone, endereço (cep, logradouro, número, complemento, bairro, cidade, uf)
 USUARIOS = [
@@ -112,7 +114,12 @@ def main():
     print("\nLogin (POST /auth/token):")
     for nome, email, *_ in USUARIOS:
         try:
-            r = chamar("POST", "/auth/token", {"email": email, "senha": SENHA})
+            try:
+                r = chamar("POST", "/auth/token", {"email": email, "senha": SENHA})
+            except ApiErro as e:
+                if e.status != 401:
+                    raise
+                r = chamar("POST", "/auth/token", {"email": email, "senha": SENHA_ANTIGA})
             print(f"  ✔ {r['usuario']['id']}  {nome}")
         except ApiErro as e:
             print(f"  ✘ {email}: {e}")

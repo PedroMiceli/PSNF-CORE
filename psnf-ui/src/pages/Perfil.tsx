@@ -6,9 +6,12 @@ import { ACEITA_IMAGENS, UploadArquivo } from '../components/UploadArquivo';
 import { mascaraTelefone, telefoneValido } from '../components/format';
 import { EnderecoForm } from '../components/EnderecoForm';
 import { Botao, Campo, Carregando, controle, cx, dica, ErroBox, ImagemAnuncio, linhaForm, painel, Painel } from '../components/ui';
+import { useUsuario } from '../context/UsuarioContext';
 
 export function Perfil() {
   const usuario = useApi(() => api.usuarioLogado(), []);
+  const { atualizarUsuario, sair } = useUsuario();
+  const [saindo, setSaindo] = useState(false);
   const salvar = useAcao();
   const endereco = useAcao();
   const [dados, setDados] = useState({ nome: '', telefone: '', imagem: '' });
@@ -28,7 +31,7 @@ export function Perfil() {
     if (dados.telefone && !telefoneValido(dados.telefone)) return;
     // a API guarda só os dígitos; a máscara é apenas visual
     const r = await salvar.executar(() => api.atualizarUsuario({ ...dados, telefone: dados.telefone.replace(/\D/g, '') }));
-    if (r) usuario.setData(r);
+    if (r) { usuario.setData(r); atualizarUsuario(r); }
   };
   const adicionarEndereco = async (novo: EnderecoInput) => {
     const r = await endereco.executar(() => api.adicionarEndereco(novo));
@@ -92,6 +95,17 @@ export function Perfil() {
           </ul>
         )}
         <EnderecoForm enviando={endereco.enviando} erros={endereco.erro?.campos} onSalvar={adicionarEndereco} />
+      </Painel>
+
+      <Painel>
+        <h3>Segurança</h3>
+        <p className={dica}>
+          Esqueceu a sessão aberta em outro computador ou perdeu o celular? Encerre o acesso em todos os
+          dispositivos, inclusive neste: será preciso entrar de novo em cada um.
+        </p>
+        <Botao variante="perigo" disabled={saindo} onClick={async () => { setSaindo(true); await sair(true); }}>
+          {saindo ? 'Encerrando...' : 'Sair de todos os dispositivos'}
+        </Botao>
       </Painel>
     </section>
   );
