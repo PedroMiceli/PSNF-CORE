@@ -41,8 +41,9 @@ class AutenticacaoServiceTest {
 
     private final RelogioAjustavel relogio = new RelogioAjustavel();
     private final Map<String, RefreshToken> porHash = new HashMap<>();
-    private final Usuario usuario = Usuario.restaurar(UUID.randomUUID(), LocalDateTime.now(), null, null,
-            "Fulano", "fulano@psnf.com", "hash:segredo", null, null, null, List.of());
+    private Usuario usuario = Usuario.restaurar(UUID.randomUUID(), LocalDateTime.now(), null, null,
+            "Fulano", "fulano@psnf.com", "hash:segredo", null, null, null, List.of())
+            .comEmailConfirmadoEm(LocalDateTime.now());
     private AutenticacaoService service;
     /** freio por e-mail simplificado: bloqueia depois de 3 falhas */
     private final Map<String, Integer> falhas = new HashMap<>();
@@ -52,6 +53,11 @@ class AutenticacaoServiceTest {
                 public void registrarFalha(String e) { falhas.merge(e, 1, Integer::sum); }
                 public void registrarSucesso(String e) { falhas.remove(e); }
             };
+
+    private void setUp(Usuario outro) {
+        this.usuario = outro;
+        setUp();
+    }
 
     @BeforeEach
     void setUp() {
@@ -181,5 +187,15 @@ class AutenticacaoServiceTest {
         }
         service.entrar("fulano@psnf.com", "segredo", CLIENTE);
         assertThat(falhas).doesNotContainKey("fulano@psnf.com");
+    }
+
+    @Test
+    void emailNaoConfirmadoNaoEntraMasSoDepoisDaSenhaCerta() {
+        Usuario novo = Usuario.restaurar(usuario.getId(), LocalDateTime.now(), null, null, "Novo", "fulano@psnf.com",
+                "hash:segredo", null, null, null, List.of());
+        setUp(novo);
+        assertThatThrownBy(() -> service.entrar("fulano@psnf.com", "errada", CLIENTE)).isInstanceOf(CredenciaisInvalidasException.class);
+        assertThatThrownBy(() -> service.entrar("fulano@psnf.com", "segredo", CLIENTE))
+                .isInstanceOf(com.psnf.api.psnf.domain.autenticacao.exception.EmailNaoConfirmadoException.class);
     }
 }

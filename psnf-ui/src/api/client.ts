@@ -10,11 +10,14 @@ export class ApiError extends Error {
   status: number;
   /** erros de validação por campo (HTTP 400 vindo do @Valid) */
   campos?: Record<string, string>;
+  /** identificador estável do erro, quando a API manda um (ex.: EMAIL_NAO_CONFIRMADO) */
+  codigo?: string;
 
-  constructor(status: number, message: string, campos?: Record<string, string>) {
+  constructor(status: number, message: string, campos?: Record<string, string>, codigo?: string) {
     super(message);
     this.status = status;
     this.campos = campos;
+    this.codigo = codigo;
   }
 }
 
@@ -101,7 +104,7 @@ async function request<T>(method: string, path: string, body?: unknown, tentativ
 
   if (!res.ok) {
     if (obj) {
-      if (typeof obj.erro === 'string') throw new ApiError(res.status, obj.erro);
+      if (typeof obj.erro === 'string') throw new ApiError(res.status, obj.erro, undefined, obj.codigo);
       if (res.status === 400 && !('status' in obj)) {
         throw new ApiError(res.status, 'Verifique os campos destacados', obj);
       }

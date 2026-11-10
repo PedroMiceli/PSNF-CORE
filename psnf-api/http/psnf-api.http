@@ -159,7 +159,48 @@ Content-Type: application/json
     client.global.set("novoUsuarioEmail", response.body.email);
 %}
 
-### 2.3b Login do novo usuário (nas seções seguintes ele faz o papel de "terceiro", que não participa)
+### 2.3a [403] Conta nova só entra depois de confirmar o e-mail
+POST {{baseUrl}}/auth/token
+Content-Type: application/json
+
+{ "email": "{{novoUsuarioEmail}}", "senha": "teste123" }
+
+> {% client.test("403 EMAIL_NAO_CONFIRMADO", () => client.assert(response.status === 403 && response.body.codigo === "EMAIL_NAO_CONFIRMADO", "status " + response.status)); %}
+
+### 2.3b E-mail de confirmação (sem SMTP, a API guarda os e-mails em GET /dev/emails)
+GET {{baseUrl}}/dev/emails?para={{novoUsuarioEmail}}
+Authorization: Bearer {{tokenVendedor}}
+
+> {%
+    client.test("e-mail de confirmação enviado", () => client.assert(response.status === 200 && response.body.length >= 1 && response.body[0].assunto === "Confirme seu e-mail no PSNF"));
+    client.global.set("tokenConfirmacao", /token=([\w-]+)/.exec(response.body[0].texto)[1]);
+%}
+
+### 2.3c Confirmar o e-mail com o link
+POST {{baseUrl}}/auth/confirmar-email
+Content-Type: application/json
+
+{ "token": "{{tokenConfirmacao}}" }
+
+> {% client.test("204", () => client.assert(response.status === 204, "status " + response.status)); %}
+
+### 2.3d [422] O link é de uso único
+POST {{baseUrl}}/auth/confirmar-email
+Content-Type: application/json
+
+{ "token": "{{tokenConfirmacao}}" }
+
+> {% client.test("422", () => client.assert(response.status === 422, "status " + response.status)); %}
+
+### 2.3e Esqueci a senha: 204 sempre (não revela se o e-mail existe)
+POST {{baseUrl}}/auth/esqueci-senha
+Content-Type: application/json
+
+{ "email": "ninguem-{{$random.alphanumeric(6)}}@psnf.com" }
+
+> {% client.test("204", () => client.assert(response.status === 204, "status " + response.status)); %}
+
+### 2.3f Login do novo usuário (nas seções seguintes ele faz o papel de "terceiro", que não participa)
 POST {{baseUrl}}/auth/token
 Content-Type: application/json
 
@@ -1188,3 +1229,64 @@ GET {{baseUrl}}/arquivos/00000000-0000-0000-0000-000000000000.png
 Authorization: Bearer {{tokenVendedor}}
 
 > {% client.test("404", () => client.assert(response.status === 404, "status " + response.status)); %}
+
+
+### =============================== 9. RECUPERAÇÃO DE SENHA ============================
+
+### 9.1 Pedir o link (o novo usuário esqueceu a senha)
+POST {{baseUrl}}/auth/esqueci-senha
+Content-Type: application/json
+
+{ "email": "{{novoUsuarioEmail}}" }
+
+> {% client.test("204", () => client.assert(response.status === 204, "status " + response.status)); %}
+
+### 9.2 O link chega por e-mail (caixa de desenvolvimento)
+GET {{baseUrl}}/dev/emails?para={{novoUsuarioEmail}}
+Authorization: Bearer {{tokenVendedor}}
+
+> {%
+    const email = response.body.find(e => e.assunto === "Redefinição de senha do PSNF");
+    client.test("e-mail de redefinição enviado", () => client.assert(!!email));
+    client.global.set("tokenRedefinicao", /token=([\w-]+)/.exec(email.texto)[1]);
+%}
+
+### 9.3 [400] Senha nova curta
+POST {{baseUrl}}/auth/redefinir-senha
+Content-Type: application/json
+
+{ "token": "{{tokenRedefinicao}}", "novaSenha": "curta" }
+
+> {% client.test("400", () => client.assert(response.status === 400 && !!response.body.novaSenha, "status " + response.status)); %}
+
+### 9.4 Redefinir a senha (encerra todas as sessões do usuário)
+POST {{baseUrl}}/auth/redefinir-senha
+Content-Type: application/json
+
+{ "token": "{{tokenRedefinicao}}", "novaSenha": "senha-nova-123" }
+
+> {% client.test("204", () => client.assert(response.status === 204, "status " + response.status)); %}
+
+### 9.5 [422] O link não vale duas vezes
+POST {{baseUrl}}/auth/redefinir-senha
+Content-Type: application/json
+
+{ "token": "{{tokenRedefinicao}}", "novaSenha": "outra-senha-456" }
+
+> {% client.test("422", () => client.assert(response.status === 422, "status " + response.status)); %}
+
+### 9.6 [401] A senha antiga não entra mais
+POST {{baseUrl}}/auth/token
+Content-Type: application/json
+
+{ "email": "{{novoUsuarioEmail}}", "senha": "teste123" }
+
+> {% client.test("401", () => client.assert(response.status === 401, "status " + response.status)); %}
+
+### 9.7 A senha nova entra
+POST {{baseUrl}}/auth/token
+Content-Type: application/json
+
+{ "email": "{{novoUsuarioEmail}}", "senha": "senha-nova-123" }
+
+> {% client.test("200", () => client.assert(response.status === 200 && !!response.body.accessToken, "status " + response.status)); %}

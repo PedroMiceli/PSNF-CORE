@@ -3,6 +3,9 @@ import { Layout } from './components/Layout';
 import { Vazio } from './components/ui';
 import { UsuarioProvider, useUsuario } from './context/UsuarioContext';
 import { Cadastro } from './pages/auth/Cadastro';
+import { ConfirmarEmail } from './pages/auth/ConfirmarEmail';
+import { EsqueciSenha } from './pages/auth/EsqueciSenha';
+import { RedefinirSenha } from './pages/auth/RedefinirSenha';
 import { Login } from './pages/auth/Login';
 import { AnuncioDetalhe } from './pages/AnuncioDetalhe';
 import { AnuncioForm } from './pages/AnuncioForm';
@@ -24,6 +27,12 @@ export function App() {
   );
 }
 
+// links que chegam por e-mail: funcionam logado ou não (ex.: confirmou o e-mail em outra aba)
+const rotasDeLink = [
+  <Route key="confirmar" path="confirmar-email" element={<ConfirmarEmail />} />,
+  <Route key="redefinir" path="redefinir-senha" element={<RedefinirSenha />} />,
+];
+
 function Rotas() {
   const { estado } = useUsuario();
   const location = useLocation();
@@ -38,6 +47,8 @@ function Rotas() {
       <Routes>
         <Route path="login" element={<Login />} />
         <Route path="cadastro" element={<Cadastro />} />
+        <Route path="esqueci-senha" element={<EsqueciSenha />} />
+        {rotasDeLink}
         <Route path="*" element={<Navigate to="/login" replace state={{ de: location.pathname + location.search + location.hash }} />} />
       </Routes>
     );
@@ -49,6 +60,8 @@ function Rotas() {
     <Routes>
       <Route path="login" element={<Navigate to={destino} replace />} />
       <Route path="cadastro" element={<Navigate to={destino} replace />} />
+      <Route path="esqueci-senha" element={<EsqueciSenha />} />
+      {rotasDeLink}
       <Route element={<Layout />}>
         <Route index element={<Vitrine />} />
         <Route path="anuncios/novo" element={<AnuncioForm />} />

@@ -148,11 +148,12 @@ export function Carregando({ texto = 'Carregando...' }: { texto?: string }) {
   return <Vazio>{texto}</Vazio>;
 }
 
-export function ErroBox({ erro }: { erro: ApiError | null | undefined }) {
+/** @param simples sem o código HTTP (telas para o público: login, cadastro...) */
+export function ErroBox({ erro, simples }: { erro: ApiError | null | undefined; simples?: boolean }) {
   if (!erro) return null;
   return (
     <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-vermelho" role="alert">
-      <strong>{erro.status ? `Erro ${erro.status}: ` : ''}</strong>
+      {!simples && <strong>{erro.status ? `Erro ${erro.status}: ` : ''}</strong>}
       {erro.message}
       {erro.campos && (
         <ul className="mt-1.5 list-disc pl-5">

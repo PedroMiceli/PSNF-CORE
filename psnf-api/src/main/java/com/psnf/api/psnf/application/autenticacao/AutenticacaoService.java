@@ -1,6 +1,7 @@
 package com.psnf.api.psnf.application.autenticacao;
 
 import com.psnf.api.psnf.domain.autenticacao.exception.CredenciaisInvalidasException;
+import com.psnf.api.psnf.domain.autenticacao.exception.EmailNaoConfirmadoException;
 import com.psnf.api.psnf.domain.autenticacao.exception.MuitasTentativasException;
 import com.psnf.api.psnf.domain.autenticacao.exception.SessaoInvalidaException;
 import com.psnf.api.psnf.domain.autenticacao.model.ClienteInfo;
@@ -79,6 +80,8 @@ public class AutenticacaoService implements AutenticacaoUseCase {
             throw new CredenciaisInvalidasException();
         }
         tentativas.registrarSucesso(chave);
+        // depois da senha conferida: não revela a quem não sabe a senha que a conta existe
+        if (!autenticado.get().emailConfirmado()) throw new EmailNaoConfirmadoException();
         return abrirSessao(autenticado.get(), UUID.randomUUID(), cliente);
     }
 

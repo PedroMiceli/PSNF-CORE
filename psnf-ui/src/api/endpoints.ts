@@ -20,6 +20,10 @@ export const api = {
   sair: () => http.post<void>('/auth/logout'),
   /** encerra a sessão em todos os dispositivos */
   sairDeTodos: () => http.post<void>('/auth/logout-todos'),
+  confirmarEmail: (token: string) => http.post<void>('/auth/confirmar-email', { token }),
+  reenviarConfirmacao: (email: string) => http.post<void>('/auth/reenviar-confirmacao', { email }),
+  esqueciSenha: (email: string) => http.post<void>('/auth/esqueci-senha', { email }),
+  redefinirSenha: (token: string, novaSenha: string) => http.post<void>('/auth/redefinir-senha', { token, novaSenha }),
   cadastrar: (body: { nome: string; email: string; senha: string; telefone: string }) => http.post<Usuario>('/usuarios', body),
 
   // usuários

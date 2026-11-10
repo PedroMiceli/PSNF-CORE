@@ -35,8 +35,8 @@ public class UsuarioMockInitializer implements ApplicationRunner {
     public void run(ApplicationArguments args) {
         for (Usuario usuario : UsuarioMock.TODOS) {
             int inseridos = jdbcTemplate.update("""
-                            INSERT INTO usuario (id, nome, email, senha, telefone, data_cadastro)
-                            VALUES (?, ?, ?, ?, ?, ?)
+                            INSERT INTO usuario (id, nome, email, senha, telefone, data_cadastro, email_confirmado_em)
+                            VALUES (?, ?, ?, ?, ?, ?, now())
                             ON CONFLICT DO NOTHING
                             """,
                     usuario.getId(),

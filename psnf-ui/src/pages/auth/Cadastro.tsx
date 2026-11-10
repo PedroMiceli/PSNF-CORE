@@ -1,21 +1,20 @@
 import { useState, type FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { ApiError } from '../../api/client';
 import { api } from '../../api/endpoints';
 import { mascaraTelefone, telefoneValido } from '../../components/format';
 import { Botao, Campo, controle, ErroBox } from '../../components/ui';
-import { useUsuario } from '../../context/UsuarioContext';
 import { AuthLayout } from './AuthLayout';
 
 const SENHA_MIN = 8;
 
 export function Cadastro() {
-  const { entrar } = useUsuario();
-  const navigate = useNavigate();
   const [form, setForm] = useState({ nome: '', email: '', telefone: '', senha: '', confirmacao: '' });
   const [erro, setErro] = useState<ApiError | null>(null);
   const [tentou, setTentou] = useState(false);
   const [enviando, setEnviando] = useState(false);
+  const [criado, setCriado] = useState(false);
+  const [reenviado, setReenviado] = useState(false);
   const mudar = (campo: keyof typeof form) => (e: { target: { value: string } }) =>
     setForm((f) => ({ ...f, [campo]: campo === 'telefone' ? mascaraTelefone(e.target.value) : e.target.value }));
 
@@ -36,10 +35,7 @@ export function Cadastro() {
     setEnviando(true);
     try {
       await api.cadastrar({ nome: form.nome.trim(), email: form.email.trim(), telefone: form.telefone, senha: form.senha });
-      // conta nova vai direto ao perfil (completar endereço e foto); quem decide o destino é o App.tsx
-      navigate('/cadastro', { replace: true, state: { de: '/perfil' } });
-      const falha = await entrar(form.email.trim(), form.senha);
-      if (falha) throw falha;
+      setCriado(true);
     } catch (e) {
       setErro(e instanceof ApiError ? e : new ApiError(0, String(e)));
     } finally {
@@ -47,10 +43,30 @@ export function Cadastro() {
     }
   };
 
+  if (criado) {
+    return (
+      <AuthLayout titulo="Confirme seu e-mail" rodape={<Link to="/login">Ir para o login</Link>}>
+        <p className="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm" role="status">
+          Conta criada! Enviamos um link para <strong>{form.email.trim()}</strong>. Abra-o para ativar a conta
+          (vale por 24 horas) e depois entre com seu e-mail e senha.
+        </p>
+        <p className="text-sm text-suave">
+          Não chegou? Confira a caixa de spam ou{' '}
+          {reenviado ? 'pronto, enviamos de novo.' : (
+            <button type="button" className="cursor-pointer font-semibold text-primaria hover:underline"
+              onClick={async () => { await api.reenviarConfirmacao(form.email.trim()).catch(() => undefined); setReenviado(true); }}>
+              envie de novo
+            </button>
+          )}
+        </p>
+      </AuthLayout>
+    );
+  }
+
   return (
     <AuthLayout titulo="Criar conta" subtitulo="Uma conta serve para comprar e para vender."
       rodape={<>Já tem conta? <Link to="/login">Entrar</Link></>}>
-      <ErroBox erro={erro && !erro.campos ? erro : null} />
+      <ErroBox erro={erro && !erro.campos ? erro : null} simples />
       <form onSubmit={enviar} noValidate>
         <Campo label="Nome ou razão social" erro={erroDe('nome')}>
           <input className={controle} autoComplete="organization" autoFocus value={form.nome} onChange={mudar('nome')} />

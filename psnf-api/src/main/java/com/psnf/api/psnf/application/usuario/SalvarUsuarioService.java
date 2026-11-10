@@ -1,5 +1,6 @@
 package com.psnf.api.psnf.application.usuario;
 
+import com.psnf.api.psnf.domain.autenticacao.port.in.ContaUseCase;
 import com.psnf.api.psnf.domain.usuario.exception.EmailJaCadastradoException;
 import com.psnf.api.psnf.domain.usuario.model.Usuario;
 import com.psnf.api.psnf.domain.usuario.port.in.SalvarUsuarioUseCase;
@@ -17,6 +18,7 @@ public class SalvarUsuarioService implements SalvarUsuarioUseCase {
 
     private final UsuarioRepositoryPort usuarioRepositoryPort;
     private final SenhaEncoderPort senhaEncoderPort;
+    private final ContaUseCase contaUseCase;
 
     @Override
     @Transactional
@@ -35,6 +37,8 @@ public class SalvarUsuarioService implements SalvarUsuarioUseCase {
                 EnderecoCommandMapper.toDomain(command.enderecos())
         );
 
-        return usuarioRepositoryPort.save(usuario);
+        Usuario salvo = usuarioRepositoryPort.save(usuario);
+        contaUseCase.enviarConfirmacao(salvo); // só entra depois de clicar no link
+        return salvo;
     }
 }

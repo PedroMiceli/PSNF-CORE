@@ -14,9 +14,11 @@ Só usa a biblioteca padrão do Python 3 (nada para instalar).
 import argparse
 import json
 import os
+import re
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 
 SENHA = "teste123"
@@ -77,6 +79,35 @@ def chamar(metodo, caminho, corpo=None, tentativa=0):
         raise ApiErro(e.code, e.read().decode("utf-8", "replace")) from None
 
 
+def confirmar_email(email):
+    """Conta nova precisa confirmar o e-mail. Sem SMTP (desenvolvimento), a API guarda os e-mails em
+    GET /dev/emails: o script pega o link de lá e confirma, como o usuário faria clicando."""
+    adm = chamar("POST", "/auth/token", {"email": "vendedor@mock.psnf", "senha": "123456"})["accessToken"]
+    req = urllib.request.Request(API + "/dev/emails?para=" + urllib.parse.quote(email),
+                                 headers={"Authorization": "Bearer " + adm})
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        emails = json.loads(resp.read().decode("utf-8"))
+    for e in emails:
+        achado = re.search(r"confirmar-email\?token=([\w-]+)", e["texto"])
+        if achado:
+            chamar("POST", "/auth/confirmar-email", {"token": achado.group(1)})
+            return True
+    return False
+
+
+def entrar_confirmando(email, senhas):
+    """Login (POST /auth/token) tentando as senhas na ordem; e-mail não confirmado é confirmado antes."""
+    for senha in senhas:
+        try:
+            return chamar("POST", "/auth/token", {"email": email, "senha": senha})
+        except ApiErro as e:
+            if e.status == 403 and confirmar_email(email):
+                return chamar("POST", "/auth/token", {"email": email, "senha": senha})
+            if e.status != 401:
+                raise
+    raise ApiErro(401, "senha não confere")
+
+
 def main():
     global API
     parser = argparse.ArgumentParser(description="Cadastra usuários de teste na PSNF API.")
@@ -114,12 +145,7 @@ def main():
     print("\nLogin (POST /auth/token):")
     for nome, email, *_ in USUARIOS:
         try:
-            try:
-                r = chamar("POST", "/auth/token", {"email": email, "senha": SENHA})
-            except ApiErro as e:
-                if e.status != 401:
-                    raise
-                r = chamar("POST", "/auth/token", {"email": email, "senha": SENHA_ANTIGA})
+            r = entrar_confirmando(email, [SENHA, SENHA_ANTIGA])
             print(f"  ✔ {r['usuario']['id']}  {nome}")
         except ApiErro as e:
             print(f"  ✘ {email}: {e}")

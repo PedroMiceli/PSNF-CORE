@@ -34,6 +34,7 @@ public class UsuarioJpa extends BaseEntity {
     private String senha;
 
     private String secret2fa;
+    private java.time.LocalDateTime emailConfirmadoEm;
     private String imagem;
     private String telefone;
 
