@@ -1,5 +1,7 @@
 package com.psnf.api.psnf.application.autenticacao;
 
+import com.psnf.api.psnf.domain.auditoria.model.TipoEventoAuditoria;
+import com.psnf.api.psnf.domain.auditoria.port.out.AuditoriaPort;
 import com.psnf.api.psnf.domain.autenticacao.exception.LinkInvalidoException;
 import com.psnf.api.psnf.domain.autenticacao.model.TipoTokenUsuario;
 import com.psnf.api.psnf.domain.autenticacao.model.TokenUsuario;
@@ -12,8 +14,6 @@ import com.psnf.api.psnf.domain.autenticacao.port.out.TokenUsuarioRepositoryPort
 import com.psnf.api.psnf.domain.usuario.model.Usuario;
 import com.psnf.api.psnf.domain.usuario.port.out.SenhaEncoderPort;
 import com.psnf.api.psnf.domain.usuario.port.out.UsuarioRepositoryPort;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,7 +25,6 @@ import java.util.Optional;
 @Service
 public class ContaService implements ContaUseCase {
 
-    private static final Logger logger = LoggerFactory.getLogger(ContaService.class);
     /** no máximo um e-mail do mesmo tipo por minuto para o mesmo usuário (não encher a caixa de ninguém) */
     private static final Duration INTERVALO_MINIMO_ENVIO = Duration.ofMinutes(1);
 
@@ -37,11 +36,13 @@ public class ContaService implements ContaUseCase {
     private final SenhaEncoderPort senhas;
     private final AutenticacaoUseCase autenticacao;
     private final LimiteTentativasLoginPort tentativas;
+    private final AuditoriaPort auditoria;
     private final Clock relogio;
 
     public ContaService(UsuarioRepositoryPort usuarios, TokenUsuarioRepositoryPort tokens, GeradorTokenPort gerador,
                         EnvioEmailPort emails, MensagensConta mensagens, SenhaEncoderPort senhas,
-                        AutenticacaoUseCase autenticacao, LimiteTentativasLoginPort tentativas, Optional<Clock> relogio) {
+                        AutenticacaoUseCase autenticacao, LimiteTentativasLoginPort tentativas, AuditoriaPort auditoria,
+                        Optional<Clock> relogio) {
         this.usuarios = usuarios;
         this.tokens = tokens;
         this.gerador = gerador;
@@ -50,6 +51,7 @@ public class ContaService implements ContaUseCase {
         this.senhas = senhas;
         this.autenticacao = autenticacao;
         this.tentativas = tentativas;
+        this.auditoria = auditoria;
         this.relogio = relogio.orElse(Clock.systemDefaultZone());
     }
 
@@ -69,6 +71,7 @@ public class ContaService implements ContaUseCase {
         Usuario usuario = usuarios.buscarPorId(token.usuarioId());
         usuario.confirmarEmail(agora);
         usuarios.save(usuario);
+        auditoria.registrar(usuario.getId(), TipoEventoAuditoria.EMAIL_CONFIRMADO);
     }
 
     @Override
@@ -84,7 +87,10 @@ public class ContaService implements ContaUseCase {
     public void solicitarRedefinicaoSenha(String email) {
         usuarios.buscarPorEmail(normalizar(email))
                 .filter(u -> u.getDataExcluido() == null && podeEnviar(u, TipoTokenUsuario.REDEFINICAO_SENHA))
-                .ifPresent(u -> emails.enviar(mensagens.redefinicao(u, novoToken(u, TipoTokenUsuario.REDEFINICAO_SENHA))));
+                .ifPresent(u -> {
+                    emails.enviar(mensagens.redefinicao(u, novoToken(u, TipoTokenUsuario.REDEFINICAO_SENHA)));
+                    auditoria.registrar(u.getId(), TipoEventoAuditoria.REDEFINICAO_SOLICITADA);
+                });
     }
 
     @Override
@@ -100,7 +106,7 @@ public class ContaService implements ContaUseCase {
         autenticacao.sairDeTodos(usuario.getId()); // quem estava usando a senha antiga perde o acesso
         tentativas.registrarSucesso(usuario.getEmail()); // libera o login, caso estivesse bloqueado
         emails.enviar(mensagens.senhaAlterada(usuario));
-        logger.info("Senha redefinida pelo link de e-mail: usuário {}", usuario.getId());
+        auditoria.registrar(usuario.getId(), TipoEventoAuditoria.SENHA_REDEFINIDA);
     }
 
     private String novoToken(Usuario usuario, TipoTokenUsuario tipo) {

@@ -1,6 +1,7 @@
 package com.psnf.api.psnf.infrastructure.web.controller.usuario;
 
 import com.psnf.api.psnf.domain.anuncio.port.in.ListarAnunciosPorVendedorUseCase;
+import com.psnf.api.psnf.domain.auditoria.port.in.ConsultarAtividadeUseCase;
 import com.psnf.api.psnf.domain.usuario.model.Usuario;
 import com.psnf.api.psnf.domain.usuario.port.in.AtualizarUsuarioUseCase;
 import com.psnf.api.psnf.domain.usuario.port.in.DetalhesUsuarioUseCase;
@@ -32,6 +33,18 @@ public class UsuarioController {
     private final AtualizarUsuarioUseCase atualizarUsuarioUseCase;
     private final GerenciarEnderecoUseCase gerenciarEnderecoUseCase;
     private final ListarAnunciosPorVendedorUseCase listarAnunciosPorVendedorUseCase;
+    private final ConsultarAtividadeUseCase consultarAtividadeUseCase;
+
+    public record AtividadeResponse(String tipo, String descricao, String ip, String navegador, java.time.LocalDateTime quando) {
+    }
+
+    /** "Atividade recente": logins, saídas, troca de senha... da própria conta (auditoria) */
+    @GetMapping("/me/atividade")
+    public List<AtividadeResponse> atividade() {
+        return consultarAtividadeUseCase.recentes(UsuarioAutenticadoUtil.obterUsuarioLogadoId()).stream()
+                .map(e -> new AtividadeResponse(e.tipo().name(), e.tipo().descricao(), e.ip(), e.userAgent(), e.criadoEm()))
+                .toList();
+    }
 
     @PostMapping
     public ResponseEntity<UsuarioResponse> salvarUsuario(@RequestBody @Valid UsuarioRequest request) {

@@ -1,5 +1,7 @@
 package com.psnf.api.psnf.application.autenticacao;
 
+import com.psnf.api.psnf.domain.auditoria.model.TipoEventoAuditoria;
+import com.psnf.api.psnf.domain.auditoria.port.out.AuditoriaPort;
 import com.psnf.api.psnf.domain.autenticacao.exception.CredenciaisInvalidasException;
 import com.psnf.api.psnf.domain.autenticacao.exception.EmailNaoConfirmadoException;
 import com.psnf.api.psnf.domain.autenticacao.exception.MuitasTentativasException;
@@ -42,6 +44,7 @@ public class AutenticacaoService implements AutenticacaoUseCase {
     private final RefreshTokenRepositoryPort refreshTokens;
     private final GeradorTokenPort gerador;
     private final LimiteTentativasLoginPort tentativas;
+    private final AuditoriaPort auditoria;
     private final Duration validadeRefresh;
     private final Clock relogio;
     /** hash de uma senha qualquer: e-mail inexistente também paga o custo do BCrypt (mesmo tempo de resposta) */
@@ -49,7 +52,7 @@ public class AutenticacaoService implements AutenticacaoUseCase {
 
     public AutenticacaoService(UsuarioRepositoryPort usuarios, SenhaEncoderPort senhas, AccessTokenPort accessTokens,
                                RefreshTokenRepositoryPort refreshTokens, GeradorTokenPort gerador,
-                               LimiteTentativasLoginPort tentativas,
+                               LimiteTentativasLoginPort tentativas, AuditoriaPort auditoria,
                                @Value("${psnf.auth.refresh-validade:30d}") Duration validadeRefresh,
                                Optional<Clock> relogio) {
         this.usuarios = usuarios;
@@ -58,6 +61,7 @@ public class AutenticacaoService implements AutenticacaoUseCase {
         this.refreshTokens = refreshTokens;
         this.gerador = gerador;
         this.tentativas = tentativas;
+        this.auditoria = auditoria;
         this.validadeRefresh = validadeRefresh;
         this.relogio = relogio.orElse(Clock.systemDefaultZone());
         this.hashFicticio = senhas.criptografar(UUID.randomUUID().toString());
@@ -69,19 +73,24 @@ public class AutenticacaoService implements AutenticacaoUseCase {
         String chave = email == null ? "" : email.trim().toLowerCase();
         // bloqueado: recusa ANTES de conferir a senha (senão a adivinhação continuaria, só sem resposta)
         long espera = tentativas.esperaSegundos(chave);
-        if (espera > 0) throw new MuitasTentativasException(espera);
-
         Optional<Usuario> encontrado = chave.isEmpty() ? Optional.empty() : usuarios.buscarPorEmail(chave);
+        if (espera > 0) {
+            auditar(encontrado, TipoEventoAuditoria.LOGIN_BLOQUEADO, chave);
+            throw new MuitasTentativasException(espera);
+        }
+
         String hash = encontrado.map(Usuario::getSenha).orElse(hashFicticio);
         boolean senhaConfere = senha != null && senhas.confere(senha, hash);
         Optional<Usuario> autenticado = encontrado.filter(u -> senhaConfere && u.getDataExcluido() == null);
         if (autenticado.isEmpty()) {
             tentativas.registrarFalha(chave);
+            auditar(encontrado, TipoEventoAuditoria.LOGIN_FALHOU, chave);
             throw new CredenciaisInvalidasException();
         }
         tentativas.registrarSucesso(chave);
         // depois da senha conferida: não revela a quem não sabe a senha que a conta existe
         if (!autenticado.get().emailConfirmado()) throw new EmailNaoConfirmadoException();
+        auditoria.registrar(autenticado.get().getId(), TipoEventoAuditoria.LOGIN);
         return abrirSessao(autenticado.get(), UUID.randomUUID(), cliente);
     }
 
@@ -105,6 +114,7 @@ public class AutenticacaoService implements AutenticacaoUseCase {
             logger.warn("Reuso de refresh token detectado (usuário {}, família {}, IP {}): sessão revogada",
                     token.usuarioId(), token.familia(), cliente.ip());
             refreshTokens.revogarFamilia(token.familia(), agora);
+            auditoria.registrar(token.usuarioId(), TipoEventoAuditoria.SESSAO_ROUBADA);
             throw new SessaoInvalidaException();
         }
 
@@ -117,14 +127,22 @@ public class AutenticacaoService implements AutenticacaoUseCase {
     @Transactional
     public void sair(String valor) {
         if (valor == null || valor.isBlank()) return;
-        refreshTokens.buscarPorHash(gerador.hash(valor))
-                .ifPresent(t -> refreshTokens.revogarFamilia(t.familia(), LocalDateTime.now(relogio)));
+        refreshTokens.buscarPorHash(gerador.hash(valor)).ifPresent(t -> {
+            refreshTokens.revogarFamilia(t.familia(), LocalDateTime.now(relogio));
+            auditoria.registrar(t.usuarioId(), TipoEventoAuditoria.LOGOUT);
+        });
     }
 
     @Override
     @Transactional
     public void sairDeTodos(UUID usuarioId) {
         refreshTokens.revogarDoUsuario(usuarioId, LocalDateTime.now(relogio));
+        auditoria.registrar(usuarioId, TipoEventoAuditoria.LOGOUT_TODOS);
+    }
+
+    /** conta existente: o evento é dela; e-mail sem conta: guarda só o e-mail tentado (investigação) */
+    private void auditar(Optional<Usuario> conta, TipoEventoAuditoria tipo, String email) {
+        auditoria.registrar(conta.map(Usuario::getId).orElse(null), tipo, conta.isPresent() ? null : "e-mail sem conta: " + email);
     }
 
     private SessaoAutenticada abrirSessao(Usuario usuario, UUID familia, ClienteInfo cliente) {

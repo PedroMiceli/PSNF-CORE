@@ -11,6 +11,7 @@ import { useUsuario } from '../context/UsuarioContext';
 export function Perfil() {
   const usuario = useApi(() => api.usuarioLogado(), []);
   const { atualizarUsuario, sair } = useUsuario();
+  const atividade = useApi(() => api.atividade(), []);
   const [saindo, setSaindo] = useState(false);
   const salvar = useAcao();
   const endereco = useAcao();
@@ -106,7 +107,37 @@ export function Perfil() {
         <Botao variante="perigo" disabled={saindo} onClick={async () => { setSaindo(true); await sair(true); }}>
           {saindo ? 'Encerrando...' : 'Sair de todos os dispositivos'}
         </Botao>
+
+        <h4 className="mt-6">Atividade recente</h4>
+        <p className={dica}>Não reconhece algum acesso? Troque a senha e saia de todos os dispositivos.</p>
+        {atividade.data && atividade.data.length > 0 ? (
+          <ul className="divide-y divide-borda text-sm">
+            {atividade.data.map((a, i) => (
+              <li key={i} className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 py-2">
+                <span className={cx('font-semibold', ALERTA.has(a.tipo) && 'text-vermelho')}>{a.descricao}</span>
+                <span className="text-suave">{new Date(a.quando).toLocaleString('pt-BR')}</span>
+                <span className="w-full truncate text-xs text-suave" title={a.navegador ?? ''}>
+                  {[a.ip && `IP ${a.ip}`, navegador(a.navegador)].filter(Boolean).join(' · ')}
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : <p className={dica}>{atividade.loading ? 'Carregando...' : 'Nenhuma atividade registrada.'}</p>}
       </Painel>
     </section>
   );
+}
+
+/** eventos que merecem atenção do usuário */
+const ALERTA = new Set(['LOGIN_FALHOU', 'LOGIN_BLOQUEADO', 'SESSAO_ROUBADA']);
+
+/** "Mozilla/5.0 (...) Chrome/131..." -> "Chrome no Windows" (o texto completo fica no title) */
+function navegador(ua: string | null): string | null {
+  if (!ua) return null;
+  const nome = /Edg\//.test(ua) ? 'Edge' : /OPR\//.test(ua) ? 'Opera' : /Firefox\//.test(ua) ? 'Firefox'
+    : /Chrome\//.test(ua) ? 'Chrome' : /Safari\//.test(ua) ? 'Safari' : null;
+  const so = /Windows/.test(ua) ? 'Windows' : /Android/.test(ua) ? 'Android' : /iPhone|iPad/.test(ua) ? 'iOS'
+    : /Mac OS X/.test(ua) ? 'macOS' : /Linux/.test(ua) ? 'Linux' : null;
+  if (nome && so) return `${nome} no ${so}`;
+  return nome ?? so ?? ua.slice(0, 40);
 }

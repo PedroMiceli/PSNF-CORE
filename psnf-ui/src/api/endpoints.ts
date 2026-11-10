@@ -1,6 +1,6 @@
 import { http } from './client';
 import type {
-  AlertaMensagem, ArquivoEnviado, MensagemNegociacao, Novidades, AvaliacaoInput, AvaliacoesAnuncio, EntregaInput, Anuncio, EnderecoConsultado, AnuncioInput, Categoria, EnderecoInput, Ncm, Negociacao, NegociacaoResumo, NovaOrdemInput, OrdemDePedido,
+  AlertaMensagem, ArquivoEnviado, Atividade, MensagemNegociacao, Novidades, AvaliacaoInput, AvaliacoesAnuncio, EntregaInput, Anuncio, EnderecoConsultado, AnuncioInput, Categoria, EnderecoInput, Ncm, Negociacao, NegociacaoResumo, NovaOrdemInput, OrdemDePedido,
   OrdemDePedidoResumo, Pagina, PagamentoInput, Usuario, UUID,
 } from './types';
 
@@ -28,6 +28,8 @@ export const api = {
 
   // usuários
   usuarioLogado: () => http.get<Usuario>('/usuarios/me'),
+  /** eventos de segurança da própria conta (logins, saídas, troca de senha) */
+  atividade: () => http.get<Atividade[]>('/usuarios/me/atividade'),
   usuario: (id: UUID) => http.get<Usuario>(`/usuarios/${id}`),
   atualizarUsuario: (body: { nome: string; telefone?: string; imagem?: string }) => http.put<Usuario>('/usuarios/me', body),
   adicionarEndereco: (body: EnderecoInput) => http.post<Usuario>('/usuarios/me/enderecos', body),

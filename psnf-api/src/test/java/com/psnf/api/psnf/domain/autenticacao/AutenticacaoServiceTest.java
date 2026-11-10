@@ -45,6 +45,13 @@ class AutenticacaoServiceTest {
             "Fulano", "fulano@psnf.com", "hash:segredo", null, null, null, List.of())
             .comEmailConfirmadoEm(LocalDateTime.now());
     private AutenticacaoService service;
+    private final List<String> eventos = new ArrayList<>();
+    private final com.psnf.api.psnf.domain.auditoria.port.out.AuditoriaPort auditoria =
+            new com.psnf.api.psnf.domain.auditoria.port.out.AuditoriaPort() {
+                public void registrar(UUID u, com.psnf.api.psnf.domain.auditoria.model.TipoEventoAuditoria t, String d) { eventos.add(t.name()); }
+                public List<com.psnf.api.psnf.domain.auditoria.model.EventoAuditoria> recentesDoUsuario(UUID u, int l) { return List.of(); }
+                public int apagarAnterioresA(LocalDateTime l) { return 0; }
+            };
     /** freio por e-mail simplificado: bloqueia depois de 3 falhas */
     private final Map<String, Integer> falhas = new HashMap<>();
     private final com.psnf.api.psnf.domain.autenticacao.port.out.LimiteTentativasLoginPort tentativas =
@@ -97,7 +104,7 @@ class AutenticacaoServiceTest {
             public int apagarExpirados(LocalDateTime limite) { return 0; }
         };
         service = new AutenticacaoService(usuarios, senhas, u -> new TokenEmitido("jwt-" + u.getId(), Duration.ofMinutes(15)),
-                repo, gerador, tentativas, Duration.ofDays(30), Optional.of(relogio));
+                repo, gerador, tentativas, auditoria, Duration.ofDays(30), Optional.of(relogio));
     }
 
     private static RefreshToken com(RefreshToken t, LocalDateTime usado, LocalDateTime revogado) {
@@ -149,6 +156,7 @@ class AutenticacaoServiceTest {
 
         assertThatThrownBy(() -> service.renovar(r1, CLIENTE)).isInstanceOf(SessaoInvalidaException.class);
         assertThatThrownBy(() -> service.renovar(r2, CLIENTE)).isInstanceOf(SessaoInvalidaException.class);
+        assertThat(eventos).containsSequence("LOGIN", "SESSAO_ROUBADA");
     }
 
     @Test
