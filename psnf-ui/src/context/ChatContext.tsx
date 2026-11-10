@@ -37,7 +37,7 @@ const ChatContext = createContext<Ctx | null>(null);
 /* ------------------------------------------------------------------ armazenamento local (por usuário) */
 // a conversa aberta continua aberta ao recarregar a página (por aba do navegador);
 // "vistas" e o estado da barra ficam no navegador. Tudo separado por usuário: ao trocar o
-// "Logado como", nada da outra pessoa aparece.
+// usuário no mesmo navegador, nada da outra pessoa aparece.
 const ler = <T,>(storage: () => Storage, chave: string, padrao: T): T => {
   try { const v = storage().getItem(chave); return v == null ? padrao : (JSON.parse(v) as T); } catch { return padrao; }
 };

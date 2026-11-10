@@ -6,7 +6,7 @@ com a API no ar (e o MinIO, para as imagens: `docker compose up -d minio`).
 
 | Script | O que faz |
 |---|---|
-| `popular-usuarios.py` | cria 12 empresas compradoras de teste, com telefone e endereço (senha `123456`) |
+| `popular-usuarios.py` | cria 12 empresas compradoras de teste, com telefone e endereço (senha `teste123`) |
 | `popular-anuncios.py` | cria 6 fornecedores e 175 anúncios nas categorias da plataforma (faixas de preço, variações e 2 imagens cada) |
 
 ```bash
@@ -14,11 +14,13 @@ python3 psnf-api/scripts/popular-usuarios.py
 python3 psnf-api/scripts/popular-anuncios.py
 ```
 
-Os usuários criados aparecem no seletor **"Logado como"** do front (lista vinda de `GET /dev/usuarios`,
-endpoint só de desenvolvimento, ativo junto com os usuários mock).
+Os scripts entram com o login de cada usuário (`POST /auth/token`) e mandam o token no
+header `Authorization: Bearer`. Para usar o front, entre com qualquer um desses e-mails e a senha `teste123`
+(criados antes da regra de 8 caracteres: `123456`), ou com `vendedor@mock.psnf` / `comprador@mock.psnf` (senha `123456`). Se a API responder 429 (rate limit), o script espera o
+tempo do `Retry-After` e tenta de novo.
 
 As **categorias são fixas** e não são criadas por script nem por usuários: a API as carrega ao iniciar,
-a partir de `psnf-api/src/main/resources/db/categorias.sql`. Para incluir uma categoria, adicione-a
+a partir de `psnf-api/src/main/resources/db/migration/R__categorias.sql` (migração repetível do Flyway). Para incluir uma categoria, adicione-a
 nesse arquivo e reinicie a API.
 
 Opções do `popular-anuncios.py`:
@@ -28,5 +30,5 @@ Opções do `popular-anuncios.py`:
 - `--limite N`: cria no máximo N anúncios (teste rápido)
 - `--api URL` ou `API_URL=...`: endereço da API (padrão http://localhost:8080)
 
-Os fornecedores são usuários comuns, com senha `123456`; os anúncios do Vendedor Mock aparecem em
-"Meus anúncios". Os ids dos fornecedores criados ficam em `.fornecedores-cache.json` (ignorado pelo git).
+Os fornecedores são usuários comuns, com senha `teste123`; os anúncios do Vendedor Mock aparecem em
+"Meus anúncios".

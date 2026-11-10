@@ -12,6 +12,7 @@ public class UsuarioJpaMapper {
         jpa.setEmail(usuario.getEmail());
         jpa.setSenha(usuario.getSenha());
         jpa.setSecret2fa(usuario.getSecret2fa());
+        jpa.setEmailConfirmadoEm(usuario.getEmailConfirmadoEm());
         jpa.setImagem(usuario.getImagem());
         jpa.setTelefone(usuario.getTelefone());
         usuario.getEnderecos().stream()
@@ -33,6 +34,6 @@ public class UsuarioJpaMapper {
                 jpa.getImagem(),
                 jpa.getTelefone(),
                 jpa.getEnderecos().stream().map(EnderecoJpaMapper::toDomain).toList()
-        );
+        ).comEmailConfirmadoEm(jpa.getEmailConfirmadoEm());
     }
 }

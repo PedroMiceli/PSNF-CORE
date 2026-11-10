@@ -18,7 +18,8 @@ public class Usuario extends BaseDomain {
 
     private String nome;
     private final String email;
-    private final String senha;
+    private String senha;
+    private LocalDateTime emailConfirmadoEm;
     private final String secret2fa;
     private String imagem;
     private String telefone;
@@ -46,6 +47,25 @@ public class Usuario extends BaseDomain {
         return new Usuario(id, dataCadastro, dataAlteracao, dataExcluido, nome, email, senha, secret2fa, imagem, telefone, enderecos);
     }
 
+    /** só a camada de persistência usa: restaura a data de confirmação gravada */
+    public Usuario comEmailConfirmadoEm(LocalDateTime quando) {
+        this.emailConfirmadoEm = quando;
+        return this;
+    }
+
+    /** clicou no link de confirmação (ou provou ter acesso ao e-mail redefinindo a senha) */
+    public void confirmarEmail(LocalDateTime quando) {
+        if (this.emailConfirmadoEm == null) this.emailConfirmadoEm = quando;
+    }
+
+    public boolean emailConfirmado() { return emailConfirmadoEm != null; }
+
+    /** @param senhaCriptografada a senha nova, já criptografada */
+    public void alterarSenha(String senhaCriptografada) {
+        if (senhaCriptografada == null || senhaCriptografada.isBlank()) throw new IllegalArgumentException("Senha inválida");
+        this.senha = senhaCriptografada;
+    }
+
     public void atualizarDados(String nome, String telefone, String imagem) {
         if (nome == null || nome.isBlank()) {
             throw new IllegalArgumentException("O nome é obrigatório");
@@ -69,6 +89,7 @@ public class Usuario extends BaseDomain {
     public String getNome() { return nome; }
     public String getEmail() { return email; }
     public String getSenha() { return senha; }
+    public LocalDateTime getEmailConfirmadoEm() { return emailConfirmadoEm; }
     public String getSecret2fa() { return secret2fa; }
     public String getImagem() { return imagem; }
     public String getTelefone() { return telefone; }

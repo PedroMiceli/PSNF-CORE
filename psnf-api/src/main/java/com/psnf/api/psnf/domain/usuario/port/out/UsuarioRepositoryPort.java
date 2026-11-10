@@ -16,4 +16,7 @@ public interface UsuarioRepositoryPort {
     Map<UUID, Usuario> buscarPorIds(Collection<UUID> usuarioIds);
 
     boolean existePorEmail(String email);
+
+    /** e-mail sem diferenciar maiúsculas/minúsculas; vazio se não existir */
+    java.util.Optional<Usuario> buscarPorEmail(String email);
 }

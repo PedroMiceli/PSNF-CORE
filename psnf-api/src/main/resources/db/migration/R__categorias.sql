@@ -3,7 +3,7 @@
 --
 -- Compradores e vendedores NÃO criam categorias: a API só oferece leitura (GET /categorias).
 -- Para incluir uma categoria, adicione-a nesta lista: na próxima inicialização ela é inserida.
--- Roda a cada inicialização, depois do Hibernate criar as tabelas, e é idempotente: só insere as
+-- Migração repetível do Flyway: roda de novo sempre que este arquivo muda. É idempotente: só insere as
 -- categorias que ainda não existem (comparando o nome sem diferenciar maiúsculas/minúsculas).
 -- Remover um nome daqui NÃO apaga a categoria do banco (pode haver anúncios usando-a).
 -- ---------------------------------------------------------------------------------------------

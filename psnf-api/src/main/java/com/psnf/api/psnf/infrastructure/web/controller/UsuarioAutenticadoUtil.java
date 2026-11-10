@@ -1,32 +1,31 @@
 package com.psnf.api.psnf.infrastructure.web.controller;
 
-import com.psnf.api.psnf.infrastructure.mock.UsuarioMock;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
+import com.psnf.api.psnf.domain.shared.exception.NaoAutenticadoException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
 
+import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Solução TEMPORÁRIA até existir autenticação (JWT/Spring Security).
- * <p>
- * Lê o id do usuário logado do header {@code X-Usuario-Id}. Se o header não for enviado,
- * o usuário logado é o {@link UsuarioMock#VENDEDOR}.
+ * Id do usuário logado, tirado do JWT já validado pelo Spring Security (claim "sub").
+ * Antes vinha do header X-Usuario-Id, que qualquer um podia preencher com o id de outra pessoa.
  */
-public class UsuarioAutenticadoUtil {
+public final class UsuarioAutenticadoUtil {
 
-    public static final String HEADER_USUARIO = "X-Usuario-Id";
+    private UsuarioAutenticadoUtil() {
+    }
 
     public static UUID obterUsuarioLogadoId() {
-        if (RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes attrs) {
-            String header = attrs.getRequest().getHeader(HEADER_USUARIO);
-            if (header != null && !header.isBlank()) {
-                try {
-                    return UUID.fromString(header.trim());
-                } catch (IllegalArgumentException e) {
-                    throw new IllegalArgumentException("Header " + HEADER_USUARIO + " inválido: " + header);
-                }
-            }
+        return usuarioLogadoId().orElseThrow(() -> new NaoAutenticadoException("Faça login para continuar"));
+    }
+
+    public static Optional<UUID> usuarioLogadoId() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof Jwt jwt) {
+            return Optional.of(UUID.fromString(jwt.getSubject()));
         }
-        return UsuarioMock.VENDEDOR_ID;
+        return Optional.empty();
     }
 }

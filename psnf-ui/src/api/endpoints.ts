@@ -1,6 +1,6 @@
 import { http } from './client';
 import type {
-  AlertaMensagem, ArquivoEnviado, MensagemNegociacao, Novidades, AvaliacaoInput, AvaliacoesAnuncio, EntregaInput, Anuncio, EnderecoConsultado, AnuncioInput, Categoria, EnderecoInput, Ncm, Negociacao, NegociacaoResumo, NovaOrdemInput, OrdemDePedido,
+  AlertaMensagem, ArquivoEnviado, Atividade, MensagemNegociacao, Novidades, AvaliacaoInput, AvaliacoesAnuncio, EntregaInput, Anuncio, EnderecoConsultado, AnuncioInput, Categoria, EnderecoInput, Ncm, Negociacao, NegociacaoResumo, NovaOrdemInput, OrdemDePedido,
   OrdemDePedidoResumo, Pagina, PagamentoInput, Usuario, UUID,
 } from './types';
 
@@ -15,11 +15,22 @@ export const api = {
   // arquivos (MinIO/S3): devolve o caminho a ser usado em imagens, NF, mensagens...
   enviarArquivo: (arquivo: File) => http.upload<ArquivoEnviado>('/arquivos', 'arquivo', arquivo),
 
+  // autenticação (tokens em cookies HttpOnly: o corpo da resposta traz só o usuário)
+  entrar: (email: string, senha: string) => http.post<Usuario>('/auth/login', { email, senha }),
+  sair: () => http.post<void>('/auth/logout'),
+  /** encerra a sessão em todos os dispositivos */
+  sairDeTodos: () => http.post<void>('/auth/logout-todos'),
+  confirmarEmail: (token: string) => http.post<void>('/auth/confirmar-email', { token }),
+  reenviarConfirmacao: (email: string) => http.post<void>('/auth/reenviar-confirmacao', { email }),
+  esqueciSenha: (email: string) => http.post<void>('/auth/esqueci-senha', { email }),
+  redefinirSenha: (token: string, novaSenha: string) => http.post<void>('/auth/redefinir-senha', { token, novaSenha }),
+  cadastrar: (body: { nome: string; email: string; senha: string; telefone: string }) => http.post<Usuario>('/usuarios', body),
+
   // usuários
   usuarioLogado: () => http.get<Usuario>('/usuarios/me'),
+  /** eventos de segurança da própria conta (logins, saídas, troca de senha) */
+  atividade: () => http.get<Atividade[]>('/usuarios/me/atividade'),
   usuario: (id: UUID) => http.get<Usuario>(`/usuarios/${id}`),
-  /** SOMENTE DESENVOLVIMENTO: usuários para o seletor "Logado como" (login simulado). */
-  usuariosDev: () => http.get<{ id: UUID; nome: string; email: string }[]>('/dev/usuarios'),
   atualizarUsuario: (body: { nome: string; telefone?: string; imagem?: string }) => http.put<Usuario>('/usuarios/me', body),
   adicionarEndereco: (body: EnderecoInput) => http.post<Usuario>('/usuarios/me/enderecos', body),
   removerEndereco: (id: UUID) => http.delete<Usuario>(`/usuarios/me/enderecos/${id}`),

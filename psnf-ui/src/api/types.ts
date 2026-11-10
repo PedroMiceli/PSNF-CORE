@@ -32,6 +32,15 @@ export interface EnderecoConsultado {
   uf: string | null;
 }
 
+/** evento de segurança da conta (auditoria) */
+export interface Atividade {
+  tipo: string;
+  descricao: string;
+  ip: string | null;
+  navegador: string | null;
+  quando: string;
+}
+
 export interface Usuario {
   id: UUID;
   nome: string;

@@ -7,13 +7,10 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Usuários fixos em memória, usados enquanto não existe autenticação.
+ * Usuários de teste para desenvolvimento, criados no banco pelo {@link UsuarioMockInitializer}.
+ * Entre com vendedor@mock.psnf ou comprador@mock.psnf, senha {@value #SENHA}.
  * <p>
- * - VENDEDOR: é o usuário "logado" padrão (cria anúncios e ordens de pedido).
- * - COMPRADOR: use o id dele como {@code compradorId} ao criar uma ordem, e no header
- *   {@code X-Usuario-Id} para agir como comprador (pagar, confirmar entrega...).
- * <p>
- * Para remover depois: apagar este pacote e trocar o fallback do UsuarioAutenticadoUtil.
+ * Senha conhecida: desligue em produção com {@code PSNF_USUARIOS_TESTE=false}.
  */
 public final class UsuarioMock {
 

@@ -28,22 +28,28 @@ Abra http://localhost:5173.
 
 O Vite repassa as chamadas `/api/*` para `http://localhost:8080` (veja `vite.config.ts`), então não é preciso configurar CORS na API.
 
-## Login simulado
+## Login
 
-A API ainda não tem autenticação: o usuário "logado" vai no header `X-Usuario-Id`.
-No canto superior direito, o seletor **Logado como** troca entre:
+A API exige login em tudo, menos nas telas de entrar, cadastro e recuperação de senha. Os tokens ficam em
+cookies `HttpOnly` (o JavaScript não os lê); `src/api/client.ts` envia o token CSRF e renova a sessão
+sozinho quando o acesso de 15 minutos vence.
 
-- **Vendedor Mock** (azul): cria anúncios, gera ordens, anexa NF, despacha.
-- **Comprador Mock** (verde): vê a vitrine, paga, confirma a entrega.
-- Usuários extras cadastrados em **Perfil → Cadastrar outro usuário**.
+Usuários de teste (criados pela API em desenvolvimento, senha `123456`):
+
+- **vendedor@mock.psnf**: cria anúncios, gera ordens, anexa NF, despacha.
+- **comprador@mock.psnf**: vê a vitrine, paga, confirma a entrega.
+
+Para usar os dois ao mesmo tempo, abra uma janela anônima (ou outro navegador) para o segundo.
+Contas novas: **Criar conta**. Sem SMTP configurado na API, o link de confirmação (e o de "esqueci minha
+senha") aparece no log da API e em `GET /dev/emails`.
 
 ## Roteiro de teste sugerido
 
 1. **Meus anúncios → Novo anúncio** (como vendedor): faixas de preço, fotos (upload ou URL) e variações.
 2. No anúncio, clique em **Gerar ordem de pedido**, escolha as variações e quantidades e ajuste o valor negociado.
-3. Troque para **Comprador Mock** → **Ordens de pedido → Minhas compras** → abra a ordem e registre os pagamentos (PIX, boleto ou transferência).
-4. Troque para o vendedor → anexe a **nota fiscal** (PDF/XML) → **Pedido despachado**.
-5. Troque para o comprador → **Confirmar entrega**.
+3. Entre como **comprador@mock.psnf** (outra janela) → **Ordens de pedido → Minhas compras** → abra a ordem e registre os pagamentos (PIX, boleto ou transferência).
+4. De volta ao vendedor → anexe a **nota fiscal** (PDF/XML) → **Pedido despachado**.
+5. Na janela do comprador → **Confirmar entrega**.
 6. Use **Incidentes e mensagens** a qualquer momento (é possível anexar fotos).
 
 ## Estilo (Tailwind CSS)
@@ -62,7 +68,7 @@ O visual usa **Tailwind CSS v4** (plugin `@tailwindcss/vite`), com as classes di
 
 ```
 src/
-  api/          client.ts (fetch + X-Usuario-Id + erros), endpoints.ts, types.ts, useApi.ts
+  api/          client.ts (fetch + CSRF + renovação da sessão + erros), endpoints.ts, types.ts, useApi.ts
   context/      UsuarioContext.tsx (usuário logado simulado)
   components/   Layout, componentes de UI e formatação
   pages/        Vitrine, AnuncioDetalhe, AnuncioForm, MeusAnuncios,
