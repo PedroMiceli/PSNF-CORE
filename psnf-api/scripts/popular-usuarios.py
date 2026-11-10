@@ -15,6 +15,7 @@ import argparse
 import json
 import os
 import sys
+import time
 import urllib.error
 import urllib.request
 
@@ -55,7 +56,8 @@ class ApiErro(Exception):
         self.status = status
 
 
-def chamar(metodo, caminho, corpo=None):
+def chamar(metodo, caminho, corpo=None, tentativa=0):
+    args, kwargs = (metodo, caminho), {"corpo": corpo}
     dados = json.dumps(corpo).encode("utf-8") if corpo is not None else None
     req = urllib.request.Request(API + caminho, data=dados, method=metodo,
                                  headers={"Content-Type": "application/json"} if dados else {})
@@ -64,6 +66,12 @@ def chamar(metodo, caminho, corpo=None):
             texto = resp.read().decode("utf-8")
             return json.loads(texto) if texto else None
     except urllib.error.HTTPError as e:
+        if e.code == 429 and tentativa < 5:
+            # rate limit da API: espera o tempo pedido no Retry-After e tenta de novo
+            espera = int(e.headers.get("Retry-After", "5"))
+            print(f"    (limite de requisições da API: aguardando {espera} s)")
+            time.sleep(espera)
+            return chamar(*args, tentativa=tentativa + 1, **kwargs)
         raise ApiErro(e.code, e.read().decode("utf-8", "replace")) from None
 
 
@@ -74,7 +82,7 @@ def main():
     API = parser.parse_args().api.rstrip("/")
 
     try:
-        chamar("GET", "/categorias")
+        chamar("GET", "/auth/csrf")
     except (urllib.error.URLError, OSError):
         sys.exit(f"Erro: a API não respondeu em {API}. Ela está rodando?")
 
@@ -100,15 +108,14 @@ def main():
 
     print(f"\nResumo: {criados} criado(s), {existentes} já existia(m), {falhas} falha(s). Senha de todos: {SENHA}")
 
-    # mostra os ids (úteis no header X-Usuario-Id do .http / Postman), se o endpoint de desenvolvimento estiver ativo
-    try:
-        por_email = {u["email"]: u for u in chamar("GET", "/dev/usuarios")}
-        print("\nIds para o header X-Usuario-Id:")
-        for nome, email, *_ in USUARIOS:
-            if email in por_email:
-                print(f"  {por_email[email]['id']}  {nome}")
-    except ApiErro:
-        pass
+    # confere o login de cada um e mostra o id (útil em testes)
+    print("\nLogin (POST /auth/token):")
+    for nome, email, *_ in USUARIOS:
+        try:
+            r = chamar("POST", "/auth/token", {"email": email, "senha": SENHA})
+            print(f"  ✔ {r['usuario']['id']}  {nome}")
+        except ApiErro as e:
+            print(f"  ✘ {email}: {e}")
 
     sys.exit(1 if falhas else 0)
 

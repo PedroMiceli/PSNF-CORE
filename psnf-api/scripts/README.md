@@ -14,8 +14,10 @@ python3 psnf-api/scripts/popular-usuarios.py
 python3 psnf-api/scripts/popular-anuncios.py
 ```
 
-Os usuários criados aparecem no seletor **"Logado como"** do front (lista vinda de `GET /dev/usuarios`,
-endpoint só de desenvolvimento, ativo junto com os usuários mock).
+Os scripts entram com o login de cada usuário (`POST /auth/token`, senha `123456`) e mandam o token no
+header `Authorization: Bearer`. Para usar o front, entre com qualquer um desses e-mails e a senha `123456`
+(ou `vendedor@mock.psnf` / `comprador@mock.psnf`). Se a API responder 429 (rate limit), o script espera o
+tempo do `Retry-After` e tenta de novo.
 
 As **categorias são fixas** e não são criadas por script nem por usuários: a API as carrega ao iniciar,
 a partir de `psnf-api/src/main/resources/db/migration/R__categorias.sql` (migração repetível do Flyway). Para incluir uma categoria, adicione-a
@@ -29,4 +31,4 @@ Opções do `popular-anuncios.py`:
 - `--api URL` ou `API_URL=...`: endereço da API (padrão http://localhost:8080)
 
 Os fornecedores são usuários comuns, com senha `123456`; os anúncios do Vendedor Mock aparecem em
-"Meus anúncios". Os ids dos fornecedores criados ficam em `.fornecedores-cache.json` (ignorado pelo git).
+"Meus anúncios".

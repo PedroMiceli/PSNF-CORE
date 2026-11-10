@@ -16,11 +16,10 @@ import java.time.LocalDateTime;
 /**
  * Garante que os usuários de {@link UsuarioMock} existam também no banco.
  * <p>
- * Eles vivem em memória, mas ordem de pedido e anúncio têm chave estrangeira para a tabela
- * {@code usuario} — sem essa linha no banco o INSERT da ordem falharia.
  * Usa {@code ON CONFLICT DO NOTHING}: se já existirem, nada é alterado.
  * <p>
- * Desligue com {@code psnf.mock.usuarios.enabled=false}.
+ * Desligue com {@code PSNF_USUARIOS_TESTE=false} (psnf.mock.usuarios.enabled): em produção, contas com
+ * senha conhecida seriam uma porta aberta.
  */
 @Component
 @RequiredArgsConstructor
@@ -51,6 +50,7 @@ public class UsuarioMockInitializer implements ApplicationRunner {
                 logger.info("Usuário mock criado: {} ({})", usuario.getNome(), usuario.getId());
             }
         }
-        logger.info("Usuários mock -> VENDEDOR: {} | COMPRADOR: {}", UsuarioMock.VENDEDOR_ID, UsuarioMock.COMPRADOR_ID);
+        logger.warn("Usuários de teste ativos (senha {}): {} e {}. Desligue em produção com PSNF_USUARIOS_TESTE=false",
+                UsuarioMock.SENHA, UsuarioMock.VENDEDOR.getEmail(), UsuarioMock.COMPRADOR.getEmail());
     }
 }

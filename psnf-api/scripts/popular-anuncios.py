@@ -14,7 +14,7 @@ O que ele faz:
   3. cadastra cada anúncio com faixas de preço por quantidade, variações e imagens.
 
 Pode ser executado várias vezes: anúncios com o mesmo título para o mesmo fornecedor são pulados.
-Os ids dos fornecedores criados ficam em psnf-api/scripts/.fornecedores-cache.json (ignorado pelo git).
+Cada fornecedor entra com o próprio login (POST /auth/token, senha 123456) para cadastrar os seus anúncios.
 Só usa a biblioteca padrão do Python 3 (nada para instalar).
 """
 import argparse
@@ -23,17 +23,18 @@ import os
 import re
 import struct
 import sys
+import time
 import unicodedata
 import urllib.error
 import urllib.request
 import uuid
 import zlib
 
-VENDEDOR_MOCK = "3c288400-f58f-4d28-905c-f7dba388d6c9"
+SENHA = "123456"
 
 # Fornecedores fictícios. O primeiro é o Vendedor Mock da API (já existe).
 FORNECEDORES = [
-    {"chave": "mock", "id": VENDEDOR_MOCK},
+    {"chave": "mock", "email": "vendedor@mock.psnf"},
     {"chave": "aurora", "nome": "Distribuidora Aurora", "email": "contato@aurora.psnf.dev", "telefone": "11940000001"},
     {"chave": "central", "nome": "Atacado Central", "email": "vendas@central.psnf.dev", "telefone": "21940000002"},
     {"chave": "casaecia", "nome": "Casa & Cia Suprimentos", "email": "comercial@casaecia.psnf.dev", "telefone": "31940000003"},
@@ -302,7 +303,8 @@ class ApiErro(Exception):
         self.corpo = corpo
 
 
-def chamar(metodo, caminho, corpo=None, usuario=None, multipart=None):
+def chamar(metodo, caminho, corpo=None, usuario=None, multipart=None, tentativa=0):
+    args, kwargs = (metodo, caminho), {"corpo": corpo, "usuario": usuario, "multipart": multipart}
     headers = {}
     dados = None
     if multipart is not None:
@@ -311,14 +313,21 @@ def chamar(metodo, caminho, corpo=None, usuario=None, multipart=None):
     elif corpo is not None:
         dados = json.dumps(corpo).encode("utf-8")
         headers["Content-Type"] = "application/json"
-    if usuario:
-        headers["X-Usuario-Id"] = usuario
+    token = usuario or TOKEN_PADRAO
+    if token:
+        headers["Authorization"] = "Bearer " + token
     req = urllib.request.Request(API + caminho, data=dados, method=metodo, headers=headers)
     try:
         with urllib.request.urlopen(req, timeout=30) as resp:
             texto = resp.read().decode("utf-8")
             return json.loads(texto) if texto else None
     except urllib.error.HTTPError as e:
+        if e.code == 429 and tentativa < 5:
+            # rate limit da API: espera o tempo pedido no Retry-After e tenta de novo
+            espera = int(e.headers.get("Retry-After", "5"))
+            print(f"    (limite de requisições da API: aguardando {espera} s)")
+            time.sleep(espera)
+            return chamar(*args, tentativa=tentativa + 1, **kwargs)
         raise ApiErro(e.code, e.read().decode("utf-8", "replace")) from None
 
 
@@ -392,77 +401,36 @@ def todos_anuncios_ativos():
             return
 
 
-CACHE = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".fornecedores-cache.json")
-
-
-def ler_cache():
-    try:
-        with open(CACHE, encoding="utf-8") as f:
-            return json.load(f).get(API, {})
-    except (OSError, ValueError):
-        return {}
-
-
-def gravar_cache(por_email):
-    try:
-        with open(CACHE, encoding="utf-8") as f:
-            tudo = json.load(f)
-    except (OSError, ValueError):
-        tudo = {}
-    tudo[API] = por_email
-    with open(CACHE, "w", encoding="utf-8") as f:
-        json.dump(tudo, f, indent=2, ensure_ascii=False)
+def entrar(email):
+    """Login de script: devolve o token de acesso e o id do usuário (POST /auth/token)."""
+    r = chamar("POST", "/auth/token", {"email": email, "senha": SENHA})
+    return {"id": r["usuario"]["id"], "token": r["accessToken"]}
 
 
 def garantir_fornecedores():
-    """Cria os fornecedores que faltam e devolve os ids.
+    """Cria os fornecedores que faltam e faz login com cada um.
 
-    A API não busca usuário por email, então os ids ficam num cache local (.fornecedores-cache.json,
-    por URL da API). Cada id do cache é conferido na API antes de ser usado (o banco pode ter sido
-    recriado). Sem cache, os fornecedores existentes são descobertos pelos anúncios da vitrine."""
-    cache = ler_cache()
-    por_email = {}
-    for email, uid in cache.items():
-        try:
-            if chamar("GET", f"/usuarios/{uid}")["email"] == email:
-                por_email[email] = uid
-        except ApiErro:
-            pass  # id antigo (banco recriado): ignora
-
-    precisa_vitrine = any(f.get("email") not in por_email for f in FORNECEDORES if "id" not in f)
-    if precisa_vitrine:
-        vistos = set(por_email.values())
-        for anuncio in todos_anuncios_ativos():
-            vid = anuncio["vendedorId"]
-            if vid not in vistos:
-                vistos.add(vid)
-                try:
-                    por_email.setdefault(chamar("GET", f"/usuarios/{vid}")["email"], vid)
-                except ApiErro:
-                    pass
-
-    ids = []
+    O cadastro devolve 422 se o e-mail já existe; tudo bem: o login a seguir funciona do mesmo jeito
+    (a senha de todos é 123456). Um fornecedor que exista com outra senha é pulado."""
+    global TOKEN_PADRAO
+    logados = []
     for f in FORNECEDORES:
-        if "id" in f:
-            ids.append(f["id"])
-        elif f["email"] in por_email:
-            ids.append(por_email[f["email"]])
-        else:
+        if "nome" in f:
             try:
-                criado = chamar("POST", "/usuarios", {"nome": f["nome"], "email": f["email"], "senha": "123456",
-                                                      "telefone": f["telefone"]})
-                print(f"  + fornecedor criado: {f['nome']} ({criado['id']})")
-                por_email[f["email"]] = criado["id"]
-                ids.append(criado["id"])
+                chamar("POST", "/usuarios", {"nome": f["nome"], "email": f["email"], "senha": SENHA,
+                                             "telefone": f["telefone"]})
+                print(f"  + fornecedor criado: {f['nome']}")
             except ApiErro as e:
                 if e.status != 422:
                     raise
-                print(f"  ! {f['nome']} ({f['email']}) já existe, mas o id não está no cache nem na vitrine; "
-                      "seus anúncios irão para o Vendedor Mock")
-                ids.append(VENDEDOR_MOCK)
-
-    gravar_cache({f["email"]: por_email[f["email"]] for f in FORNECEDORES if f.get("email") in por_email})
-    return ids
+        try:
+            logados.append(entrar(f["email"]))
+        except ApiErro as e:
+            print(f"  ! não foi possível entrar como {f['email']} ({e.status}): seus anúncios ficam com outro fornecedor")
+    if not logados:
+        sys.exit("Erro: nenhum fornecedor conseguiu entrar. Os usuários de teste estão ativos (PSNF_USUARIOS_TESTE)?")
+    TOKEN_PADRAO = logados[0]["token"]
+    return logados
 
 
 def montar_anuncio(categoria_id, titulo, preco, variacoes, detalhe, imagens):
@@ -490,17 +458,17 @@ def main():
     API = args.api.rstrip("/")
 
     try:
-        chamar("GET", "/categorias")
+        chamar("GET", "/auth/csrf")
     except (urllib.error.URLError, OSError):
         sys.exit(f"Erro: a API não respondeu em {API}. Ela está rodando?")
 
-    print("Categorias:")
-    categorias = buscar_categorias()
     print("Fornecedores:")
     fornecedores = garantir_fornecedores()
+    print("Categorias:")
+    categorias = buscar_categorias()
 
     # títulos que cada fornecedor já anunciou (para poder rodar o script de novo)
-    ja_anunciados = {vid: {a["titulo"] for a in chamar("GET", f"/usuarios/{vid}/anuncios")} for vid in set(fornecedores)}
+    ja_anunciados = {f["id"]: {a["titulo"] for a in chamar("GET", f"/usuarios/{f['id']}/anuncios")} for f in fornecedores}
 
     total = sum(len(p) for p in CATALOGO.values())
     print(f"\nCadastrando até {total} anúncios em {API} (imagens: {args.imagens}) ...\n")
@@ -516,7 +484,7 @@ def main():
                 pulados += 1
                 continue
             vendedor = fornecedores[(ci + pi) % len(fornecedores)]
-            if titulo in ja_anunciados.get(vendedor, set()):
+            if titulo in ja_anunciados.get(vendedor["id"], set()):
                 pulados += 1
                 continue
             if args.limite and criados >= args.limite:
@@ -529,7 +497,7 @@ def main():
                         try:
                             conteudo = png(480, 360, cor_hsl(matiz + pi * 0.03, 0.55, 0.45),
                                            cor_hsl(matiz + 0.08 + k * 0.05, 0.6, 0.72), 24 + 6 * pi)
-                            imagens.append(upload_png(f"{slug(titulo)}-{k + 1}.png", conteudo, vendedor))
+                            imagens.append(upload_png(f"{slug(titulo)}-{k + 1}.png", conteudo, vendedor["token"]))
                             continue
                         except ApiErro as e:
                             if e.status != 503:
@@ -539,7 +507,7 @@ def main():
                     imagens.append(f"https://picsum.photos/seed/{slug(titulo)}-{k + 1}/600/400")
 
                 corpo = montar_anuncio(categorias[categoria], titulo, preco, variacoes, detalhe, imagens)
-                criado = chamar("POST", "/anuncios", corpo, usuario=vendedor)
+                criado = chamar("POST", "/anuncios", corpo, usuario=vendedor["token"])
                 criados += 1
                 print(f"  ✔ [{n:3}/{total}] {categoria:<24} {titulo}  (a partir de R$ {criado['precoMenor']:.2f})")
             except ApiErro as e:
@@ -547,10 +515,11 @@ def main():
                 print(f"  ✘ [{n:3}/{total}] {titulo}: {e}")
 
     print(f"\nResumo: {criados} anúncio(s) criado(s), {pulados} já existia(m), {falhas} falha(s).")
-    print(f"Fornecedores usados: {len(set(fornecedores))} | categorias: {len(categorias)}")
+    print(f"Fornecedores usados: {len(fornecedores)} | categorias: {len(categorias)}")
     sys.exit(1 if falhas else 0)
 
 
 API = ""
+TOKEN_PADRAO = None
 if __name__ == "__main__":
     main()

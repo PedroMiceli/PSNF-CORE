@@ -16,4 +16,6 @@ public interface UsuarioJPARepository extends JpaRepository<UsuarioJpa, UUID> {
     Optional<String> buscarNomePorId(@Param("id") UUID id);
 
     boolean existsByEmailIgnoreCase(String email);
+
+    Optional<UsuarioJpa> findByEmailIgnoreCase(String email);
 }

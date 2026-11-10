@@ -1,6 +1,7 @@
 package com.psnf.api.psnf.infrastructure.web.handler;
 
 import com.psnf.api.psnf.domain.shared.exception.AcessoNegadoException;
+import com.psnf.api.psnf.domain.shared.exception.NaoAutenticadoException;
 import com.psnf.api.psnf.domain.shared.exception.RecursoNaoEncontradoException;
 import com.psnf.api.psnf.domain.shared.exception.RegraDeNegocioException;
 import com.psnf.api.psnf.domain.shared.exception.ServicoExternoIndisponivelException;
@@ -49,6 +50,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(RegraDeNegocioException.class)
     public ResponseEntity<Map<String, String>> handleRegraDeNegocio(RegraDeNegocioException ex) {
         return erro(HttpStatus.UNPROCESSABLE_CONTENT, ex.getMessage());
+    }
+
+    @ExceptionHandler(NaoAutenticadoException.class)
+    public ResponseEntity<Map<String, String>> handleNaoAutenticado(NaoAutenticadoException ex) {
+        return erro(HttpStatus.UNAUTHORIZED, ex.getMessage());
     }
 
     @ExceptionHandler(AcessoNegadoException.class)

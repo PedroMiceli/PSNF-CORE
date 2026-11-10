@@ -2,9 +2,11 @@
 ### PSNF API — roteiro de testes (IntelliJ HTTP Client)
 ###
 ### Como usar:
-###  1. Suba a API (Postgres rodando). Os usuários mock são criados automaticamente:
-###       VENDEDOR  = {{vendedorId}}   (usuário logado padrão, sem header)
-###       COMPRADOR = {{compradorId}}  (use o header X-Usuario-Id para agir como ele)
+###  1. Suba a API (Postgres rodando). Os usuários de teste são criados automaticamente
+###     (senha 123456): vendedor@mock.psnf ({{vendedorId}}) e comprador@mock.psnf ({{compradorId}}).
+###     A seção 0 faz login com cada um (POST /auth/token) e guarda os tokens; as requisições
+###     seguintes usam "Authorization: Bearer {{tokenVendedor}}" ou {{tokenComprador}}.
+###     (O navegador usa cookies HttpOnly + CSRF; aqui, como em qualquer script, vai o header.)
 ###  2. Execute as requisições DE CIMA PARA BAIXO (ou "Run All Requests in File").
 ###     Cada resposta guarda os ids necessários nas variáveis seguintes.
 ###  As variáveis abaixo já bastam; não é preciso selecionar ambiente.
@@ -17,10 +19,84 @@
 @terceiroId = 00000000-0000-0000-0000-000000000001
 
 
+### =============================== 0. AUTENTICAÇÃO ====================================
+
+### 0.1 [401] Sem login nada responde (só /auth/** e o cadastro são públicos)
+GET {{baseUrl}}/usuarios/me
+
+> {% client.test("401", () => client.assert(response.status === 401, "status " + response.status)); %}
+
+### 0.2 [401] Senha errada (mesma mensagem para e-mail inexistente: não revela quem tem conta)
+POST {{baseUrl}}/auth/token
+Content-Type: application/json
+
+{ "email": "vendedor@mock.psnf", "senha": "errada" }
+
+> {% client.test("401", () => client.assert(response.status === 401 && response.body.erro === "E-mail ou senha inválidos", "status " + response.status)); %}
+
+### 0.3 Login do vendedor (tokens no corpo, para scripts; o navegador usa POST /auth/login com cookies)
+POST {{baseUrl}}/auth/token
+Content-Type: application/json
+
+{ "email": "vendedor@mock.psnf", "senha": "123456" }
+
+> {%
+    client.test("200 - tokens emitidos", () => client.assert(response.status === 200 && !!response.body.accessToken && !!response.body.refreshToken));
+    client.test("é o vendedor mock", () => client.assert(response.body.usuario.id === "3c288400-f58f-4d28-905c-f7dba388d6c9"));
+    client.global.set("tokenVendedor", response.body.accessToken);
+    client.global.set("refreshVendedor", response.body.refreshToken);
+%}
+
+### 0.4 Login do comprador
+POST {{baseUrl}}/auth/token
+Content-Type: application/json
+
+{ "email": "comprador@mock.psnf", "senha": "123456" }
+
+> {%
+    client.test("200", () => client.assert(response.status === 200));
+    client.global.set("tokenComprador", response.body.accessToken);
+%}
+
+### 0.5 [401] Token adulterado
+GET {{baseUrl}}/usuarios/me
+Authorization: Bearer {{tokenVendedor}}x
+
+> {% client.test("401", () => client.assert(response.status === 401, "status " + response.status)); %}
+
+### 0.6 Renovar a sessão: o refresh token é trocado por outro (rotação)
+POST {{baseUrl}}/auth/refresh
+Content-Type: application/json
+
+{ "refreshToken": "{{refreshVendedor}}" }
+
+> {%
+    client.test("200 - par novo", () => client.assert(response.status === 200 && response.body.refreshToken !== client.global.get("refreshVendedor")));
+    client.global.set("refreshVendedor2", response.body.refreshToken);
+%}
+
+### 0.7 Logout encerra a sessão (o refresh deixa de valer)
+POST {{baseUrl}}/auth/logout
+Content-Type: application/json
+
+{ "refreshToken": "{{refreshVendedor2}}" }
+
+> {% client.test("204", () => client.assert(response.status === 204, "status " + response.status)); %}
+
+### 0.8 [401] Refresh depois do logout
+POST {{baseUrl}}/auth/refresh
+Content-Type: application/json
+
+{ "refreshToken": "{{refreshVendedor2}}" }
+
+> {% client.test("401", () => client.assert(response.status === 401, "status " + response.status)); %}
+
+
 ### =============================== 1. CATEGORIA =======================================
 
 ### 1.1 Listar categorias (fixas, carregadas pela API) e usar "Utilidades Domésticas" nos testes
 GET {{baseUrl}}/categorias
+Authorization: Bearer {{tokenVendedor}}
 
 > {%
     client.test("200 - 34 categorias fixas", () => client.assert(response.status === 200 && response.body.length >= 34));
@@ -31,6 +107,7 @@ GET {{baseUrl}}/categorias
 
 ### 1.2 [405] Usuários não criam categorias (a API só oferece leitura)
 POST {{baseUrl}}/categorias
+Authorization: Bearer {{tokenVendedor}}
 Content-Type: application/json
 
 {
@@ -42,13 +119,15 @@ Content-Type: application/json
 
 ### =============================== 2. USUÁRIO =========================================
 
-### 2.1 Usuário logado (vendedor mock — sem header)
+### 2.1 Usuário logado (o dono do token: vendedor mock)
 GET {{baseUrl}}/usuarios/me
+Authorization: Bearer {{tokenVendedor}}
 
 > {% client.test("200 - é o vendedor mock", () => client.assert(response.body.id === "3c288400-f58f-4d28-905c-f7dba388d6c9")); %}
 
 ### 2.2 Buscar o comprador mock por id
 GET {{baseUrl}}/usuarios/{{compradorId}}
+Authorization: Bearer {{tokenVendedor}}
 
 > {% client.test("200 - comprador mock", () => client.assert(response.status === 200)); %}
 
@@ -80,10 +159,21 @@ Content-Type: application/json
     client.global.set("novoUsuarioEmail", response.body.email);
 %}
 
+### 2.3b Login do novo usuário (nas seções seguintes ele faz o papel de "terceiro", que não participa)
+POST {{baseUrl}}/auth/token
+Content-Type: application/json
+
+{ "email": "{{novoUsuarioEmail}}", "senha": "123456" }
+
+> {%
+    client.test("200", () => client.assert(response.status === 200));
+    client.global.set("tokenNovoUsuario", response.body.accessToken);
+%}
+
 ### 2.4 Atualizar dados do usuário logado (como o novo usuário)
 PUT {{baseUrl}}/usuarios/me
+Authorization: Bearer {{tokenNovoUsuario}}
 Content-Type: application/json
-X-Usuario-Id: {{novoUsuarioId}}
 
 {
   "nome": "Usuário de Teste (editado)",
@@ -95,8 +185,8 @@ X-Usuario-Id: {{novoUsuarioId}}
 
 ### 2.5 Adicionar endereço
 POST {{baseUrl}}/usuarios/me/enderecos
+Authorization: Bearer {{tokenNovoUsuario}}
 Content-Type: application/json
-X-Usuario-Id: {{novoUsuarioId}}
 
 {
   "logradouro": "Avenida Paulista",
@@ -114,13 +204,14 @@ X-Usuario-Id: {{novoUsuarioId}}
 
 ### 2.6 Remover endereço
 DELETE {{baseUrl}}/usuarios/me/enderecos/{{enderecoId}}
-X-Usuario-Id: {{novoUsuarioId}}
+Authorization: Bearer {{tokenNovoUsuario}}
 
 > {% client.test("200 - 1 endereço", () => client.assert(response.body.enderecos.length === 1)); %}
 
 
 ### 2.7 Buscar endereço pelo CEP (a API consulta a BrasilAPI; aceita com ou sem máscara)
 GET {{baseUrl}}/cep/01310-100
+Authorization: Bearer {{tokenVendedor}}
 
 > {%
     client.test("200 - Avenida Paulista", () => client.assert(response.body.logradouro === "Avenida Paulista"));
@@ -129,11 +220,13 @@ GET {{baseUrl}}/cep/01310-100
 
 ### 2.8 [404] CEP inexistente
 GET {{baseUrl}}/cep/00000000
+Authorization: Bearer {{tokenVendedor}}
 
 > {% client.test("404", () => client.assert(response.status === 404, "status " + response.status)); %}
 
 ### 2.9 [400] CEP com quantidade errada de dígitos
 GET {{baseUrl}}/cep/123
+Authorization: Bearer {{tokenVendedor}}
 
 > {% client.test("400", () => client.assert(response.status === 400, "status " + response.status)); %}
 
@@ -142,6 +235,7 @@ GET {{baseUrl}}/cep/123
 
 ### 3.1 Vendedor cria anúncio (com faixas de preço, imagens e variações)
 POST {{baseUrl}}/anuncios
+Authorization: Bearer {{tokenVendedor}}
 Content-Type: application/json
 
 {
@@ -194,6 +288,7 @@ Content-Type: application/json
 
 ### 3.2 Vendedor cria um segundo anúncio
 POST {{baseUrl}}/anuncios
+Authorization: Bearer {{tokenVendedor}}
 Content-Type: application/json
 
 {
@@ -211,6 +306,7 @@ Content-Type: application/json
 
 ### 3.2b Vitrine: anúncios ativos, paginados (opcionais: termo, categoriaId, pagina, tamanho)
 GET {{baseUrl}}/anuncios?categoriaId={{categoriaId}}&pagina=0&tamanho=24
+Authorization: Bearer {{tokenVendedor}}
 
 > {%
     client.test("200 - ao menos os 2 anúncios criados", () => client.assert(response.body.total >= 2));
@@ -219,11 +315,13 @@ GET {{baseUrl}}/anuncios?categoriaId={{categoriaId}}&pagina=0&tamanho=24
 
 ### 3.3 Buscar anúncio por id
 GET {{baseUrl}}/anuncios/{{anuncioId}}
+Authorization: Bearer {{tokenVendedor}}
 
 > {% client.test("200 - menor preço 8.90", () => client.assert(response.body.precoMenor == 8.9)); %}
 
 ### 3.4 Atualizar anúncio (substitui valores, imagens e variações)
 PUT {{baseUrl}}/anuncios/{{anuncio2Id}}
+Authorization: Bearer {{tokenVendedor}}
 Content-Type: application/json
 
 {
@@ -242,41 +340,49 @@ Content-Type: application/json
 
 ### 3.5 Meus anúncios (vendedor logado)
 GET {{baseUrl}}/anuncios/meus
+Authorization: Bearer {{tokenVendedor}}
 
 > {% client.test("200", () => client.assert(response.status === 200 && response.body.length >= 2)); %}
 
 ### 3.6 Anúncios de um usuário (perfil público do vendedor)
 GET {{baseUrl}}/usuarios/{{vendedorId}}/anuncios
+Authorization: Bearer {{tokenVendedor}}
 
 > {% client.test("200", () => client.assert(response.status === 200)); %}
 
 ### 3.7 Desativar anúncio
 PATCH {{baseUrl}}/anuncios/{{anuncio2Id}}/desativar
+Authorization: Bearer {{tokenVendedor}}
 
 > {% client.test("200 - inativo", () => client.assert(response.body.ativo === false)); %}
 
 ### 3.8 Ativar anúncio
 PATCH {{baseUrl}}/anuncios/{{anuncio2Id}}/ativar
+Authorization: Bearer {{tokenVendedor}}
 
 > {% client.test("200 - ativo", () => client.assert(response.body.ativo === true)); %}
 
 ### 3.9 Pesquisa por texto no PostgreSQL (plural: "carrinhos" encontra "Carrinho")
 GET {{baseUrl}}/anuncios?termo=carrinhos&categoriaId={{categoriaId}}
+Authorization: Bearer {{tokenVendedor}}
 
 > {% client.test("plural 'carrinhos' encontra 'Carrinho de metal'", () => client.assert(response.body.itens.some(a => a.titulo === "Carrinho de metal"))); %}
 
 ### 3.10 Pesquisa com erro de digitação ("carinho")
 GET {{baseUrl}}/anuncios?termo=carinho&categoriaId={{categoriaId}}
+Authorization: Bearer {{tokenVendedor}}
 
 > {% client.test("'carinho' encontra 'Carrinho de metal'", () => client.assert(response.body.itens.some(a => a.titulo === "Carrinho de metal"))); %}
 
 ### 3.11 [400] Tamanho de página acima do máximo (100)
 GET {{baseUrl}}/anuncios?tamanho=500
+Authorization: Bearer {{tokenVendedor}}
 
 > {% client.test("400", () => client.assert(response.status === 400, "status " + response.status)); %}
 
 ### 3.12 [400] Informações do produto com formato inválido (erros por campo)
 POST {{baseUrl}}/anuncios
+Authorization: Bearer {{tokenVendedor}}
 Content-Type: application/json
 
 {
@@ -296,6 +402,7 @@ Content-Type: application/json
 
 ### 3.13 [400] GTIN com dígito verificador errado
 POST {{baseUrl}}/anuncios
+Authorization: Bearer {{tokenVendedor}}
 Content-Type: application/json
 
 {
@@ -311,6 +418,7 @@ Content-Type: application/json
 
 ### 3.14 Buscar NCM pela descrição (a API consulta a BrasilAPI; só códigos de 8 dígitos)
 GET {{baseUrl}}/ncm?busca=parafuso
+Authorization: Bearer {{tokenVendedor}}
 
 > {%
     client.test("200", () => client.assert(response.status === 200));
@@ -319,16 +427,19 @@ GET {{baseUrl}}/ncm?busca=parafuso
 
 ### 3.15 Consultar NCM pelo código (com ou sem pontos)
 GET {{baseUrl}}/ncm/8716.80.00
+Authorization: Bearer {{tokenVendedor}}
 
 > {% client.test("200", () => client.assert(response.status === 200 && response.body.codigo === "8716.80.00")); %}
 
 ### 3.16 [404] NCM inexistente
 GET {{baseUrl}}/ncm/99999999
+Authorization: Bearer {{tokenVendedor}}
 
 > {% client.test("404", () => client.assert(response.status === 404, "status " + response.status)); %}
 
 ### 3.17 [400] Busca de NCM com menos de 3 caracteres
 GET {{baseUrl}}/ncm?busca=pa
+Authorization: Bearer {{tokenVendedor}}
 
 > {% client.test("400", () => client.assert(response.status === 400, "status " + response.status)); %}
 
@@ -339,8 +450,8 @@ GET {{baseUrl}}/ncm?busca=pa
 
 ### 3B.1 Comprador inicia a negociação do anúncio
 POST {{baseUrl}}/negociacoes
+Authorization: Bearer {{tokenComprador}}
 Content-Type: application/json
-X-Usuario-Id: {{compradorId}}
 
 { "anuncioId": "{{anuncioId}}" }
 
@@ -354,8 +465,8 @@ X-Usuario-Id: {{compradorId}}
 
 ### 3B.2 Iniciar de novo reabre a mesma negociação (200)
 POST {{baseUrl}}/negociacoes
+Authorization: Bearer {{tokenComprador}}
 Content-Type: application/json
-X-Usuario-Id: {{compradorId}}
 
 { "anuncioId": "{{anuncioId}}" }
 
@@ -365,6 +476,7 @@ X-Usuario-Id: {{compradorId}}
 
 ### 3B.3 Vendedor responde
 POST {{baseUrl}}/negociacoes/{{negociacaoId}}/mensagens
+Authorization: Bearer {{tokenVendedor}}
 Content-Type: application/json
 
 { "texto": "Olá! Temos pronta entrega. Qual a quantidade?" }
@@ -373,7 +485,7 @@ Content-Type: application/json
 
 ### 3B.3b Chat por delta: só as mensagens depois da primeira (o que o chat aberto consulta)
 GET {{baseUrl}}/negociacoes/{{negociacaoId}}/mensagens?depois={{primeiraMensagemId}}
-X-Usuario-Id: {{compradorId}}
+Authorization: Bearer {{tokenComprador}}
 
 > {%
     client.test("200 e só mensagens novas", () => client.assert(response.status === 200 && response.body.length >= 1
@@ -383,19 +495,19 @@ X-Usuario-Id: {{compradorId}}
 
 ### 3B.3c Chat por delta sem novidade: lista vazia (o caso mais comum)
 GET {{baseUrl}}/negociacoes/{{negociacaoId}}/mensagens?depois={{ultimaMensagemId}}
-X-Usuario-Id: {{compradorId}}
+Authorization: Bearer {{tokenComprador}}
 
 > {% client.test("vazio", () => client.assert(response.status === 200 && response.body.length === 0)); %}
 
 ### 3B.3d [403] Quem não participa não consulta o delta
 GET {{baseUrl}}/negociacoes/{{negociacaoId}}/mensagens?depois={{ultimaMensagemId}}
-X-Usuario-Id: {{terceiroId}}
+Authorization: Bearer {{tokenNovoUsuario}}
 
 > {% client.test("403", () => client.assert(response.status === 403, "status " + response.status)); %}
 
 ### 3B.3e Novidades: versões e contadores para o front decidir se recarrega alguma tela
 GET {{baseUrl}}/me/novidades
-X-Usuario-Id: {{compradorId}}
+Authorization: Bearer {{tokenComprador}}
 
 > {%
     client.test("200 com as três áreas", () => client.assert(response.status === 200
@@ -406,6 +518,7 @@ X-Usuario-Id: {{compradorId}}
 
 ### 3B.4 Negociações do vendedor logado (conversa mais recente primeiro)
 GET {{baseUrl}}/negociacoes
+Authorization: Bearer {{tokenVendedor}}
 
 > {%
     client.test("200", () => client.assert(response.status === 200));
@@ -415,14 +528,14 @@ GET {{baseUrl}}/negociacoes
 
 ### 3B.5 Detalhes da negociação (como comprador)
 GET {{baseUrl}}/negociacoes/{{negociacaoId}}
-X-Usuario-Id: {{compradorId}}
+Authorization: Bearer {{tokenComprador}}
 
 > {% client.test("200", () => client.assert(response.status === 200 && response.body.mensagens.length >= 2)); %}
 
 ### 3B.5b Comprador inclui outro anúncio do mesmo vendedor na negociação
 POST {{baseUrl}}/negociacoes/{{negociacaoId}}/anuncios
+Authorization: Bearer {{tokenComprador}}
 Content-Type: application/json
-X-Usuario-Id: {{compradorId}}
 
 { "anuncioId": "{{anuncio2Id}}" }
 
@@ -437,8 +550,8 @@ X-Usuario-Id: {{compradorId}}
 
 ### 3B.5c [422] O mesmo anúncio não entra duas vezes
 POST {{baseUrl}}/negociacoes/{{negociacaoId}}/anuncios
+Authorization: Bearer {{tokenComprador}}
 Content-Type: application/json
-X-Usuario-Id: {{compradorId}}
 
 { "anuncioId": "{{anuncio2Id}}" }
 
@@ -446,12 +559,13 @@ X-Usuario-Id: {{compradorId}}
 
 ### 3B.5d [422] O anúncio que iniciou a negociação não pode ser retirado
 DELETE {{baseUrl}}/negociacoes/{{negociacaoId}}/anuncios/{{anuncioId}}
-X-Usuario-Id: {{compradorId}}
+Authorization: Bearer {{tokenComprador}}
 
 > {% client.test("422", () => client.assert(response.status === 422, "status " + response.status)); %}
 
 ### 3B.6 [422] Vendedor não negocia o próprio anúncio
 POST {{baseUrl}}/negociacoes
+Authorization: Bearer {{tokenVendedor}}
 Content-Type: application/json
 
 { "anuncioId": "{{anuncioId}}" }
@@ -460,6 +574,7 @@ Content-Type: application/json
 
 ### 3B.7 [400] Mensagem vazia
 POST {{baseUrl}}/negociacoes/{{negociacaoId}}/mensagens
+Authorization: Bearer {{tokenVendedor}}
 Content-Type: application/json
 
 { "texto": "   " }
@@ -475,6 +590,7 @@ Content-Type: application/json
 ### 4.1 Vendedor cria a ordem para o comprador pelo chat (valores negociados na negociação 3B)
 ###     Total esperado: 200 x 10,50 + 10 x 45,00 = 2.550,00
 POST {{baseUrl}}/ordens-de-pedido
+Authorization: Bearer {{tokenVendedor}}
 Content-Type: application/json
 
 {
@@ -499,7 +615,7 @@ Content-Type: application/json
 
 ### 4.1b A negociação mostra a ordem gerada (e o aviso no chat)
 GET {{baseUrl}}/negociacoes/{{negociacaoId}}
-X-Usuario-Id: {{compradorId}}
+Authorization: Bearer {{tokenComprador}}
 
 > {%
     const ordem = response.body.ordens.find(o => o.id === client.global.get("ordemId"));
@@ -509,6 +625,7 @@ X-Usuario-Id: {{compradorId}}
 
 ### 4.1c [422] Negociação de outro comprador não pode ser vinculada
 POST {{baseUrl}}/ordens-de-pedido
+Authorization: Bearer {{tokenVendedor}}
 Content-Type: application/json
 
 {
@@ -521,28 +638,31 @@ Content-Type: application/json
 
 ### 4.2 Detalhes da ordem (como vendedor)
 GET {{baseUrl}}/ordens-de-pedido/{{ordemId}}
+Authorization: Bearer {{tokenVendedor}}
 
 > {% client.test("200", () => client.assert(response.status === 200)); %}
 
 ### 4.3 Detalhes da ordem (como comprador)
 GET {{baseUrl}}/ordens-de-pedido/{{ordemId}}
-X-Usuario-Id: {{compradorId}}
+Authorization: Bearer {{tokenComprador}}
 
 > {% client.test("200", () => client.assert(response.status === 200)); %}
 
 ### 4.4 Minhas compras (comprador)
 GET {{baseUrl}}/ordens-de-pedido/compras
-X-Usuario-Id: {{compradorId}}
+Authorization: Bearer {{tokenComprador}}
 
 > {% client.test("200", () => client.assert(response.body.length >= 1)); %}
 
 ### 4.5 Minhas vendas (vendedor)
 GET {{baseUrl}}/ordens-de-pedido/vendas
+Authorization: Bearer {{tokenVendedor}}
 
 > {% client.test("200", () => client.assert(response.body.length >= 1)); %}
 
 ### 4.5b [422] Vendedor não cadastra pagamento antes do comprador aceitar
 POST {{baseUrl}}/ordens-de-pedido/{{ordemId}}/pagamentos
+Authorization: Bearer {{tokenVendedor}}
 Content-Type: application/json
 
 { "tipoPagamento": "PIX", "valor": 10.00, "chavePix": "x" }
@@ -551,12 +671,13 @@ Content-Type: application/json
 
 ### 4.5c Comprador confere e aceita a ordem -> ACEITO
 PATCH {{baseUrl}}/ordens-de-pedido/{{ordemId}}/aceitar
-X-Usuario-Id: {{compradorId}}
+Authorization: Bearer {{tokenComprador}}
 
 > {% client.test("status ACEITO", () => client.assert(response.body.status === "ACEITO", "status " + response.body.status)); %}
 
 ### 4.6 Vendedor cadastra a primeira forma de pagamento combinada: PIX (com a chave para receber)
 POST {{baseUrl}}/ordens-de-pedido/{{ordemId}}/pagamentos
+Authorization: Bearer {{tokenVendedor}}
 Content-Type: application/json
 
 {
@@ -576,6 +697,7 @@ Content-Type: application/json
 
 ### 4.7 Vendedor cadastra o restante via transferência -> AGUARDANDO_PAGAMENTO
 POST {{baseUrl}}/ordens-de-pedido/{{ordemId}}/pagamentos
+Authorization: Bearer {{tokenVendedor}}
 Content-Type: application/json
 
 {
@@ -595,6 +717,7 @@ Content-Type: application/json
 
 ### 4.7b [403] Só o comprador anexa comprovante
 POST {{baseUrl}}/ordens-de-pedido/{{ordemId}}/pagamentos/{{pagamentoPixId}}/comprovante
+Authorization: Bearer {{tokenVendedor}}
 Content-Type: application/json
 
 { "caminho": "/arquivos/comprovante-pix.pdf" }
@@ -603,8 +726,8 @@ Content-Type: application/json
 
 ### 4.7c Comprador paga o PIX e anexa o comprovante
 POST {{baseUrl}}/ordens-de-pedido/{{ordemId}}/pagamentos/{{pagamentoPixId}}/comprovante
+Authorization: Bearer {{tokenComprador}}
 Content-Type: application/json
-X-Usuario-Id: {{compradorId}}
 
 { "caminho": "/arquivos/comprovante-pix.pdf" }
 
@@ -615,13 +738,14 @@ X-Usuario-Id: {{compradorId}}
 
 ### 4.7d [422] Vendedor não exclui pagamento que já tem comprovante
 DELETE {{baseUrl}}/ordens-de-pedido/{{ordemId}}/pagamentos/{{pagamentoPixId}}
+Authorization: Bearer {{tokenVendedor}}
 
 > {% client.test("422", () => client.assert(response.status === 422, "status " + response.status)); %}
 
 ### 4.7e Comprador anexa o comprovante da transferência -> PAGO
 POST {{baseUrl}}/ordens-de-pedido/{{ordemId}}/pagamentos/{{pagamentoTransfId}}/comprovante
+Authorization: Bearer {{tokenComprador}}
 Content-Type: application/json
-X-Usuario-Id: {{compradorId}}
 
 { "caminho": "/arquivos/comprovante-transferencia.png" }
 
@@ -629,6 +753,7 @@ X-Usuario-Id: {{compradorId}}
 
 ### 4.8 Vendedor anexa a nota fiscal
 POST {{baseUrl}}/ordens-de-pedido/{{ordemId}}/notas-fiscais
+Authorization: Bearer {{tokenVendedor}}
 Content-Type: application/json
 
 {
@@ -639,8 +764,8 @@ Content-Type: application/json
 
 ### 4.9 Comprador envia mensagem de incidente
 POST {{baseUrl}}/ordens-de-pedido/{{ordemId}}/mensagens
+Authorization: Bearer {{tokenComprador}}
 Content-Type: application/json
-X-Usuario-Id: {{compradorId}}
 
 {
   "mensagem": "Não recebi a NF completa, por favor me envie ela completa ou uma complementar."
@@ -650,6 +775,7 @@ X-Usuario-Id: {{compradorId}}
 
 ### 4.9b O vendedor recebe o alerta da mensagem nova
 GET {{baseUrl}}/ordens-de-pedido/mensagens-nao-lidas
+Authorization: Bearer {{tokenVendedor}}
 
 > {%
     const alerta = response.body.find(a => a.ordemId === client.global.get("ordemId"));
@@ -658,6 +784,7 @@ GET {{baseUrl}}/ordens-de-pedido/mensagens-nao-lidas
 
 ### 4.10 Vendedor responde a mensagem
 POST {{baseUrl}}/ordens-de-pedido/{{ordemId}}/mensagens
+Authorization: Bearer {{tokenVendedor}}
 Content-Type: application/json
 
 {
@@ -669,12 +796,13 @@ Content-Type: application/json
 
 ### 4.10b O comprador vê a resposta como nova e marca como lida
 PATCH {{baseUrl}}/ordens-de-pedido/{{ordemId}}/mensagens/lidas
-X-Usuario-Id: {{compradorId}}
+Authorization: Bearer {{tokenComprador}}
 
 > {% client.test("200 e nada mais pendente", () => client.assert(response.status === 200 && response.body.mensagensNaoLidas === 0)); %}
 
 ### 4.11 Vendedor despacha o pedido -> ENVIADO
 PATCH {{baseUrl}}/ordens-de-pedido/{{ordemId}}/enviar
+Authorization: Bearer {{tokenVendedor}}
 Content-Type: application/json
 
 {
@@ -689,6 +817,7 @@ Content-Type: application/json
 
 ### 4.11b Vendedor completa os dados da entrega (descrição e código, ambos opcionais)
 PUT {{baseUrl}}/ordens-de-pedido/{{ordemId}}/entrega
+Authorization: Bearer {{tokenVendedor}}
 Content-Type: application/json
 
 {
@@ -700,8 +829,8 @@ Content-Type: application/json
 
 ### 4.11c [403] Só o vendedor informa a entrega
 PUT {{baseUrl}}/ordens-de-pedido/{{ordemId}}/entrega
+Authorization: Bearer {{tokenComprador}}
 Content-Type: application/json
-X-Usuario-Id: {{compradorId}}
 
 { "descricao": "x" }
 
@@ -709,7 +838,7 @@ X-Usuario-Id: {{compradorId}}
 
 ### 4.12 Comprador confirma a entrega -> ENTREGUE
 PATCH {{baseUrl}}/ordens-de-pedido/{{ordemId}}/confirmar-entrega
-X-Usuario-Id: {{compradorId}}
+Authorization: Bearer {{tokenComprador}}
 
 > {% client.test("status ENTREGUE", () => client.assert(response.body.status === "ENTREGUE")); %}
 
@@ -720,6 +849,7 @@ X-Usuario-Id: {{compradorId}}
 
 ### 4B.1 [403] O vendedor não avalia o próprio anúncio
 PUT {{baseUrl}}/anuncios/{{anuncioId}}/avaliacoes/minha
+Authorization: Bearer {{tokenVendedor}}
 Content-Type: application/json
 
 { "nota": 5, "texto": "Meu produto é ótimo" }
@@ -728,8 +858,8 @@ Content-Type: application/json
 
 ### 4B.2 [400] Nota fora de 1 a 5 e mais de 3 imagens
 PUT {{baseUrl}}/anuncios/{{anuncioId}}/avaliacoes/minha
+Authorization: Bearer {{tokenComprador}}
 Content-Type: application/json
-X-Usuario-Id: {{compradorId}}
 
 { "nota": 6, "imagens": ["/a.png", "/b.png", "/c.png", "/d.png"] }
 
@@ -740,8 +870,8 @@ X-Usuario-Id: {{compradorId}}
 
 ### 4B.3 Comprador que recebeu avalia o produto
 PUT {{baseUrl}}/anuncios/{{anuncioId}}/avaliacoes/minha
+Authorization: Bearer {{tokenComprador}}
 Content-Type: application/json
-X-Usuario-Id: {{compradorId}}
 
 {
   "nota": 4,
@@ -756,8 +886,8 @@ X-Usuario-Id: {{compradorId}}
 
 ### 4B.4 Editar a avaliação (continua sendo uma só)
 PUT {{baseUrl}}/anuncios/{{anuncioId}}/avaliacoes/minha
+Authorization: Bearer {{tokenComprador}}
 Content-Type: application/json
-X-Usuario-Id: {{compradorId}}
 
 { "nota": 5, "texto": "Atualizando: o vendedor resolveu o atraso, nota 5." }
 
@@ -765,13 +895,14 @@ X-Usuario-Id: {{compradorId}}
 
 ### 4B.5 O anúncio traz a nota média
 GET {{baseUrl}}/anuncios/{{anuncioId}}
+Authorization: Bearer {{tokenVendedor}}
 
 > {% client.test("notaMedia e quantidade", () => client.assert(response.body.quantidadeAvaliacoes >= 1 && response.body.notaMedia >= 1)); %}
 
 ### 4B.6 [403] Quem não recebeu o produto não avalia
 PUT {{baseUrl}}/anuncios/{{anuncio2Id}}/avaliacoes/minha
+Authorization: Bearer {{tokenNovoUsuario}}
 Content-Type: application/json
-X-Usuario-Id: {{novoUsuarioId}}
 
 { "nota": 1 }
 
@@ -782,6 +913,7 @@ X-Usuario-Id: {{novoUsuarioId}}
 
 ### 5.1 Vendedor cria outra ordem
 POST {{baseUrl}}/ordens-de-pedido
+Authorization: Bearer {{tokenVendedor}}
 Content-Type: application/json
 
 {
@@ -793,7 +925,7 @@ Content-Type: application/json
 
 ### 5.2 Comprador cancela -> CANCELADO
 PATCH {{baseUrl}}/ordens-de-pedido/{{ordem2Id}}/cancelar
-X-Usuario-Id: {{compradorId}}
+Authorization: Bearer {{tokenComprador}}
 
 > {% client.test("status CANCELADO", () => client.assert(response.body.status === "CANCELADO")); %}
 
@@ -804,6 +936,7 @@ X-Usuario-Id: {{compradorId}}
 
 ### 5B.1 Vendedor cria a ordem
 POST {{baseUrl}}/ordens-de-pedido
+Authorization: Bearer {{tokenVendedor}}
 Content-Type: application/json
 
 {
@@ -815,17 +948,19 @@ Content-Type: application/json
 
 ### 5B.2 Comprador aceita
 PATCH {{baseUrl}}/ordens-de-pedido/{{ordemPrazoId}}/aceitar
-X-Usuario-Id: {{compradorId}}
+Authorization: Bearer {{tokenComprador}}
 
 > {% client.test("ACEITO", () => client.assert(response.body.status === "ACEITO")); %}
 
 ### 5B.3 [422] Não despacha antes de cadastrar as formas de pagamento
 PATCH {{baseUrl}}/ordens-de-pedido/{{ordemPrazoId}}/enviar
+Authorization: Bearer {{tokenVendedor}}
 
 > {% client.test("422", () => client.assert(response.status === 422, "status " + response.status)); %}
 
 ### 5B.4 Vendedor cadastra um boleto para 30 dias -> AGUARDANDO_PAGAMENTO
 POST {{baseUrl}}/ordens-de-pedido/{{ordemPrazoId}}/pagamentos
+Authorization: Bearer {{tokenVendedor}}
 Content-Type: application/json
 
 {
@@ -843,18 +978,20 @@ Content-Type: application/json
 
 ### 5B.5 Vendedor despacha sem o pagamento -> ENVIADO, ainda com pagamento pendente
 PATCH {{baseUrl}}/ordens-de-pedido/{{ordemPrazoId}}/enviar
+Authorization: Bearer {{tokenVendedor}}
 
 > {% client.test("ENVIADO com pagamento pendente", () => client.assert(response.body.status === "ENVIADO" && response.body.pagamentoPendente === true)); %}
 
 ### 5B.6 Lista de vendas indica o pagamento pendente
 GET {{baseUrl}}/ordens-de-pedido/vendas
+Authorization: Bearer {{tokenVendedor}}
 
 > {% client.test("pagamentoPendente no resumo", () => client.assert(response.body.find(o => o.id === client.global.get("ordemPrazoId")).pagamentoPendente === true)); %}
 
 ### 5B.7 Comprador paga depois de receber e anexa o comprovante -> pendência some
 POST {{baseUrl}}/ordens-de-pedido/{{ordemPrazoId}}/pagamentos/{{pagamentoPrazoId}}/comprovante
+Authorization: Bearer {{tokenComprador}}
 Content-Type: application/json
-X-Usuario-Id: {{compradorId}}
 
 { "caminho": "/arquivos/comprovante-boleto-prazo.pdf" }
 
@@ -865,6 +1002,7 @@ X-Usuario-Id: {{compradorId}}
 
 ### 6.1 [400] Validação: campos obrigatórios ausentes
 POST {{baseUrl}}/ordens-de-pedido
+Authorization: Bearer {{tokenVendedor}}
 Content-Type: application/json
 
 {
@@ -888,6 +1026,7 @@ Content-Type: application/json
 
 ### 6.3 [422] Vendedor criando ordem para si mesmo
 POST {{baseUrl}}/ordens-de-pedido
+Authorization: Bearer {{tokenVendedor}}
 Content-Type: application/json
 
 {
@@ -899,8 +1038,8 @@ Content-Type: application/json
 
 ### 6.4 [403] Ordem com anúncio de outro vendedor (o comprador tenta usar o anúncio do vendedor)
 POST {{baseUrl}}/ordens-de-pedido
+Authorization: Bearer {{tokenComprador}}
 Content-Type: application/json
-X-Usuario-Id: {{compradorId}}
 
 {
   "compradorId": "{{vendedorId}}",
@@ -911,6 +1050,7 @@ X-Usuario-Id: {{compradorId}}
 
 ### 6.5 [404] Comprador inexistente
 POST {{baseUrl}}/ordens-de-pedido
+Authorization: Bearer {{tokenVendedor}}
 Content-Type: application/json
 
 {
@@ -922,14 +1062,14 @@ Content-Type: application/json
 
 ### 6.6 [403] Usuário que não participa da ordem tentando vê-la
 GET {{baseUrl}}/ordens-de-pedido/{{ordemId}}
-X-Usuario-Id: {{terceiroId}}
+Authorization: Bearer {{tokenNovoUsuario}}
 
 > {% client.test("403", () => client.assert(response.status === 403, "status " + response.status)); %}
 
 ### 6.7 [403] Comprador tentando cadastrar forma de pagamento (só o vendedor cadastra)
 POST {{baseUrl}}/ordens-de-pedido/{{ordem2Id}}/pagamentos
+Authorization: Bearer {{tokenComprador}}
 Content-Type: application/json
-X-Usuario-Id: {{compradorId}}
 
 {
   "tipoPagamento": "PIX",
@@ -941,12 +1081,13 @@ X-Usuario-Id: {{compradorId}}
 
 ### 6.8 [422] Operação inválida para o status (ordem já ENTREGUE não pode ser cancelada)
 PATCH {{baseUrl}}/ordens-de-pedido/{{ordemId}}/cancelar
-X-Usuario-Id: {{compradorId}}
+Authorization: Bearer {{tokenComprador}}
 
 > {% client.test("422", () => client.assert(response.status === 422, "status " + response.status)); %}
 
 ### 6.9 [400] PIX sem chave
 POST {{baseUrl}}/ordens-de-pedido/{{ordemId}}/pagamentos
+Authorization: Bearer {{tokenVendedor}}
 Content-Type: application/json
 
 {
@@ -958,18 +1099,19 @@ Content-Type: application/json
 
 ### 6.10 [403] Comprador tentando alterar anúncio do vendedor
 PATCH {{baseUrl}}/anuncios/{{anuncioId}}/desativar
-X-Usuario-Id: {{compradorId}}
+Authorization: Bearer {{tokenComprador}}
 
 > {% client.test("403", () => client.assert(response.status === 403, "status " + response.status)); %}
 
 ### 6.10b [403] Só o vendedor exclui formas de pagamento (o comprador tenta)
 DELETE {{baseUrl}}/ordens-de-pedido/{{ordemId}}/pagamentos/00000000-0000-0000-0000-000000000000
-X-Usuario-Id: {{compradorId}}
+Authorization: Bearer {{tokenComprador}}
 
 > {% client.test("403", () => client.assert(response.status === 403, "status " + response.status)); %}
 
 ### 6.11 [404] Anúncio inexistente
 GET {{baseUrl}}/anuncios/{{terceiroId}}
+Authorization: Bearer {{tokenVendedor}}
 
 > {% client.test("404", () => client.assert(response.status === 404, "status " + response.status)); %}
 
@@ -979,6 +1121,7 @@ GET {{baseUrl}}/anuncios/{{terceiroId}}
 
 ### 7.1 Upload de imagem -> devolve o "caminho" para usar no anúncio, NF, mensagem ou perfil
 POST {{baseUrl}}/arquivos
+Authorization: Bearer {{tokenVendedor}}
 Content-Type: multipart/form-data; boundary=PsnfBoundary
 
 --PsnfBoundary
@@ -996,11 +1139,13 @@ Content-Type: image/png
 
 ### 7.2 Baixar o arquivo enviado
 GET {{baseUrl}}{{arquivoCaminho}}
+Authorization: Bearer {{tokenVendedor}}
 
 > {% client.test("200 image/png", () => client.assert(response.status === 200 && response.contentType.mimeType === "image/png")); %}
 
 ### 7.3 Usar o arquivo como foto do perfil do vendedor
 PUT {{baseUrl}}/usuarios/me
+Authorization: Bearer {{tokenVendedor}}
 Content-Type: application/json
 
 {
@@ -1013,6 +1158,7 @@ Content-Type: application/json
 
 ### 7.4 [400] Tipo não suportado (o tipo é detectado pelo conteúdo, não pela extensão)
 POST {{baseUrl}}/arquivos
+Authorization: Bearer {{tokenVendedor}}
 Content-Type: multipart/form-data; boundary=PsnfBoundary
 
 --PsnfBoundary
@@ -1026,5 +1172,6 @@ Content-Type: image/png
 
 ### 7.5 [404] Arquivo inexistente
 GET {{baseUrl}}/arquivos/00000000-0000-0000-0000-000000000000.png
+Authorization: Bearer {{tokenVendedor}}
 
 > {% client.test("404", () => client.assert(response.status === 404, "status " + response.status)); %}
