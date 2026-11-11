@@ -14,12 +14,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class PesquisarAnunciosService implements PesquisarAnunciosUseCase {
 
     private final AnuncioRepositoryPort anuncioRepositoryPort;
-    private final com.psnf.api.psnf.domain.usuario.port.out.UsuarioRepositoryPort usuarioRepositoryPort;
 
     @Override
     @Transactional(readOnly = true)
     public Pagina<Anuncio> pesquisar(PesquisarAnunciosQuery query) {
-        boolean temCnpj = query.visitanteId() != null && usuarioRepositoryPort.buscarPorId(query.visitanteId()).temCnpj();
-        return anuncioRepositoryPort.pesquisar(query.paraVisitante(query.visitanteId(), temCnpj));
+        // todos veem todos os anúncios ativos; o CNPJ só conta na hora de negociar
+        return anuncioRepositoryPort.pesquisar(query);
     }
 }

@@ -19,12 +19,14 @@ public class ConsultarNegociacaoService implements ConsultarNegociacaoUseCase {
 
     private final NegociacaoRepositoryPort negociacaoRepositoryPort;
     private final DetalhesNegociacaoLoader loader;
+    private final RegraCnpjNegociacao regraCnpj;
 
     @Override
     @Transactional(readOnly = true)
     public NegociacaoDetalhes buscarPorId(UUID negociacaoId, UUID usuarioId) {
         Negociacao n = negociacaoRepositoryPort.buscarPorId(negociacaoId);
         n.garantirParticipante(usuarioId);
+        regraCnpj.garantirAcesso(n, usuarioId);
         return loader.carregar(n);
     }
 

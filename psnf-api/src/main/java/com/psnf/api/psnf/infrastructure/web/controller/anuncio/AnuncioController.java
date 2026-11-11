@@ -45,7 +45,8 @@ public class AnuncioController {
 
     /**
      * Vitrine e pesquisa: anúncios ativos, paginados. A busca de texto é feita no PostgreSQL.
-     * PÚBLICA (sem login): o visitante não tem CNPJ, então só vê os anúncios liberados para pessoa física.
+     * PÚBLICA (sem login): todos veem todos os anúncios. Abrir o detalhe exige login; negociar um anúncio
+     * "somente para empresas" exige CNPJ.
      * Ex.: GET /anuncios?termo=carrinho&categoriaId=...&pagina=0&tamanho=24
      * Sem termo: mais recentes primeiro. Com termo: mais relevantes primeiro.
      */
@@ -56,8 +57,7 @@ public class AnuncioController {
             @RequestParam(defaultValue = "0") int pagina,
             @RequestParam(defaultValue = "" + PesquisarAnunciosQuery.TAMANHO_PADRAO) int tamanho
     ) {
-        var resultado = pesquisarAnunciosUseCase.pesquisar(new PesquisarAnunciosQuery(termo, categoriaId, pagina, tamanho)
-                .paraVisitante(UsuarioAutenticadoUtil.usuarioLogadoId().orElse(null), false)); // sem login: sem CNPJ
+        var resultado = pesquisarAnunciosUseCase.pesquisar(new PesquisarAnunciosQuery(termo, categoriaId, pagina, tamanho));
         // notas da página inteira de uma vez (uma consulta)
         Map<UUID, ResumoAvaliacoes> notas = avaliarAnuncioUseCase.resumoPorAnuncios(resultado.itens().stream().map(Anuncio::getId).toList());
         return ResponseEntity.ok(PaginaResponse.from(resultado, a -> AnuncioResponse.from(a, notas.get(a.getId()))));
@@ -65,7 +65,7 @@ public class AnuncioController {
 
     @GetMapping("/{id}")
     public ResponseEntity<AnuncioResponse> buscarPorId(@PathVariable UUID id) {
-        return ResponseEntity.ok(AnuncioResponse.from(buscarAnuncioPorIdUseCase.buscarPorId(id, UsuarioAutenticadoUtil.obterUsuarioLogadoId()),
+        return ResponseEntity.ok(AnuncioResponse.from(buscarAnuncioPorIdUseCase.buscarPorId(id),
                 avaliarAnuncioUseCase.resumoPorAnuncios(List.of(id)).get(id)));
     }
 
@@ -91,7 +91,7 @@ public class AnuncioController {
     @GetMapping("/meus")
     public ResponseEntity<List<AnuncioResponse>> meusAnuncios() {
         return ResponseEntity.ok(listarAnunciosPorVendedorUseCase
-                .listarPorVendedor(UsuarioAutenticadoUtil.obterUsuarioLogadoId(), UsuarioAutenticadoUtil.obterUsuarioLogadoId()).stream()
+                .listarPorVendedor(UsuarioAutenticadoUtil.obterUsuarioLogadoId()).stream()
                 .map(AnuncioResponse::from)
                 .toList());
     }

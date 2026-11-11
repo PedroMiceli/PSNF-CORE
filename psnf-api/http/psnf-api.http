@@ -1300,11 +1300,20 @@ Authorization: Bearer {{tokenVendedor}}
 
 > {% client.test("exigeCnpj true", () => client.assert(response.status === 200 && response.body.exigeCnpj === true)); %}
 
-### 10.2 [404] Quem não tem CNPJ não enxerga anúncio exclusivo para empresas
+### 10.2 Quem não tem CNPJ vê o anúncio exclusivo para empresas...
 GET {{baseUrl}}/anuncios/{{anuncioId}}
 Authorization: Bearer {{tokenNovoUsuario}}
 
-> {% client.test("404", () => client.assert(response.status === 404, "status " + response.status)); %}
+> {% client.test("200", () => client.assert(response.status === 200, "status " + response.status)); %}
+
+### 10.2b [422] ...mas não negocia (o anúncio do teste é "somente para empresas")
+POST {{baseUrl}}/negociacoes
+Authorization: Bearer {{tokenNovoUsuario}}
+Content-Type: application/json
+
+{ "anuncioId": "{{anuncioId}}" }
+
+> {% client.test("422", () => client.assert(response.status === 422 && response.body.erro.includes("CNPJ"), "status " + response.status)); %}
 
 ### 10.3 [400] CNPJ com dígito verificador errado
 PUT {{baseUrl}}/usuarios/me
@@ -1328,10 +1337,10 @@ Content-Type: application/json
 
 ### =============================== 11. VITRINE PÚBLICA ================================
 
-### 11.1 Sem login: listar e pesquisar anúncios (só os liberados para pessoa física)
+### 11.1 Sem login: listar e pesquisar anúncios (todos, inclusive os "somente para empresas")
 GET {{baseUrl}}/anuncios?termo=carrinho
 
-> {% client.test("200 e nenhum exclusivo para CNPJ", () => client.assert(response.status === 200 && response.body.itens.every(a => a.exigeCnpj === false))); %}
+> {% client.test("200", () => client.assert(response.status === 200 && response.body.itens.length > 0)); %}
 
 ### 11.2 Sem login: categorias
 GET {{baseUrl}}/categorias
