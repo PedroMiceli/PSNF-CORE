@@ -43,3 +43,9 @@
     @apply mt-5 mb-2 text-sm font-bold tracking-wide text-suave uppercase;
   }
 }
+
+/* aviso que sobe do rodapé (vitrine sem login) */
+@keyframes surgir {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
