@@ -1359,3 +1359,74 @@ Content-Type: application/json
 { "anuncioId": "{{anuncioId}}" }
 
 > {% client.test("401", () => client.assert(response.status === 401, "status " + response.status)); %}
+
+
+### =============================== 12. RENEGOCIAÇÃO DE VALORES ========================
+
+### 12.1 Um anúncio ativo do vendedor
+GET {{baseUrl}}/anuncios/meus
+Authorization: Bearer {{tokenVendedor}}
+
+> {% client.global.set("anuncioAtivoId", response.body.find(a => a.ativo).id); %}
+
+### 12.2 Ordem nova: 10 x R$ 12,50 (aguardando confirmação do comprador)
+POST {{baseUrl}}/ordens-de-pedido
+Authorization: Bearer {{tokenVendedor}}
+Content-Type: application/json
+
+{
+  "compradorId": "{{compradorId}}",
+  "itens": [ { "anuncioId": "{{anuncioAtivoId}}", "quantidade": 10, "valorUnidade": 12.50 } ]
+}
+
+> {%
+    client.test("201", () => client.assert(response.status === 201 && response.body.valorTotal === 125));
+    client.global.set("ordemRenegId", response.body.id);
+    client.global.set("itemRenegId", response.body.itens[0].id);
+%}
+
+### 12.3 [403] O comprador não altera valores
+PUT {{baseUrl}}/ordens-de-pedido/{{ordemRenegId}}/itens/valores
+Authorization: Bearer {{tokenComprador}}
+Content-Type: application/json
+
+{ "itens": [ { "itemId": "{{itemRenegId}}", "valorUnidade": 1.00 } ] }
+
+> {% client.test("403", () => client.assert(response.status === 403, "status " + response.status)); %}
+
+### 12.4 [400] Valor zero
+PUT {{baseUrl}}/ordens-de-pedido/{{ordemRenegId}}/itens/valores
+Authorization: Bearer {{tokenVendedor}}
+Content-Type: application/json
+
+{ "itens": [ { "itemId": "{{itemRenegId}}", "valorUnidade": 0 } ] }
+
+> {% client.test("400", () => client.assert(response.status === 400, "status " + response.status)); %}
+
+### 12.5 O vendedor renegocia: R$ 9,90 por unidade; o comprador recebe a mensagem com o antes e o depois
+PUT {{baseUrl}}/ordens-de-pedido/{{ordemRenegId}}/itens/valores
+Authorization: Bearer {{tokenVendedor}}
+Content-Type: application/json
+
+{ "itens": [ { "itemId": "{{itemRenegId}}", "valorUnidade": 9.90 } ] }
+
+> {%
+    client.test("200 e total novo", () => client.assert(response.status === 200 && response.body.valorTotal === 99, "total " + response.body.valorTotal));
+    const ultima = response.body.mensagensIncidente[response.body.mensagensIncidente.length - 1];
+    client.test("mensagem automática", () => client.assert(ultima.mensagem.startsWith("Valores renegociados pelo vendedor:") && ultima.mensagem.includes("Novo total")));
+%}
+
+### 12.6 O comprador aceita o valor novo
+PATCH {{baseUrl}}/ordens-de-pedido/{{ordemRenegId}}/aceitar
+Authorization: Bearer {{tokenComprador}}
+
+> {% client.test("ACEITO", () => client.assert(response.status === 200 && response.body.status === "ACEITO")); %}
+
+### 12.7 [422] Depois do aceite, os valores ficam como combinados
+PUT {{baseUrl}}/ordens-de-pedido/{{ordemRenegId}}/itens/valores
+Authorization: Bearer {{tokenVendedor}}
+Content-Type: application/json
+
+{ "itens": [ { "itemId": "{{itemRenegId}}", "valorUnidade": 5.00 } ] }
+
+> {% client.test("422", () => client.assert(response.status === 422, "status " + response.status)); %}

@@ -144,47 +144,7 @@ export function OrdemDetalhe() {
 
       <PainelEntrega ordem={o} souVendedor={souVendedor} enviando={acao.enviando} executar={executar} />
 
-      <Painel>
-        <h3>Itens</h3>
-        <div className="overflow-x-auto">
-          <table className={tabela.tabela}>
-            <thead>
-              <tr>
-                <th className={tabela.th}>Produto</th>
-                <th className={tabela.th}>Variação</th>
-                {['Qtd.', 'Valor unit.', 'Subtotal'].map((t) => <th key={t} className={cx(tabela.th, 'text-right')}>{t}</th>)}
-              </tr>
-            </thead>
-            <tbody>
-              {o.itens.map((i) => (
-                <tr key={i.id}>
-                  <td className={tabela.td}>
-                    <Link to={`/anuncios/${i.anuncioId}`}>{i.tituloAnuncio}</Link>
-                    {/* recebeu: pode avaliar o produto */}
-                    {souComprador && o.status === 'ENTREGUE' && (
-                      <Link to={`/anuncios/${i.anuncioId}#avaliacoes`}
-                        className="ml-2 inline-block rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[0.7rem] font-semibold whitespace-nowrap text-amber-800 hover:no-underline">
-                        ⭐ Avaliar
-                      </Link>
-                    )}
-                    {resumoItem(i) && <small className="block text-xs text-suave">{resumoItem(i)}</small>}
-                  </td>
-                  <td className={tabela.td}>{i.variacao ?? '—'}</td>
-                  <td className={cx(tabela.td, tabela.num)}>{i.quantidade}</td>
-                  <td className={cx(tabela.td, tabela.num)}>{formatarMoeda(i.valorUnidade)}</td>
-                  <td className={cx(tabela.td, tabela.num)}>{formatarMoeda(i.subtotal)}</td>
-                </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr>
-                <td colSpan={4} className={tabela.td}>Total</td>
-                <td className={cx(tabela.td, tabela.num, 'text-[1.05rem] font-extrabold')}>{formatarMoeda(o.valorTotal)}</td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-      </Painel>
+      <ItensOrdem ordem={o} souComprador={souComprador} souVendedor={souVendedor} enviando={acao.enviando} executar={executar} />
 
       <DadosNotaFiscal ordem={o} aberto={souVendedor && ['AGUARDANDO_PAGAMENTO', 'PAGO', 'ENVIADO', 'ENTREGUE'].includes(o.status)} />
 
@@ -762,7 +722,7 @@ function Mensagens({ ordem, usuarioId, podeEnviar, enviando, executar, novas, on
                 {nova && <span className="mr-1.5 rounded bg-vermelho px-1.5 py-px text-[0.65rem] font-bold text-white uppercase">Nova</span>}
                 {autor(m.usuarioCriadorId)} · {formatarData(m.dataCadastro)}
               </small>
-              <p className="my-1 break-words">{m.mensagem}</p>
+              <p className="my-1 break-words whitespace-pre-wrap">{m.mensagem}</p>
               {m.imagem && (
                 <a href={urlArquivo(m.imagem)} target="_blank" rel="noreferrer">
                   <ImagemAnuncio caminho={m.imagem} alt="Anexo da mensagem" className="mt-1 max-h-40 max-w-[220px] rounded-lg" />
@@ -789,6 +749,105 @@ function Mensagens({ ordem, usuarioId, podeEnviar, enviando, executar, novas, on
             <UploadArquivo accept={ACEITA_IMAGENS} compacto rotulo="Anexar foto (ex.: carga avariada)" onEnviado={(a) => setAnexo(a.caminho)} />
           )}
         </form>
+      )}
+    </Painel>
+  );
+}
+
+/**
+ * Itens da ordem. Enquanto o comprador não aceitou, o vendedor pode ajustar o valor unitário
+ * (renegociação): o comprador recebe uma mensagem automática com o antes e o depois.
+ */
+function ItensOrdem({ ordem: o, souComprador, souVendedor, enviando, executar }: {
+  ordem: OrdemDePedido; souComprador: boolean; souVendedor: boolean; enviando: boolean; executar: Exec;
+}) {
+  const podeAjustar = souVendedor && o.status === 'AGUARDANDO_CONFIRMACAO';
+  const [editando, setEditando] = useState(false);
+  const [valores, setValores] = useState<Record<string, string>>({});
+  const comecar = () => { setValores(Object.fromEntries(o.itens.map((i) => [i.id, i.valorUnidade.toFixed(2)]))); setEditando(true); };
+  const valorDe = (id: string, original: number) => (editando ? Number(valores[id] || 0) : original);
+  const total = o.itens.reduce((t, i) => t + valorDe(i.id, i.valorUnidade) * i.quantidade, 0);
+  const alterados = o.itens.filter((i) => editando && Number(valores[i.id] || 0) !== i.valorUnidade);
+  const invalido = o.itens.some((i) => editando && !(Number(valores[i.id]) > 0));
+
+  const salvar = async () => {
+    const ok = await executar(() => api.alterarValoresOrdem(o.id, alterados.map((i) => ({ itemId: i.id, valorUnidade: Number(valores[i.id]) }))));
+    if (ok) setEditando(false);
+  };
+
+  return (
+    <Painel>
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <h3 className="m-0 flex-1">Itens</h3>
+        {podeAjustar && !editando && <Botao tamanho="pequeno" onClick={comecar}>✏️ Ajustar valores</Botao>}
+      </div>
+      {podeAjustar && !editando && (
+        <p className={dica}>O comprador ainda não aceitou: se vocês renegociarem, ajuste os valores aqui. Ele recebe um aviso com o antes e o depois.</p>
+      )}
+      {souComprador && o.status === 'AGUARDANDO_CONFIRMACAO' && (
+        <p className={dica}>Achou algum valor alto? Converse com o vendedor em <a href="#mensagens">Incidentes e mensagens</a>: ele pode ajustar os valores antes de você aceitar.</p>
+      )}
+      <div className="overflow-x-auto">
+        <table className={tabela.tabela}>
+          <thead>
+            <tr>
+              <th className={tabela.th}>Produto</th>
+              <th className={tabela.th}>Variação</th>
+              {['Qtd.', 'Valor unit.', 'Subtotal'].map((t) => <th key={t} className={cx(tabela.th, 'text-right')}>{t}</th>)}
+            </tr>
+          </thead>
+          <tbody>
+            {o.itens.map((i) => {
+              const valor = valorDe(i.id, i.valorUnidade);
+              const mudou = editando && valor !== i.valorUnidade;
+              return (
+                <tr key={i.id}>
+                  <td className={tabela.td}>
+                    <Link to={`/anuncios/${i.anuncioId}`}>{i.tituloAnuncio}</Link>
+                    {/* recebeu: pode avaliar o produto */}
+                    {souComprador && o.status === 'ENTREGUE' && (
+                      <Link to={`/anuncios/${i.anuncioId}#avaliacoes`}
+                        className="ml-2 inline-block rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[0.7rem] font-semibold whitespace-nowrap text-amber-800 hover:no-underline">
+                        ⭐ Avaliar
+                      </Link>
+                    )}
+                    {resumoItem(i) && <small className="block text-xs text-suave">{resumoItem(i)}</small>}
+                  </td>
+                  <td className={tabela.td}>{i.variacao ?? '—'}</td>
+                  <td className={cx(tabela.td, tabela.num)}>{i.quantidade}</td>
+                  <td className={cx(tabela.td, tabela.num)}>
+                    {editando ? (
+                      <div className="ml-auto w-36">
+                        <InputMoeda valor={valores[i.id] ?? ''} aria-label={`Valor unitário de ${i.tituloAnuncio}`}
+                          onValor={(v) => setValores((a) => ({ ...a, [i.id]: v }))} />
+                        {mudou && <small className="block text-right text-xs text-suave line-through">{formatarMoeda(i.valorUnidade)}</small>}
+                      </div>
+                    ) : formatarMoeda(i.valorUnidade)}
+                  </td>
+                  <td className={cx(tabela.td, tabela.num, mudou && 'font-semibold text-primaria')}>{formatarMoeda(valor * i.quantidade)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colSpan={4} className={tabela.td}>Total</td>
+              <td className={cx(tabela.td, tabela.num, 'text-[1.05rem] font-extrabold')}>
+                {formatarMoeda(total)}
+                {editando && total !== o.valorTotal && <small className="block text-xs font-normal text-suave line-through">{formatarMoeda(o.valorTotal)}</small>}
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      {editando && (
+        <div className={cx(acoes, 'mt-3')}>
+          <Botao variante="primario" disabled={enviando || invalido || alterados.length === 0} onClick={salvar}>
+            {enviando ? 'Salvando...' : alterados.length ? `Salvar ${alterados.length} valor(es) e avisar o comprador` : 'Nenhum valor alterado'}
+          </Botao>
+          <Botao disabled={enviando} onClick={() => setEditando(false)}>Cancelar</Botao>
+          {invalido && <span className="text-sm text-vermelho">Todo valor precisa ser maior que zero.</span>}
+        </div>
       )}
     </Painel>
   );

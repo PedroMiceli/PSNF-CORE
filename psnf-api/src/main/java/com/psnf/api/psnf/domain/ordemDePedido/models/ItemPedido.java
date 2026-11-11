@@ -10,6 +10,8 @@ import java.util.UUID;
 /**
  * Item da ordem. O valor unitário, a variação e as informações do produto (SKU, NCM, garantia...)
  * são "congelados" no momento da compra: alterações posteriores no anúncio não mudam pedidos já feitos.
+ * O valor unitário só muda por renegociação, enquanto o comprador não aceitou a ordem
+ * ({@link OrdemDePedido#alterarValores}).
  */
 public class ItemPedido extends BaseDomain {
 
@@ -17,7 +19,7 @@ public class ItemPedido extends BaseDomain {
     private final String tituloAnuncio;
     private final String variacao;
     private final int quantidade;
-    private final BigDecimal valorUnidade;
+    private BigDecimal valorUnidade;
     private final InformacoesProduto informacoes;
 
     private ItemPedido(UUID id, LocalDateTime dataCadastro, LocalDateTime dataAlteracao, LocalDateTime dataExcluido, UUID anuncioId, String tituloAnuncio, String variacao, int quantidade, BigDecimal valorUnidade, InformacoesProduto informacoes) {
@@ -45,6 +47,12 @@ public class ItemPedido extends BaseDomain {
     public static ItemPedido restaurar(UUID id, LocalDateTime dataCadastro, LocalDateTime dataAlteracao, LocalDateTime dataExcluido, UUID anuncioId, String tituloAnuncio, String variacao, int quantidade, BigDecimal valorUnidade,
                                        InformacoesProduto informacoes) {
         return new ItemPedido(id, dataCadastro, dataAlteracao, dataExcluido, anuncioId, tituloAnuncio, variacao, quantidade, valorUnidade, informacoes);
+    }
+
+    /** novo valor combinado com o comprador (a ordem confere o status e quem pode alterar) */
+    void alterarValorUnidade(BigDecimal novo) {
+        if (novo == null || novo.signum() <= 0) throw new IllegalArgumentException("O valor unitário deve ser maior que zero");
+        this.valorUnidade = novo;
     }
 
     public BigDecimal getSubtotal() {

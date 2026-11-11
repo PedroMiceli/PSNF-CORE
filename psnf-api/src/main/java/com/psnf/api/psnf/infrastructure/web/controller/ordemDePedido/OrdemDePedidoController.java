@@ -30,6 +30,7 @@ public class OrdemDePedidoController {
     private final AdicionarNotaFiscalUseCase adicionarNotaFiscalUseCase;
     private final RegistrarMensagemIncidenteUseCase registrarMensagemIncidenteUseCase;
     private final AlterarStatusOrdemDePedidoUseCase alterarStatusOrdemDePedidoUseCase;
+    private final com.psnf.api.psnf.domain.ordemDePedido.port.in.AlterarValoresOrdemUseCase alterarValoresOrdemUseCase;
 
     /**
      * O VENDEDOR (usuário logado) cria a ordem para o comprador com quem fechou acordo no chat,
@@ -88,6 +89,14 @@ public class OrdemDePedidoController {
     @PatchMapping("/{id}/aceitar")
     public ResponseEntity<OrdemDePedidoResponse> aceitar(@PathVariable UUID id) {
         return ResponseEntity.ok(resposta(alterarStatusOrdemDePedidoUseCase.aceitar(id, usuarioLogado())));
+    }
+
+    /** Renegociação: o vendedor altera o valor unitário dos itens enquanto o comprador não aceitou. */
+    @PutMapping("/{id}/itens/valores")
+    public ResponseEntity<OrdemDePedidoResponse> alterarValores(@PathVariable UUID id, @RequestBody @Valid AlterarValoresRequest request) {
+        java.util.Map<UUID, java.math.BigDecimal> valores = new java.util.LinkedHashMap<>();
+        request.itens().forEach(i -> valores.put(i.itemId(), i.valorUnidade()));
+        return ResponseEntity.ok(resposta(alterarValoresOrdemUseCase.alterarValores(id, usuarioLogado(), valores)));
     }
 
     @PostMapping("/{id}/notas-fiscais")
