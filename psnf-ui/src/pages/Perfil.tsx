@@ -65,7 +65,8 @@ export function Perfil() {
       <form className={painel} onSubmit={salvarDados}>
         <h3>Dados</h3>
         <ErroBox erro={salvar.erro} />
-        <div className={linhaForm}>
+        {/* alinhados pelo topo: a mensagem da Receita abaixo do CNPJ cresce para baixo sem desalinhar os inputs */}
+        <div className={linhaForm.replace('items-end', 'items-start')}>
           <Campo label="Nome" erro={salvar.erro?.campos?.nome}>
             <input className={controle} value={dados.nome} onChange={(e) => setDados({ ...dados, nome: e.target.value })} />
           </Campo>
