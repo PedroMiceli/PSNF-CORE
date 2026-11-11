@@ -76,7 +76,13 @@ export function Vitrine() {
 
       {/* conteúdo: barra de pesquisa no topo e os anúncios no meio */}
       <div className="min-w-0">
-        {usuario && !usuario.cnpj && (
+        {!usuario ? (
+          <p className="mb-4 rounded-card border border-blue-200 bg-blue-50 px-4 py-3 text-sm" role="note">
+            <Link to="/login">Entre</Link> ou <Link to="/cadastro">crie sua conta</Link> para ver os detalhes, negociar
+            com os fornecedores e fazer pedidos. Empresas com CNPJ cadastrado veem todos os anúncios; aqui aparecem
+            os liberados para qualquer comprador.
+          </p>
+        ) : !usuario.cnpj && (
           <p className="mb-4 rounded-card border border-amber-200 bg-amber-50 px-4 py-3 text-sm" role="note">
             Você está vendo só os anúncios liberados para pessoa física. Muitos fornecedores vendem apenas
             para empresas: <Link to="/perfil">cadastre o CNPJ no seu perfil</Link> para ver todos.
@@ -104,7 +110,9 @@ export function Vitrine() {
           <Vazio>
             {termo || categoriaId
               ? 'Tente outro termo ou outra categoria.'
-              : usuario && !usuario.cnpj
+              : !usuario
+                ? <>Nenhum anúncio aberto ao público por enquanto. <Link to="/cadastro">Crie sua conta</Link> com CNPJ para ver os anúncios para empresas.</>
+                : !usuario.cnpj
                 ? <>Nenhum anúncio liberado para pessoa física por enquanto. Com o <Link to="/perfil">CNPJ cadastrado</Link>, você vê os anúncios para empresas.</>
                 : <>Nenhum anúncio ativo. <Link to="/anuncios/novo">Cadastre um anúncio</Link> como vendedor.</>}
           </Vazio>

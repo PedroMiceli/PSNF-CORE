@@ -1,5 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { Layout } from './components/Layout';
+import { LayoutPublico } from './components/LayoutPublico';
 import { Vazio } from './components/ui';
 import { UsuarioProvider, useUsuario } from './context/UsuarioContext';
 import { Cadastro } from './pages/auth/Cadastro';
@@ -41,10 +42,14 @@ function Rotas() {
     return <div className="flex min-h-screen items-center justify-center text-suave">Carregando...</div>;
   }
 
-  // sem login: só as telas públicas; qualquer outra vai para o login e volta depois para onde ia
+  // sem login: a vitrine (ver e pesquisar) e as telas de conta; qualquer outra (abrir um anúncio,
+  // negociar...) vai para o login e volta depois para onde ia
   if (estado.tipo === 'anonimo') {
     return (
       <Routes>
+        <Route element={<LayoutPublico />}>
+          <Route index element={<Vitrine />} />
+        </Route>
         <Route path="login" element={<Login />} />
         <Route path="cadastro" element={<Cadastro />} />
         <Route path="esqueci-senha" element={<EsqueciSenha />} />

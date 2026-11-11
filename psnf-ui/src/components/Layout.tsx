@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { AlertasProvider, useAlertas } from '../context/AlertasContext';
 import { NovidadesProvider } from '../context/NovidadesContext';
 import { ChatProvider } from '../context/ChatContext';
@@ -16,6 +16,9 @@ const itemMenu = ({ isActive }: { isActive: boolean }) =>
 
 export function Layout() {
   const { usuarioId, usuario, sair } = useUsuario();
+  const navigate = useNavigate();
+  // depois de sair, o login com "Você saiu da sua conta" (a vitrine pública fica a um clique, no logo)
+  const sairELogin = async () => { await sair(); navigate('/login', { replace: true }); };
 
   return (
     // key: ao entrar com outro usuário o estado de chat/alertas recomeça do zero
@@ -39,7 +42,7 @@ export function Layout() {
               <Avatar nome={usuario?.nome ?? ''} imagem={usuario?.imagem} />
               <span className="max-w-40 truncate font-semibold">{usuario?.nome}</span>
             </NavLink>
-            <button type="button" onClick={() => sair()}
+            <button type="button" onClick={sairELogin}
               className="cursor-pointer rounded-lg px-3 py-1.5 text-sm text-slate-300 hover:bg-topo-claro hover:text-white">
               Sair
             </button>

@@ -6,6 +6,8 @@ import com.psnf.api.psnf.domain.arquivo.port.in.BaixarArquivoUseCase;
 import com.psnf.api.psnf.domain.arquivo.port.in.EnviarArquivoUseCase;
 import com.psnf.api.psnf.domain.arquivo.port.in.command.EnviarArquivoCommand;
 import com.psnf.api.psnf.infrastructure.web.controller.arquivo.dto.ArquivoResponse;
+import com.psnf.api.psnf.domain.shared.exception.NaoAutenticadoException;
+import com.psnf.api.psnf.infrastructure.web.controller.UsuarioAutenticadoUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.CacheControl;
@@ -41,13 +43,21 @@ public class ArquivoController {
     }
 
     @GetMapping("/{nome}")
-    public ResponseEntity<InputStreamResource> baixar(@PathVariable String nome) {
+    public ResponseEntity<InputStreamResource> baixar(@PathVariable String nome) throws IOException {
         ConteudoArquivo arquivo = baixarArquivoUseCase.baixar(nome);
+        // imagens são públicas (vitrine sem login); nota fiscal, comprovante (PDF/XML) só com login
+        boolean imagem = arquivo.contentType().startsWith("image/");
+        if (!imagem && UsuarioAutenticadoUtil.usuarioLogadoId().isEmpty()) {
+            arquivo.conteudo().close();
+            throw new NaoAutenticadoException("Faça login para abrir este arquivo");
+        }
+        // o nome é um UUID e o conteúdo nunca muda: pode ficar em cache por bastante tempo
+        // (documentos só no cache do navegador do usuário, nunca em proxies compartilhados)
+        CacheControl cache = CacheControl.maxAge(Duration.ofDays(30)).immutable();
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(arquivo.contentType()))
                 .contentLength(arquivo.tamanho())
-                // o nome é um UUID e o conteúdo nunca muda: pode ficar em cache por bastante tempo
-                .cacheControl(CacheControl.maxAge(Duration.ofDays(30)).cachePublic().immutable())
+                .cacheControl(imagem ? cache.cachePublic() : cache.cachePrivate())
                 .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + nome + "\"")
                 .header("X-Content-Type-Options", "nosniff")
                 .body(new InputStreamResource(arquivo.conteudo()));
