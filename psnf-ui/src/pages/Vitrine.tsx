@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { api } from '../api/endpoints';
 import { useApi } from '../api/useApi';
 import { formatarMoeda } from '../components/format';
-import { Badge, BADGE_CNPJ, Botao, Carregando, cx, ErroBox, ImagemAnuncio, Vazio } from '../components/ui';
+import { Badge, BADGE_CNPJ, Botao, Carregando, classesBotao, cx, ErroBox, ImagemAnuncio, Vazio } from '../components/ui';
 import { useUsuario } from '../context/UsuarioContext';
 
 const POR_PAGINA = 24;
@@ -24,6 +24,14 @@ export function Vitrine() {
   const { usuario } = useUsuario();
   // quem tem CNPJ negocia qualquer anúncio: o selo "Somente CNPJ" só aparece para quem não tem
   const temCnpj = !!usuario?.cnpj;
+  // visitante clicou num cartão: aviso leve no rodapé (some sozinho); "Entrar" volta para este anúncio
+  const [avisoLogin, setAvisoLogin] = useState<{ anuncioId: string; vez: number } | null>(null);
+  const avisarLogin = (anuncioId: string) => setAvisoLogin((v) => ({ anuncioId, vez: (v?.vez ?? 0) + 1 }));
+  useEffect(() => {
+    if (!avisoLogin) return;
+    const t = setTimeout(() => setAvisoLogin(null), 5000);
+    return () => clearTimeout(t);
+  }, [avisoLogin]);
   const [categoriaId, setCategoriaId] = useState<string>('');
   const [busca, setBusca] = useState('');
   const termo = useDebounce(busca.trim(), 300);
@@ -129,7 +137,7 @@ export function Vitrine() {
                     <div className="p-3.5">
                       <span className="flex items-center justify-between gap-2">
                         <span className="text-[0.72rem] tracking-wider text-suave uppercase">{nomeCategoria(a.categoriaId)}</span>
-                        {a.exigeCnpj && !temCnpj && <Badge className={BADGE_CNPJ}>Somente CNPJ</Badge>}
+                        {a.exigeCnpj && !temCnpj && <Badge className={BADGE_CNPJ + " shrink-0 whitespace-nowrap"}>Somente CNPJ</Badge>}
                       </span>
                       <h3 className="mt-1 mb-1 text-base">{a.titulo}</h3>
                       {a.quantidadeAvaliacoes > 0 && (
@@ -147,12 +155,15 @@ export function Vitrine() {
                     </div>
                     </Link>
                   ) : (
-                    <div key={a.id} className={cartao} title="Entre para ver os detalhes e negociar">
+                    <div key={a.id} role="button" tabIndex={0} aria-label={`${a.titulo}: entre para ver os detalhes`}
+                      className={cartao + ' cursor-pointer transition hover:shadow-[0_8px_24px_rgba(15,23,42,0.08)]'}
+                      onClick={() => avisarLogin(a.id)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); avisarLogin(a.id); } }}>
                     <ImagemAnuncio caminho={principal?.caminho} alt={a.titulo} className="h-[170px] w-full" />
                     <div className="p-3.5">
                       <span className="flex items-center justify-between gap-2">
                         <span className="text-[0.72rem] tracking-wider text-suave uppercase">{nomeCategoria(a.categoriaId)}</span>
-                        {a.exigeCnpj && !temCnpj && <Badge className={BADGE_CNPJ}>Somente CNPJ</Badge>}
+                        {a.exigeCnpj && !temCnpj && <Badge className={BADGE_CNPJ + " shrink-0 whitespace-nowrap"}>Somente CNPJ</Badge>}
                       </span>
                       <h3 className="mt-1 mb-1 text-base">{a.titulo}</h3>
                       {a.quantidadeAvaliacoes > 0 && (
@@ -185,6 +196,19 @@ export function Vitrine() {
           </>
         )}
       </div>
+      {avisoLogin && (
+        <div key={avisoLogin.vez} role="status"
+          className="fixed inset-x-4 bottom-6 z-40 mx-auto flex max-w-[560px] flex-wrap items-center gap-x-4 gap-y-2 rounded-card bg-topo px-5 py-3.5 text-sm text-white shadow-xl motion-safe:animate-[surgir_0.2s_ease-out]">
+          <span className="min-w-0 flex-1">Logue ou crie uma conta para visualizar mais detalhes deste produto.</span>
+          <span className="flex items-center gap-2">
+            <Link to="/login" state={{ de: `/anuncios/${avisoLogin.anuncioId}` }}
+              className="rounded-lg px-3 py-1.5 font-semibold text-white hover:bg-topo-claro hover:no-underline">Entrar</Link>
+            <Link to="/cadastro" className={classesBotao('primario', 'pequeno')}>Criar conta</Link>
+            <button type="button" onClick={() => setAvisoLogin(null)} aria-label="Fechar aviso"
+              className="cursor-pointer rounded px-1.5 text-slate-300 hover:bg-topo-claro hover:text-white">✕</button>
+          </span>
+        </div>
+      )}
     </section>
   );
 }
