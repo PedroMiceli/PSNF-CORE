@@ -31,6 +31,10 @@ public class JwtConfig {
 
     @Bean
     SecretKey chaveJwt(AuthProperties props) {
+        if ("auto".equals(props.cookieSeguro())) {
+            logger.info("Cookies de sessão: Secure automático (HTTPS com Secure; HTTP de desenvolvimento sem). "
+                    + "Em produção, use PSNF_COOKIE_SECURE=true.");
+        }
         byte[] bytes;
         if (props.jwtSegredo() == null || props.jwtSegredo().isBlank()) {
             logger.warn("psnf.auth.jwt-segredo (PSNF_JWT_SECRET) não definido: usando uma chave aleatória. "

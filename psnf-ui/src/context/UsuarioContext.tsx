@@ -39,7 +39,21 @@ export function UsuarioProvider({ children }: { children: ReactNode }) {
 
   const entrar = useCallback(async (email: string, senha: string) => {
     try {
-      setEstado({ tipo: 'logado', usuario: await api.entrar(email, senha) });
+      await api.entrar(email, senha);
+      // a sessão vive nos cookies: confere se o navegador os guardou (senão o login "dá certo" e a
+      // primeira tela já volta deslogada). Ex.: cookie Secure recebido por HTTP, bloqueio de cookies.
+      let usuario;
+      try {
+        usuario = await api.usuarioLogado();
+      } catch (e) {
+        if (e instanceof ApiError && e.status === 401) {
+          return new ApiError(0, 'Seu navegador não guardou o login (os cookies de sessão foram bloqueados). '
+            + 'Permita cookies para este site e, se estiver acessando por um endereço http:// diferente de localhost, '
+            + 'use https ou localhost.');
+        }
+        throw e;
+      }
+      setEstado({ tipo: 'logado', usuario });
       return null;
     } catch (e) {
       return e instanceof ApiError ? e : new ApiError(0, String(e));

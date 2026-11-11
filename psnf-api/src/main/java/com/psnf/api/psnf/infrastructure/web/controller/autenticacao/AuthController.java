@@ -75,7 +75,7 @@ public class AuthController {
     @PostMapping("/login")
     public UsuarioResponse login(@RequestBody @Valid LoginRequest req, HttpServletRequest request, HttpServletResponse response) {
         SessaoAutenticada sessao = autenticacao.entrar(req.email(), req.senha(), cliente(request));
-        cookies.gravar(response, sessao);
+        cookies.gravar(request, response, sessao);
         return UsuarioResponse.from(sessao.usuario());
     }
 
@@ -94,10 +94,10 @@ public class AuthController {
         }
         try {
             SessaoAutenticada sessao = autenticacao.renovar(doCookie, cliente(request));
-            cookies.gravar(response, sessao);
+            cookies.gravar(request, response, sessao);
             return ResponseEntity.ok(UsuarioResponse.from(sessao.usuario()));
         } catch (RuntimeException e) {
-            cookies.limpar(response); // sessão morta: não adianta o navegador continuar mandando
+            cookies.limpar(request, response); // sessão morta: não adianta o navegador continuar mandando
             throw e;
         }
     }
@@ -107,16 +107,16 @@ public class AuthController {
                                        HttpServletRequest request, HttpServletResponse response) {
         String token = CookiesAutenticacao.ler(request, CookiesAutenticacao.REFRESH);
         autenticacao.sair(token != null ? token : body == null ? null : body.refreshToken());
-        cookies.limpar(response);
+        cookies.limpar(request, response);
         // Clear-Site-Data: o navegador também descarta caches e storage desta origem
         return ResponseEntity.noContent().header("Clear-Site-Data", "\"cache\", \"storage\"").build();
     }
 
     /** encerra todas as sessões do usuário logado (todos os dispositivos), inclusive esta */
     @PostMapping("/logout-todos")
-    public ResponseEntity<Void> logoutTodos(HttpServletResponse response) {
+    public ResponseEntity<Void> logoutTodos(HttpServletRequest request, HttpServletResponse response) {
         autenticacao.sairDeTodos(UsuarioAutenticadoUtil.obterUsuarioLogadoId());
-        cookies.limpar(response);
+        cookies.limpar(request, response);
         return ResponseEntity.noContent().build();
     }
 
@@ -145,9 +145,10 @@ public class AuthController {
 
     /** link do e-mail de redefinição; encerra todas as sessões abertas */
     @PostMapping("/redefinir-senha")
-    public ResponseEntity<Void> redefinirSenha(@RequestBody @Valid RedefinirSenhaRequest req, HttpServletResponse response) {
+    public ResponseEntity<Void> redefinirSenha(@RequestBody @Valid RedefinirSenhaRequest req, HttpServletRequest request,
+                                               HttpServletResponse response) {
         conta.redefinirSenha(req.token(), req.novaSenha());
-        cookies.limpar(response);
+        cookies.limpar(request, response);
         return ResponseEntity.noContent().build();
     }
 
