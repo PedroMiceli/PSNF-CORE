@@ -55,7 +55,8 @@ export function InputMoeda({ valor, onValor, className, ...props }: Omit<InputHT
 
 /* ------------------------------------------------------------------ botões */
 
-type Variante = 'padrao' | 'primario' | 'perigo';
+/** perigoForte: confirmação de ação destrutiva (vermelho sólido) */
+type Variante = 'padrao' | 'primario' | 'perigo' | 'perigoForte';
 type Tamanho = 'normal' | 'pequeno';
 
 const BOTAO_BASE =
@@ -65,6 +66,7 @@ const BOTAO_VARIANTE: Record<Variante, string> = {
   padrao: 'border-borda bg-white text-texto hover:bg-gray-100',
   primario: 'border-primaria bg-primaria text-white hover:bg-primaria-escura',
   perigo: 'border-red-200 bg-white text-vermelho hover:bg-red-50',
+  perigoForte: 'border-vermelho bg-vermelho text-white hover:bg-red-800',
 };
 const BOTAO_TAMANHO: Record<Tamanho, string> = {
   normal: 'px-4 py-2 text-sm',
