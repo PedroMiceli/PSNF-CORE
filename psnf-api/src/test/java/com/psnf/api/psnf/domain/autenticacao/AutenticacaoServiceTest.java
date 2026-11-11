@@ -77,6 +77,7 @@ class AutenticacaoServiceTest {
             public Usuario buscarPorId(UUID id) { return usuario; }
             public Map<UUID, Usuario> buscarPorIds(Collection<UUID> ids) { return Map.of(); }
             public boolean existePorEmail(String e) { return false; }
+            public boolean cnpjEmUsoPorOutro(String c, UUID u) { return false; }
             public Optional<Usuario> buscarPorEmail(String e) {
                 return e.equalsIgnoreCase(usuario.getEmail()) ? Optional.of(usuario) : Optional.empty();
             }

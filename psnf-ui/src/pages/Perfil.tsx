@@ -3,7 +3,7 @@ import { api } from '../api/endpoints';
 import type { EnderecoInput } from '../api/types';
 import { useAcao, useApi } from '../api/useApi';
 import { ACEITA_IMAGENS, UploadArquivo } from '../components/UploadArquivo';
-import { mascaraTelefone, telefoneValido } from '../components/format';
+import { cnpjValido, mascaraCnpj, mascaraTelefone, telefoneValido } from '../components/format';
 import { EnderecoForm } from '../components/EnderecoForm';
 import { Botao, Campo, Carregando, controle, cx, dica, ErroBox, ImagemAnuncio, linhaForm, painel, Painel } from '../components/ui';
 import { useUsuario } from '../context/UsuarioContext';
@@ -15,11 +15,11 @@ export function Perfil() {
   const [saindo, setSaindo] = useState(false);
   const salvar = useAcao();
   const endereco = useAcao();
-  const [dados, setDados] = useState({ nome: '', telefone: '', imagem: '' });
+  const [dados, setDados] = useState({ nome: '', telefone: '', imagem: '', cnpj: '' });
   const [tentouSalvar, setTentouSalvar] = useState(false);
 
   useEffect(() => {
-    if (usuario.data) setDados({ nome: usuario.data.nome, telefone: mascaraTelefone(usuario.data.telefone ?? ''), imagem: usuario.data.imagem ?? '' });
+    if (usuario.data) setDados({ nome: usuario.data.nome, telefone: mascaraTelefone(usuario.data.telefone ?? ''), imagem: usuario.data.imagem ?? '', cnpj: mascaraCnpj(usuario.data.cnpj ?? '') });
   }, [usuario.data]);
 
   if (usuario.loading) return <Carregando />;
@@ -30,6 +30,7 @@ export function Perfil() {
     e.preventDefault();
     setTentouSalvar(true);
     if (dados.telefone && !telefoneValido(dados.telefone)) return;
+    if (!cnpjValido(dados.cnpj)) return;
     // a API guarda só os dígitos; a máscara é apenas visual
     const r = await salvar.executar(() => api.atualizarUsuario({ ...dados, telefone: dados.telefone.replace(/\D/g, '') }));
     if (r) { usuario.setData(r); atualizarUsuario(r); }
@@ -55,6 +56,11 @@ export function Perfil() {
         <div className={linhaForm}>
           <Campo label="Nome" erro={salvar.erro?.campos?.nome}>
             <input className={controle} value={dados.nome} onChange={(e) => setDados({ ...dados, nome: e.target.value })} />
+          </Campo>
+          <Campo label="CNPJ" erro={!cnpjValido(dados.cnpj) && tentouSalvar ? 'CNPJ inválido: confira os números' : salvar.erro?.campos?.cnpj}
+            dica={dados.cnpj ? undefined : 'Sem CNPJ, você só vê anúncios liberados para pessoa física.'}>
+            <input className={controle} value={dados.cnpj} placeholder="00.000.000/0000-00"
+              onChange={(e) => setDados({ ...dados, cnpj: mascaraCnpj(e.target.value) })} />
           </Campo>
           <Campo label="Telefone" erro={dados.telefone && !telefoneValido(dados.telefone) && tentouSalvar
             ? 'Informe o DDD e o número (ex.: (11) 99999-0001)' : salvar.erro?.campos?.telefone}>

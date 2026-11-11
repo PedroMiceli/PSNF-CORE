@@ -404,9 +404,11 @@ def todos_anuncios_ativos():
             return
 
 
-def entrar(email):
+def entrar(email, cnpj=None):
     """Login de script: devolve o token de acesso e o id do usuário (POST /auth/token)."""
     r = entrar_confirmando(email, [SENHA, SENHA_ANTIGA])
+    if cnpj:
+        garantir_cnpj(r, cnpj)
     return {"id": r["usuario"]["id"], "token": r["accessToken"]}
 
 
@@ -417,17 +419,18 @@ def garantir_fornecedores():
     (a senha de todos é teste123, ou 123456 nos criados antes da regra de 8 caracteres). Um fornecedor que exista com outra senha é pulado."""
     global TOKEN_PADRAO
     logados = []
-    for f in FORNECEDORES:
+    for i, f in enumerate(FORNECEDORES):
+        cnpj = gerar_cnpj(200 + i) if "nome" in f else None  # o Vendedor Mock já tem CNPJ
         if "nome" in f:
             try:
                 chamar("POST", "/usuarios", {"nome": f["nome"], "email": f["email"], "senha": SENHA,
-                                             "telefone": f["telefone"]})
+                                             "telefone": f["telefone"], "cnpj": cnpj})
                 print(f"  + fornecedor criado: {f['nome']}")
             except ApiErro as e:
                 if e.status != 422:
                     raise
         try:
-            logados.append(entrar(f["email"]))
+            logados.append(entrar(f["email"], cnpj))
         except ApiErro as e:
             print(f"  ! não foi possível entrar como {f['email']} ({e.status}): seus anúncios ficam com outro fornecedor")
     if not logados:
@@ -447,6 +450,8 @@ def montar_anuncio(categoria_id, titulo, preco, variacoes, detalhe, imagens):
         "valores": [{"valorUnidade": round(preco * fator, 2), "quantidadeMinima": qtd} for qtd, fator in faixas],
         "imagens": [{"caminho": c, "principal": i == 0} for i, c in enumerate(imagens)],
         "variacoes": [{"variacao": v} for v in variacoes],
+        # cerca de 1 em cada 3 também vende para pessoa física (sem CNPJ); o resto, só para empresas
+        "exigeCnpj": len(titulo) % 3 != 0,
     }
 
 
@@ -477,6 +482,27 @@ def entrar_confirmando(email, senhas):
             if e.status != 401:
                 raise
     raise ApiErro(401, "senha não confere")
+
+
+def gerar_cnpj(numero):
+    """CNPJ de teste com dígitos verificadores válidos (empresa fictícia), a partir de um número."""
+    base = f"{90000000 + numero:08d}0001"
+    for pesos in ([5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2], [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]):
+        resto = sum((ord(c) - 48) * p for c, p in zip(base, pesos)) % 11
+        base += str(0 if resto < 2 else 11 - resto)
+    return base
+
+
+def garantir_cnpj(login, cnpj):
+    """Contas criadas antes do CNPJ: grava o CNPJ de teste no perfil (mantendo nome, telefone e foto)."""
+    u = login["usuario"]
+    if u.get("cnpj"):
+        return
+    try:
+        chamar("PUT", "/usuarios/me", {"nome": u["nome"], "telefone": u.get("telefone"), "imagem": u.get("imagem"),
+                                       "cnpj": cnpj}, usuario=login["accessToken"])
+    except ApiErro as e:
+        print(f"  ! não foi possível gravar o CNPJ de {u['email']}: {e}")
 
 
 def main():

@@ -1,5 +1,7 @@
 package com.psnf.api.psnf.application.negociacao;
 
+import com.psnf.api.psnf.domain.anuncio.model.Anuncio;
+import com.psnf.api.psnf.domain.usuario.port.out.UsuarioRepositoryPort;
 import com.psnf.api.psnf.domain.anuncio.port.out.AnuncioRepositoryPort;
 import com.psnf.api.psnf.domain.negociacao.model.Negociacao;
 import com.psnf.api.psnf.domain.negociacao.model.NegociacaoDetalhes;
@@ -17,6 +19,7 @@ public class VincularAnuncioNegociacaoService implements VincularAnuncioNegociac
 
     private final NegociacaoRepositoryPort negociacaoRepositoryPort;
     private final AnuncioRepositoryPort anuncioRepositoryPort;
+    private final UsuarioRepositoryPort usuarioRepositoryPort;
     private final DetalhesNegociacaoLoader loader;
 
     @Override
@@ -24,7 +27,9 @@ public class VincularAnuncioNegociacaoService implements VincularAnuncioNegociac
     public NegociacaoDetalhes adicionar(UUID negociacaoId, UUID usuarioId, UUID anuncioId) {
         Negociacao n = negociacaoRepositoryPort.buscarPorId(negociacaoId);
         n.garantirParticipante(usuarioId);
-        n.adicionarAnuncio(usuarioId, anuncioRepositoryPort.buscarPorId(anuncioId));
+        Anuncio anuncio = anuncioRepositoryPort.buscarPorId(anuncioId);
+        anuncio.garantirQuePodeVenderPara(usuarioRepositoryPort.buscarPorId(n.getCompradorId()).temCnpj());
+        n.adicionarAnuncio(usuarioId, anuncio);
         return loader.carregar(negociacaoRepositoryPort.save(n));
     }
 

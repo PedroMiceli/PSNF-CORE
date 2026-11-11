@@ -7,7 +7,8 @@ Uso (com a API rodando):
     python3 psnf-api/scripts/popular-usuarios.py
     API_URL=http://localhost:8081 python3 psnf-api/scripts/popular-usuarios.py
 
-Todos usam a senha teste123 (criados antes da regra de 8 caracteres: 123456). Entre no front com eles.
+Todos usam a senha teste123 (criados antes da regra de 8 caracteres: 123456) e têm CNPJ de teste.
+Entre no front com eles.
 Pode ser executado várias vezes: usuários com email já cadastrado são apenas informados.
 Só usa a biblioteca padrão do Python 3 (nada para instalar).
 """
@@ -60,11 +61,14 @@ class ApiErro(Exception):
         self.status = status
 
 
-def chamar(metodo, caminho, corpo=None, tentativa=0):
-    args, kwargs = (metodo, caminho), {"corpo": corpo}
+def chamar(metodo, caminho, corpo=None, usuario=None, tentativa=0):
+    """usuario: token de acesso (Authorization: Bearer) para as rotas que exigem login"""
+    args, kwargs = (metodo, caminho), {"corpo": corpo, "usuario": usuario}
     dados = json.dumps(corpo).encode("utf-8") if corpo is not None else None
-    req = urllib.request.Request(API + caminho, data=dados, method=metodo,
-                                 headers={"Content-Type": "application/json"} if dados else {})
+    headers = {"Content-Type": "application/json"} if dados else {}
+    if usuario:
+        headers["Authorization"] = "Bearer " + usuario
+    req = urllib.request.Request(API + caminho, data=dados, method=metodo, headers=headers)
     try:
         with urllib.request.urlopen(req, timeout=30) as resp:
             texto = resp.read().decode("utf-8")
@@ -108,6 +112,27 @@ def entrar_confirmando(email, senhas):
     raise ApiErro(401, "senha não confere")
 
 
+def gerar_cnpj(numero):
+    """CNPJ de teste com dígitos verificadores válidos (empresa fictícia), a partir de um número."""
+    base = f"{90000000 + numero:08d}0001"
+    for pesos in ([5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2], [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]):
+        resto = sum((ord(c) - 48) * p for c, p in zip(base, pesos)) % 11
+        base += str(0 if resto < 2 else 11 - resto)
+    return base
+
+
+def garantir_cnpj(login, cnpj):
+    """Contas criadas antes do CNPJ: grava o CNPJ de teste no perfil (mantendo nome, telefone e foto)."""
+    u = login["usuario"]
+    if u.get("cnpj"):
+        return
+    try:
+        chamar("PUT", "/usuarios/me", {"nome": u["nome"], "telefone": u.get("telefone"), "imagem": u.get("imagem"),
+                                       "cnpj": cnpj}, usuario=login["accessToken"])
+    except ApiErro as e:
+        print(f"  ! não foi possível gravar o CNPJ de {u['email']}: {e}")
+
+
 def main():
     global API
     parser = argparse.ArgumentParser(description="Cadastra usuários de teste na PSNF API.")
@@ -121,9 +146,9 @@ def main():
 
     print(f"Cadastrando {len(USUARIOS)} usuários em {API} ...\n")
     criados = existentes = falhas = 0
-    for nome, email, telefone, (cep, logradouro, numero, complemento, bairro, cidade, uf) in USUARIOS:
+    for i, (nome, email, telefone, (cep, logradouro, numero, complemento, bairro, cidade, uf)) in enumerate(USUARIOS):
         corpo = {
-            "nome": nome, "email": email, "senha": SENHA, "telefone": telefone,
+            "nome": nome, "email": email, "senha": SENHA, "telefone": telefone, "cnpj": gerar_cnpj(100 + i),
             "enderecos": [{"cep": cep, "logradouro": logradouro, "numero": numero, "complemento": complemento,
                            "bairro": bairro, "cidade": cidade, "uf": uf}],
         }
@@ -143,9 +168,10 @@ def main():
 
     # confere o login de cada um e mostra o id (útil em testes)
     print("\nLogin (POST /auth/token):")
-    for nome, email, *_ in USUARIOS:
+    for i, (nome, email, *_) in enumerate(USUARIOS):
         try:
             r = entrar_confirmando(email, [SENHA, SENHA_ANTIGA])
+            garantir_cnpj(r, gerar_cnpj(100 + i))
             print(f"  ✔ {r['usuario']['id']}  {nome}")
         except ApiErro as e:
             print(f"  ✘ {email}: {e}")

@@ -1,5 +1,6 @@
 package com.psnf.api.psnf.domain.anuncio.model;
 
+import com.psnf.api.psnf.domain.anuncio.exception.CompradorSemCnpjException;
 import com.psnf.api.psnf.domain.shared.exception.RegraDeNegocioException;
 import com.psnf.api.psnf.domain.shared.model.BaseDomain;
 
@@ -20,6 +21,8 @@ public class Anuncio extends BaseDomain {
     private String titulo;
     private String descricao;
     private boolean ativo;
+    /** true = vendido somente para compradores com CNPJ (padrão); false = pessoa física também compra */
+    private boolean exigeCnpj = true;
     private UUID categoria;
     private final UUID vendedor;
     private List<Valor> valores;
@@ -85,6 +88,19 @@ public class Anuncio extends BaseDomain {
     /** Informações que vão para o item da ordem de pedido (com SKU/GTIN da variação, se houver). */
     public InformacoesProduto informacoesParaVenda(Variacao variacao) {
         return variacao == null ? informacoes : informacoes.comCodigosDaVariacao(variacao.getSku(), variacao.getGtin());
+    }
+
+    /** o vendedor decide se vende só para empresas (com CNPJ) ou também para pessoas físicas */
+    public void definirExigeCnpj(boolean exigeCnpj) { this.exigeCnpj = exigeCnpj; }
+
+    /** quem não tem CNPJ não enxerga anúncios exclusivos para empresas; o dono sempre vê os seus */
+    public boolean visivelPara(UUID usuarioId, boolean usuarioTemCnpj) {
+        return pertenceA(usuarioId) || !exigeCnpj || usuarioTemCnpj;
+    }
+
+    /** comprador sem CNPJ não negocia nem compra anúncio exclusivo para empresas */
+    public void garantirQuePodeVenderPara(boolean compradorTemCnpj) {
+        if (exigeCnpj && !compradorTemCnpj) throw new CompradorSemCnpjException(titulo);
     }
 
     public void ativar() { this.ativo = true; }
@@ -168,6 +184,7 @@ public class Anuncio extends BaseDomain {
     public String getTitulo() { return titulo; }
     public String getDescricao() { return descricao; }
     public boolean isAtivo() { return ativo; }
+    public boolean isExigeCnpj() { return exigeCnpj; }
     public UUID getCategoria() { return categoria; }
     public UUID getVendedor() { return vendedor; }
 }

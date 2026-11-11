@@ -5,6 +5,7 @@ import { api } from '../api/endpoints';
 import { useApi } from '../api/useApi';
 import { formatarMoeda } from '../components/format';
 import { Botao, Carregando, cx, ErroBox, ImagemAnuncio, Vazio } from '../components/ui';
+import { useUsuario } from '../context/UsuarioContext';
 
 const POR_PAGINA = 24;
 
@@ -19,6 +20,7 @@ function useDebounce<T>(valor: T, ms: number): T {
 }
 
 export function Vitrine() {
+  const { usuario } = useUsuario();
   const [categoriaId, setCategoriaId] = useState<string>('');
   const [busca, setBusca] = useState('');
   const termo = useDebounce(busca.trim(), 300);
@@ -74,6 +76,12 @@ export function Vitrine() {
 
       {/* conteúdo: barra de pesquisa no topo e os anúncios no meio */}
       <div className="min-w-0">
+        {usuario && !usuario.cnpj && (
+          <p className="mb-4 rounded-card border border-amber-200 bg-amber-50 px-4 py-3 text-sm" role="note">
+            Você está vendo só os anúncios liberados para pessoa física. Muitos fornecedores vendem apenas
+            para empresas: <Link to="/perfil">cadastre o CNPJ no seu perfil</Link> para ver todos.
+          </p>
+        )}
         <div className="mb-4 flex items-center gap-2.5 rounded-card border border-gray-300 bg-white px-4 focus-within:border-primaria focus-within:ring-3 focus-within:ring-blue-200">
           <span aria-hidden="true">🔍</span>
           <input type="search" placeholder="Buscar produtos (ex.: carrinho, cabo usb)..." value={busca}
@@ -96,7 +104,9 @@ export function Vitrine() {
           <Vazio>
             {termo || categoriaId
               ? 'Tente outro termo ou outra categoria.'
-              : <>Nenhum anúncio ativo. <Link to="/anuncios/novo">Cadastre um anúncio</Link> como vendedor.</>}
+              : usuario && !usuario.cnpj
+                ? <>Nenhum anúncio liberado para pessoa física por enquanto. Com o <Link to="/perfil">CNPJ cadastrado</Link>, você vê os anúncios para empresas.</>
+                : <>Nenhum anúncio ativo. <Link to="/anuncios/novo">Cadastre um anúncio</Link> como vendedor.</>}
           </Vazio>
         ) : (
           <>

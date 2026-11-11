@@ -26,5 +26,7 @@ public record AnuncioRequest(
         /* opcionais: informações complementares do produto e ficha técnica */
         @Valid InformacoesProdutoDto informacoes,
         @Size(max = 50, message = "A ficha técnica aceita no máximo 50 características")
-        List<@Valid CaracteristicaDto> caracteristicas
+        List<@Valid CaracteristicaDto> caracteristicas,
+        /* vender somente para compradores com CNPJ; omitido = true */
+        Boolean exigeCnpj
 ) {}

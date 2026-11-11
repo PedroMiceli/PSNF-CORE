@@ -19,6 +19,8 @@ public record UsuarioRequest(
         @NotBlank(message = "Um telefone é obrigatório")
         String telefone,
         String imagem,
-        List<@Valid EnderecoRequest> enderecos
+        List<@Valid EnderecoRequest> enderecos,
+        /* opcional; com ou sem pontuação */
+        String cnpj
 ) {
 }

@@ -17,7 +17,9 @@ public record AtualizarAnuncioCommand(
         List<CadastrarVariacaoAnuncioCommand> variacoes,
         /* opcionais: informações complementares do produto e ficha técnica */
         InformacoesProduto informacoes,
-        List<Caracteristica> caracteristicas
+        List<Caracteristica> caracteristicas,
+        /* true = vende somente para compradores com CNPJ */
+        boolean exigeCnpj
 ) {
     public AtualizarAnuncioCommand {
         if (anuncioId == null || usuarioId == null) {

@@ -24,14 +24,14 @@ export const api = {
   reenviarConfirmacao: (email: string) => http.post<void>('/auth/reenviar-confirmacao', { email }),
   esqueciSenha: (email: string) => http.post<void>('/auth/esqueci-senha', { email }),
   redefinirSenha: (token: string, novaSenha: string) => http.post<void>('/auth/redefinir-senha', { token, novaSenha }),
-  cadastrar: (body: { nome: string; email: string; senha: string; telefone: string }) => http.post<Usuario>('/usuarios', body),
+  cadastrar: (body: { nome: string; email: string; senha: string; telefone: string; cnpj?: string }) => http.post<Usuario>('/usuarios', body),
 
   // usuários
   usuarioLogado: () => http.get<Usuario>('/usuarios/me'),
   /** eventos de segurança da própria conta (logins, saídas, troca de senha) */
   atividade: () => http.get<Atividade[]>('/usuarios/me/atividade'),
   usuario: (id: UUID) => http.get<Usuario>(`/usuarios/${id}`),
-  atualizarUsuario: (body: { nome: string; telefone?: string; imagem?: string }) => http.put<Usuario>('/usuarios/me', body),
+  atualizarUsuario: (body: { nome: string; telefone?: string; imagem?: string; cnpj?: string }) => http.put<Usuario>('/usuarios/me', body),
   adicionarEndereco: (body: EnderecoInput) => http.post<Usuario>('/usuarios/me/enderecos', body),
   removerEndereco: (id: UUID) => http.delete<Usuario>(`/usuarios/me/enderecos/${id}`),
   /** Busca o endereço pelo CEP (a API consulta a BrasilAPI). */

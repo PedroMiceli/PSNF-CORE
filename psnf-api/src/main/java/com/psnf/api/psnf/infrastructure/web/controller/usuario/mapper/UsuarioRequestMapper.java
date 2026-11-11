@@ -20,12 +20,13 @@ public class UsuarioRequestMapper {
                 request.nome(),
                 request.telefone(),
                 request.imagem(),
-                enderecos.stream().map(UsuarioRequestMapper::toCommand).toList()
+                enderecos.stream().map(UsuarioRequestMapper::toCommand).toList(),
+                request.cnpj()
         );
     }
 
     public static AtualizarUsuarioCommand toCommand(UUID usuarioId, AtualizarUsuarioRequest request) {
-        return new AtualizarUsuarioCommand(usuarioId, request.nome(), request.telefone(), request.imagem());
+        return new AtualizarUsuarioCommand(usuarioId, request.nome(), request.telefone(), request.imagem(), request.cnpj());
     }
 
     public static EnderecoCommand toCommand(EnderecoRequest r) {

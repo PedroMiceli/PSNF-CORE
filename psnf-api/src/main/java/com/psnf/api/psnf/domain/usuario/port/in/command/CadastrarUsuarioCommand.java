@@ -8,7 +8,9 @@ public record CadastrarUsuarioCommand(
         String nome,
         String telefone,
         String imagem,
-        List<EnderecoCommand> enderecos
+        List<EnderecoCommand> enderecos,
+        /* opcional: sem CNPJ, só vê anúncios liberados para pessoa física */
+        String cnpj
 ) {
 
     public CadastrarUsuarioCommand {

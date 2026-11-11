@@ -1,5 +1,6 @@
 package com.psnf.api.psnf.application.usuario;
 
+import com.psnf.api.psnf.domain.usuario.exception.CnpjJaCadastradoException;
 import com.psnf.api.psnf.domain.usuario.model.Usuario;
 import com.psnf.api.psnf.domain.usuario.port.in.AtualizarUsuarioUseCase;
 import com.psnf.api.psnf.domain.usuario.port.in.command.AtualizarUsuarioCommand;
@@ -19,6 +20,10 @@ public class AtualizarUsuarioService implements AtualizarUsuarioUseCase {
     public Usuario atualizarUsuario(AtualizarUsuarioCommand command) {
         Usuario usuario = usuarioRepositoryPort.buscarPorId(command.usuarioId());
         usuario.atualizarDados(command.nome(), command.telefone(), command.imagem());
+        // ausente (null) mantém o CNPJ; texto vazio remove. Assim um cliente que não conhece o campo
+        // (script antigo, outro app) não apaga o CNPJ ao atualizar só o nome ou a foto.
+        if (command.cnpj() != null) usuario.definirCnpj(command.cnpj());
+        if (usuarioRepositoryPort.cnpjEmUsoPorOutro(usuario.getCnpj(), usuario.getId())) throw new CnpjJaCadastradoException();
         return usuarioRepositoryPort.save(usuario);
     }
 }

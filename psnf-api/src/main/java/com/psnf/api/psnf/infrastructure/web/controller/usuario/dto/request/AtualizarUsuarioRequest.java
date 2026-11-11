@@ -6,6 +6,8 @@ public record AtualizarUsuarioRequest(
         @NotBlank(message = "O nome é obrigatório")
         String nome,
         String telefone,
-        String imagem
+        String imagem,
+        /* ausente mantém; vazio ("") remove */
+        String cnpj
 ) {
 }

@@ -34,9 +34,10 @@ public class UsuarioMockInitializer implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) {
         for (Usuario usuario : UsuarioMock.TODOS) {
+            String cnpj = usuario.getId().equals(UsuarioMock.VENDEDOR_ID) ? UsuarioMock.VENDEDOR_CNPJ : UsuarioMock.COMPRADOR_CNPJ;
             int inseridos = jdbcTemplate.update("""
-                            INSERT INTO usuario (id, nome, email, senha, telefone, data_cadastro, email_confirmado_em)
-                            VALUES (?, ?, ?, ?, ?, ?, now())
+                            INSERT INTO usuario (id, nome, email, senha, telefone, data_cadastro, email_confirmado_em, cnpj)
+                            VALUES (?, ?, ?, ?, ?, ?, now(), ?)
                             ON CONFLICT DO NOTHING
                             """,
                     usuario.getId(),
@@ -44,10 +45,15 @@ public class UsuarioMockInitializer implements ApplicationRunner {
                     usuario.getEmail(),
                     senhaEncoderPort.criptografar(UsuarioMock.SENHA),
                     usuario.getTelefone(),
-                    LocalDateTime.now()
+                    LocalDateTime.now(),
+                    cnpj
             );
             if (inseridos > 0) {
                 logger.info("Usuário mock criado: {} ({})", usuario.getNome(), usuario.getId());
+            } else {
+                // bancos de antes do CNPJ: os usuários de teste ganham o CNPJ de teste (se ninguém o usa)
+                jdbcTemplate.update("UPDATE usuario SET cnpj = ? WHERE id = ? AND cnpj IS NULL "
+                        + "AND NOT EXISTS (SELECT 1 FROM usuario o WHERE o.cnpj = ?)", cnpj, usuario.getId(), cnpj);
             }
         }
         logger.warn("Usuários de teste ativos (senha {}): {} e {}. Desligue em produção com PSNF_USUARIOS_TESTE=false",

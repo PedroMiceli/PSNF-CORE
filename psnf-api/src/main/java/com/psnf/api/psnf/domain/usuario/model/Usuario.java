@@ -20,6 +20,8 @@ public class Usuario extends BaseDomain {
     private final String email;
     private String senha;
     private LocalDateTime emailConfirmadoEm;
+    /** sem pontuação; null = pessoa sem CNPJ cadastrado */
+    private String cnpj;
     private final String secret2fa;
     private String imagem;
     private String telefone;
@@ -46,6 +48,19 @@ public class Usuario extends BaseDomain {
     public static Usuario restaurar(UUID id, LocalDateTime dataCadastro, LocalDateTime dataAlteracao, LocalDateTime dataExcluido, String nome, String email, String senha, String secret2fa, String imagem, String telefone, List<Endereco> enderecos) {
         return new Usuario(id, dataCadastro, dataAlteracao, dataExcluido, nome, email, senha, secret2fa, imagem, telefone, enderecos);
     }
+
+    /** só a camada de persistência usa: restaura o CNPJ gravado */
+    public Usuario comCnpj(String cnpj) {
+        this.cnpj = cnpj;
+        return this;
+    }
+
+    /** valida e guarda o CNPJ (aceita com ou sem pontuação); vazio remove */
+    public void definirCnpj(String cnpj) {
+        this.cnpj = Cnpj.normalizar(cnpj);
+    }
+
+    public boolean temCnpj() { return cnpj != null; }
 
     /** só a camada de persistência usa: restaura a data de confirmação gravada */
     public Usuario comEmailConfirmadoEm(LocalDateTime quando) {
@@ -90,6 +105,7 @@ public class Usuario extends BaseDomain {
     public String getEmail() { return email; }
     public String getSenha() { return senha; }
     public LocalDateTime getEmailConfirmadoEm() { return emailConfirmadoEm; }
+    public String getCnpj() { return cnpj; }
     public String getSecret2fa() { return secret2fa; }
     public String getImagem() { return imagem; }
     public String getTelefone() { return telefone; }

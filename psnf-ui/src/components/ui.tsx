@@ -139,6 +139,9 @@ export function PagamentoPendenteBadge({ status, pendente }: { status: StatusOrd
 
 export const BADGE_ATIVO = STATUS_COR.PAGO;
 export const BADGE_INATIVO = STATUS_COR.CANCELADO;
+/** anúncio vendido só para empresas / também para pessoa física */
+export const BADGE_CNPJ = 'bg-indigo-100 text-indigo-800';
+export const BADGE_PF = 'bg-teal-100 text-teal-800';
 
 export function Vazio({ children }: { children: ReactNode }) {
   return <div className="rounded-card border border-dashed border-borda bg-white p-10 text-center text-suave">{children}</div>;

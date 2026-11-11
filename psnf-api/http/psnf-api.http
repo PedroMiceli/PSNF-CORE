@@ -1290,3 +1290,37 @@ Content-Type: application/json
 { "email": "{{novoUsuarioEmail}}", "senha": "senha-nova-123" }
 
 > {% client.test("200", () => client.assert(response.status === 200 && !!response.body.accessToken, "status " + response.status)); %}
+
+
+### =============================== 10. CNPJ ===========================================
+
+### 10.1 Anúncio novo vem como "somente para empresas" (exigeCnpj = true por padrão)
+GET {{baseUrl}}/anuncios/{{anuncioId}}
+Authorization: Bearer {{tokenVendedor}}
+
+> {% client.test("exigeCnpj true", () => client.assert(response.status === 200 && response.body.exigeCnpj === true)); %}
+
+### 10.2 [404] Quem não tem CNPJ não enxerga anúncio exclusivo para empresas
+GET {{baseUrl}}/anuncios/{{anuncioId}}
+Authorization: Bearer {{tokenNovoUsuario}}
+
+> {% client.test("404", () => client.assert(response.status === 404, "status " + response.status)); %}
+
+### 10.3 [400] CNPJ com dígito verificador errado
+PUT {{baseUrl}}/usuarios/me
+Authorization: Bearer {{tokenNovoUsuario}}
+Content-Type: application/json
+
+{ "nome": "Usuário de Teste", "telefone": "11900000000", "cnpj": "11.222.333/0001-80" }
+
+> {% client.test("400", () => client.assert(response.status === 400, "status " + response.status)); %}
+
+### 10.4 [422] CNPJ que já é de outra conta (o do vendedor mock: o PUT da foto em 7.3 não mandou "cnpj"
+###      e por isso não o apagou: campo ausente mantém, "" remove)
+PUT {{baseUrl}}/usuarios/me
+Authorization: Bearer {{tokenNovoUsuario}}
+Content-Type: application/json
+
+{ "nome": "Usuário de Teste", "telefone": "11900000000", "cnpj": "11.222.333/0001-81" }
+
+> {% client.test("422", () => client.assert(response.status === 422, "status " + response.status)); %}

@@ -41,6 +41,7 @@ public class AtualizarAnuncioService implements AtualizarAnuncioUseCase {
         );
 
         anuncio.definirDetalhes(command.informacoes(), command.caracteristicas());
+        anuncio.definirExigeCnpj(command.exigeCnpj());
         return anuncioRepositoryPort.save(anuncio);
     }
 }

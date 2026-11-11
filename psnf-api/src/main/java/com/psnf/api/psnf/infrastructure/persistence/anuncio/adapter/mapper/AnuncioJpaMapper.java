@@ -18,6 +18,7 @@ public class AnuncioJpaMapper {
         jpa.setTitulo(anuncio.getTitulo());
         jpa.setDescricao(anuncio.getDescricao());
         jpa.setAtivo(anuncio.isAtivo());
+        jpa.setExigeCnpj(anuncio.isExigeCnpj());
         jpa.setCategoria(categoria);
         jpa.setVendedor(vendedor);
         anuncio.getValores().forEach(v -> jpa.getValores().add(ValorJpaMapper.toEntity(v, jpa)));
@@ -38,7 +39,7 @@ public class AnuncioJpaMapper {
 
     //transforma o jpa para domain
     public static Anuncio toDomain(AnuncioJpa jpa) {
-        return Anuncio.restaurar(
+        Anuncio anuncio = Anuncio.restaurar(
                 jpa.getId(),
                 jpa.getDataCadastro(),
                 jpa.getDataAlteracao(),
@@ -54,5 +55,7 @@ public class AnuncioJpaMapper {
                 InformacoesProdutoJpaMapper.toDomain(jpa.getInformacoes()),
                 jpa.getCaracteristicas().stream().map(c -> new Caracteristica(c.getNome(), c.getValor())).toList()
         );
+        anuncio.definirExigeCnpj(jpa.isExigeCnpj());
+        return anuncio;
     }
 }
