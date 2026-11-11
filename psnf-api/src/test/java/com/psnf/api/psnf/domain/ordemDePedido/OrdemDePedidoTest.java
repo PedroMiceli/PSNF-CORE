@@ -332,4 +332,52 @@ class OrdemDePedidoTest {
         assertThrows(RegraDeNegocioException.class, () -> o.alterarValores(vendedor.getId(), java.util.Map.of(UUID.randomUUID(), BigDecimal.TEN)));
         assertThrows(RegraDeNegocioException.class, () -> o.alterarValores(vendedor.getId(), java.util.Map.of(camiseta, new BigDecimal("30"))));
     }
+
+    // ------------------------------------------------------------ retirada no local
+
+    @Test
+    void retiradaNoLocalDescartaORastreioEAvisaOComprador() {
+        ordem.aceitar(comprador.getId());
+        ordem.registrarEntrega(vendedor.getId(), "Rua das Flores, 10. Seg a sex, 8h-17h", "BR123", true);
+
+        assertTrue(ordem.getEntrega().isRetiradaNoLocal());
+        assertNull(ordem.getEntrega().getCodigoRastreio(), "retirada não tem código de rastreio");
+        assertEquals("Rua das Flores, 10. Seg a sex, 8h-17h", ordem.getEntrega().getDescricao());
+        assertEquals(1, ordem.mensagensIncidenteNaoLidas(comprador.getId()));
+        assertTrue(ordem.getMensagensIncidente().getLast().getMensagem().contains("RETIRADO NO LOCAL"));
+    }
+
+    @Test
+    void retiradaPodeSerRevertidaESoMudancasGeramAviso() {
+        ordem.aceitar(comprador.getId());
+        ordem.registrarEntrega(vendedor.getId(), null, null, true);
+        ordem.registrarEntrega(vendedor.getId(), "Endereço novo", null, true); // continua retirada: sem aviso novo
+        assertEquals(1, ordem.getMensagensIncidente().size());
+
+        ordem.registrarEntrega(vendedor.getId(), "Transportadora X", "BR999", false); // combinaram outra coisa
+        assertFalse(ordem.getEntrega().isRetiradaNoLocal());
+        assertEquals("BR999", ordem.getEntrega().getCodigoRastreio());
+        assertEquals(2, ordem.getMensagensIncidente().size());
+        assertTrue(ordem.getMensagensIncidente().getLast().getMensagem().contains("NÃO será mais retirado no local"));
+
+        ordem.registrarEntrega(vendedor.getId(), "Transportadora Y", "BR999", null); // ausente: mantém o combinado
+        assertFalse(ordem.getEntrega().isRetiradaNoLocal());
+        assertEquals(2, ordem.getMensagensIncidente().size());
+    }
+
+    @Test
+    void soOVendedorDefineARetirada() {
+        ordem.aceitar(comprador.getId());
+        assertThrows(AcessoNegadoException.class, () -> ordem.registrarEntrega(comprador.getId(), null, null, true));
+    }
+
+    @Test
+    void despacharComRetiradaNaoApagaAsInstrucoesJaSalvas() {
+        ordem.aceitar(comprador.getId());
+        ordem.registrarPagamento(vendedor.getId(), pix("100.00"));
+        ordem.registrarEntrega(vendedor.getId(), "Rua das Flores, 10", null, true);
+        ordem.enviar(vendedor.getId(), null, null, null, true);
+        assertEquals("Rua das Flores, 10", ordem.getEntrega().getDescricao());
+        assertTrue(ordem.getEntrega().isRetiradaNoLocal());
+    }
 }

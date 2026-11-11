@@ -299,12 +299,15 @@ export interface Entrega {
   id: UUID;
   descricao: string | null;
   codigoRastreio: string | null;
+  /** o comprador retira no fornecedor (sem envio, sem código de rastreio) */
+  retiradaNoLocal: boolean;
   dataCadastro: string;
   dataAlteracao: string | null;
 }
 export interface EntregaInput {
   descricao: string | null;
   codigoRastreio: string | null;
+  retiradaNoLocal?: boolean;
 }
 
 /** Ordem com mensagens de incidente novas para o usuário logado. */

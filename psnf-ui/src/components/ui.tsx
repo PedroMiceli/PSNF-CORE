@@ -125,8 +125,10 @@ export function Badge({ className, children }: { className?: string; children: R
   );
 }
 
-export function StatusBadge({ status }: { status: StatusOrdem }) {
-  return <Badge className={STATUS_COR[status]}>{STATUS_LABEL[status] ?? status}</Badge>;
+/** @param retirada pedido retirado no fornecedor: "Enviado" vira "Pronto para retirada", "Entregue" vira "Retirado" */
+export function StatusBadge({ status, retirada }: { status: StatusOrdem; retirada?: boolean }) {
+  const rotulo = retirada && status === 'ENVIADO' ? 'Pronto para retirada' : retirada && status === 'ENTREGUE' ? 'Retirado' : STATUS_LABEL[status] ?? status;
+  return <Badge className={STATUS_COR[status]}>{rotulo}</Badge>;
 }
 
 /** Status já avançou (enviado/entregue) mas ainda falta pagamento: ex. venda a prazo. */

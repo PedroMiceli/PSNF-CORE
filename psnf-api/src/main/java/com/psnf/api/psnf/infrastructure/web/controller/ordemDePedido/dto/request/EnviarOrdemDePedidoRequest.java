@@ -13,6 +13,8 @@ public record EnviarOrdemDePedidoRequest(
         String descricaoEntrega,
         /** opcional: código de envio/rastreio */
         @Size(max = 100, message = "O código de envio deve ter no máximo 100 caracteres")
-        String codigoRastreio
+        String codigoRastreio,
+        /** opcional: o comprador retira no fornecedor (sem código de rastreio); ausente = mantém */
+        Boolean retiradaNoLocal
 ) {
 }

@@ -236,6 +236,12 @@ public class OrdemDePedido extends BaseDomain {
 
     /** Despacha informando, se quiser, a descrição da entrega e o código de envio. */
     public void enviar(UUID usuarioId, LocalDate previsaoDeEntrega, String descricaoEntrega, String codigoRastreio) {
+        enviar(usuarioId, previsaoDeEntrega, descricaoEntrega, codigoRastreio, null);
+    }
+
+    /** @param retiradaNoLocal null = mantém o que já estava combinado */
+    public void enviar(UUID usuarioId, LocalDate previsaoDeEntrega, String descricaoEntrega, String codigoRastreio,
+                       Boolean retiradaNoLocal) {
         tocar();
         garantirVendedor(usuarioId);
         if (status == AGUARDANDO_CONFIRMACAO || status == ACEITO) {
@@ -247,8 +253,12 @@ public class OrdemDePedido extends BaseDomain {
         }
         this.previsaoDeEntrega = previsaoDeEntrega;
         this.status = ENVIADO;
-        if (descricaoEntrega != null || codigoRastreio != null) {
-            definirEntrega(descricaoEntrega, codigoRastreio);
+        if (descricaoEntrega != null || codigoRastreio != null || retiradaNoLocal != null) {
+            // no despacho, campo não informado mantém o que já foi salvo em "Entrega" (não apaga instruções)
+            definirEntrega(usuarioId,
+                    descricaoEntrega != null ? descricaoEntrega : entrega == null ? null : entrega.getDescricao(),
+                    codigoRastreio != null ? codigoRastreio : entrega == null ? null : entrega.getCodigoRastreio(),
+                    retiradaNoLocal);
         }
     }
 
@@ -292,19 +302,38 @@ public class OrdemDePedido extends BaseDomain {
      * do comprador até a entrega. Com os dois campos vazios, a entrega é removida.
      */
     public void registrarEntrega(UUID usuarioId, String descricao, String codigoRastreio) {
+        registrarEntrega(usuarioId, descricao, codigoRastreio, null);
+    }
+
+    /** @param retiradaNoLocal null = mantém o que já estava combinado */
+    public void registrarEntrega(UUID usuarioId, String descricao, String codigoRastreio, Boolean retiradaNoLocal) {
         tocar();
         garantirVendedor(usuarioId);
         if (status == AGUARDANDO_CONFIRMACAO || status == CANCELADO) {
             throw new RegraDeNegocioException("Os dados da entrega só podem ser informados depois que o comprador aceitar a ordem");
         }
-        definirEntrega(descricao, codigoRastreio);
+        definirEntrega(usuarioId, descricao, codigoRastreio, retiradaNoLocal);
     }
 
-    private void definirEntrega(String descricao, String codigoRastreio) {
+    /**
+     * Quando a retirada no local muda (marcada ou desmarcada), o comprador recebe uma mensagem automática
+     * em "Incidentes e mensagens", com o alerta de mensagem nova: o combinado pode mudar depois da compra.
+     */
+    private void definirEntrega(UUID vendedorId, String descricao, String codigoRastreio, Boolean retiradaNoLocal) {
+        boolean antes = entrega != null && entrega.isRetiradaNoLocal();
+        boolean depois = retiradaNoLocal == null ? antes : retiradaNoLocal;
         if (entrega == null) {
-            entrega = Entrega.criar(descricao, codigoRastreio);
-        } else if (!entrega.atualizar(descricao, codigoRastreio)) {
+            entrega = Entrega.criar(descricao, codigoRastreio, depois);
+        } else if (!entrega.atualizar(descricao, codigoRastreio, depois)) {
             entrega = null;
+        }
+        if (antes != depois) {
+            mensagensIncidente.add(MensagemIncidente.criar(depois
+                    ? "O vendedor indicou que este pedido deve ser RETIRADO NO LOCAL (no fornecedor), sem envio por "
+                      + "transportadora, por isso não haverá código de rastreio. Combine aqui o endereço, o dia e o horário da retirada."
+                    : "O vendedor alterou a entrega: o pedido NÃO será mais retirado no local e passa a ser enviado. "
+                      + "O código de rastreio, se houver, aparece em \"Entrega\".", null, vendedorId));
+            marcarIncidentesLidos(vendedorId);
         }
     }
 

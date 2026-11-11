@@ -10,10 +10,12 @@ public interface AlterarStatusOrdemDePedidoUseCase {
     /** o comprador confere a ordem e aceita */
     OrdemDePedido aceitar(UUID ordemDePedidoId, UUID usuarioId);
 
-    OrdemDePedido enviar(UUID ordemDePedidoId, UUID usuarioId, LocalDate previsaoDeEntrega, String descricaoEntrega, String codigoRastreio);
+    OrdemDePedido enviar(UUID ordemDePedidoId, UUID usuarioId, LocalDate previsaoDeEntrega, String descricaoEntrega, String codigoRastreio,
+                         Boolean retiradaNoLocal);
 
     /** O vendedor informa ou corrige a descrição da entrega e o código de envio (os dois opcionais). */
-    OrdemDePedido registrarEntrega(UUID ordemDePedidoId, UUID usuarioId, String descricao, String codigoRastreio);
+    /** @param retiradaNoLocal null = mantém o que já estava combinado */
+    OrdemDePedido registrarEntrega(UUID ordemDePedidoId, UUID usuarioId, String descricao, String codigoRastreio, Boolean retiradaNoLocal);
 
     OrdemDePedido confirmarEntrega(UUID ordemDePedidoId, UUID usuarioId);
 

@@ -37,6 +37,7 @@ public class OrdemDePedidoJpaMapper {
             ej.restaurarBase(e.getId(), e.getDataCadastro(), e.getDataAlteracao(), e.getDataExcluido());
             ej.setDescricao(e.getDescricao());
             ej.setCodigoRastreio(e.getCodigoRastreio());
+            ej.setRetiradaNoLocal(e.isRetiradaNoLocal());
             ej.setOrdemDePedido(jpa);
             jpa.getEntregas().add(ej);
         }
@@ -78,7 +79,7 @@ public class OrdemDePedidoJpaMapper {
         EntregaJpa e = jpa.getEntregas().isEmpty() ? null : jpa.getEntregas().getFirst();
         if (e != null) {
             ordem.restaurarEntrega(Entrega.restaurar(e.getId(), e.getDataCadastro(), e.getDataAlteracao(), e.getDataExcluido(),
-                    e.getDescricao(), e.getCodigoRastreio()));
+                    e.getDescricao(), e.getCodigoRastreio(), e.isRetiradaNoLocal()));
         }
         return ordem;
     }
