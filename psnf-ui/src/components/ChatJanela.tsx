@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
+import { useConfirmacao } from './Confirmacao';
 import { Link, useNavigate } from 'react-router-dom';
 import { ApiError } from '../api/client';
 import { api } from '../api/endpoints';
@@ -322,8 +323,15 @@ function ProdutosNegociacao({ neg, escolhendo, onEscolher, onAtualizada, onIrPar
   const [removendo, setRemovendo] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
 
+  const [confirmar, dialogoConfirmacao] = useConfirmacao();
   const remover = async (a: AnuncioNegociacao) => {
-    if (!window.confirm(`Retirar "${a.titulo}" da negociação?`)) return;
+    const ok = await confirmar({
+      titulo: 'Retirar produto da negociação?',
+      mensagem: <><strong>{a.titulo}</strong> sai da lista de produtos desta conversa. O histórico de mensagens continua, e o
+        produto pode ser incluído de novo depois.</>,
+      confirmar: 'Retirar produto', perigo: true,
+    });
+    if (!ok) return;
     setRemovendo(a.id);
     setErro(null);
     try { onAtualizada(await api.removerAnuncioNegociacao(neg.id, a.id)); }
@@ -332,6 +340,7 @@ function ProdutosNegociacao({ neg, escolhendo, onEscolher, onAtualizada, onIrPar
   };
 
   return (
+    <>
     <div className="shrink-0 border-b border-borda bg-white px-3 py-2">
       <div className="mb-1.5 flex items-center justify-between gap-2">
         <span className="text-[0.7rem] font-semibold tracking-wide text-suave uppercase">
@@ -358,6 +367,8 @@ function ProdutosNegociacao({ neg, escolhendo, onEscolher, onAtualizada, onIrPar
       </ul>
       {erro && <p className="m-0 text-xs text-vermelho">{erro}</p>}
     </div>
+      {dialogoConfirmacao}
+    </>
   );
 }
 

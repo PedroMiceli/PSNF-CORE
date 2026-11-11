@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
+import { useConfirmacao } from './Confirmacao';
 import { ApiError, urlArquivo } from '../api/client';
 import { api } from '../api/endpoints';
 import type { Avaliacao, AvaliacoesAnuncio as Dados } from '../api/types';
@@ -75,6 +76,7 @@ function Resumo({ d }: { d: Dados }) {
 }
 
 function Formulario({ anuncioId, minha, onSalvo }: { anuncioId: string; minha: Avaliacao | null; onSalvo: (d: Dados) => void }) {
+  const [confirmar, dialogoConfirmacao] = useConfirmacao();
   const [editando, setEditando] = useState(!minha);
   const [nota, setNota] = useState(minha?.nota ?? 0);
   const [texto, setTexto] = useState(minha?.texto ?? '');
@@ -104,13 +106,21 @@ function Formulario({ anuncioId, minha, onSalvo }: { anuncioId: string; minha: A
         <span className="flex gap-2">
           <Botao tamanho="pequeno" onClick={() => setEditando(true)}>Editar avaliação</Botao>
           <Botao tamanho="pequeno" variante="perigo" disabled={enviando}
-            onClick={() => window.confirm('Excluir a sua avaliação?') && void executar(() => api.removerAvaliacao(anuncioId))}>Excluir</Botao>
+            onClick={async () => {
+              const ok = await confirmar({
+                titulo: 'Excluir a sua avaliação?',
+                mensagem: 'A nota, o texto e as fotos saem do anúncio. Você pode avaliar de novo depois.',
+                confirmar: 'Excluir avaliação', perigo: true,
+              });
+              if (ok) void executar(() => api.removerAvaliacao(anuncioId));
+            }}>Excluir</Botao>
         </span>
       </div>
     );
   }
 
   return (
+    <>
     <form onSubmit={publicar} className="mb-5 rounded-lg border border-borda bg-gray-50 p-4" aria-label="Avaliar o produto">
       <h4 className="mt-0 mb-2">{minha ? 'Editar a sua avaliação' : 'Avalie este produto'}</h4>
       <p className={cx(dica, 'mt-0')}>Você comprou e recebeu este produto. Conte para outros compradores o que achou.</p>
@@ -145,6 +155,8 @@ function Formulario({ anuncioId, minha, onSalvo }: { anuncioId: string; minha: A
         {minha && <Botao onClick={() => setEditando(false)}>Cancelar</Botao>}
       </div>
     </form>
+      {dialogoConfirmacao}
+    </>
   );
 }
 

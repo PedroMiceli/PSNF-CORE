@@ -7,6 +7,7 @@ import { useAcao, useApi } from '../api/useApi';
 import { CampoCopiavel } from '../components/CampoCopiavel';
 import { DadosNotaFiscal, resumoItem } from '../components/DadosNotaFiscal';
 import { Dialogo } from '../components/Dialogo';
+import { useConfirmacao } from '../components/Confirmacao';
 import { formatarData, formatarMoeda, STATUS_LABEL } from '../components/format';
 import { ACEITA_DOCUMENTOS, ACEITA_IMAGENS, UploadArquivo } from '../components/UploadArquivo';
 import {
@@ -238,6 +239,8 @@ type Exec = (fn: () => Promise<OrdemDePedido>) => Promise<boolean>;
 function Acoes({ ordem, souComprador, souVendedor, enviando, executar }: {
   ordem: OrdemDePedido; souComprador: boolean; souVendedor: boolean; enviando: boolean; executar: Exec;
 }) {
+  const [aceitando, setAceitando] = useState(false);
+  const [confirmar, dialogoConfirmacao] = useConfirmacao();
   const [previsao, setPrevisao] = useState('');
   const [entrega, setEntrega] = useState({ descricao: ordem.entrega?.descricao ?? '', codigoRastreio: ordem.entrega?.codigoRastreio ?? '' });
   const st = ordem.status;
@@ -274,8 +277,7 @@ function Acoes({ ordem, souComprador, souVendedor, enviando, executar }: {
       )}
       <div className={acoes}>
         {podeAceitar && (
-          <Botao variante="primario" disabled={enviando}
-            onClick={() => window.confirm('Confirma que os produtos, as quantidades e os valores estão corretos?') && executar(() => api.aceitarOrdem(ordem.id))}>
+          <Botao variante="primario" disabled={enviando} onClick={() => setAceitando(true)}>
             ✔ Aceitar ordem
           </Botao>
         )}
@@ -300,9 +302,16 @@ function Acoes({ ordem, souComprador, souVendedor, enviando, executar }: {
                 onChange={(e) => setPrevisao(e.target.value)} />
             </Campo>
             <Botao variante="primario" disabled={enviando} onClick={() => {
-              const ok = st === 'PAGO' || window.confirm(
-                `Ainda faltam ${formatarMoeda(faltaPagar)} em pagamentos. Despachar mesmo assim (ex.: venda a prazo)? A ordem continuará indicando o pagamento pendente.`);
-              if (ok) void executar(() => api.despachar(ordem.id, previsao || null, entrega));
+              void (async () => {
+                const ok = st === 'PAGO' || await confirmar({
+                  titulo: 'Despachar com pagamento pendente?',
+                  mensagem: <>Ainda faltam <strong>{formatarMoeda(faltaPagar)}</strong> em pagamentos. Você pode despachar mesmo
+                    assim (ex.: venda a prazo): a ordem continua indicando o <strong>pagamento pendente</strong> até o comprador
+                    anexar todos os comprovantes.</>,
+                  confirmar: 'Despachar mesmo assim',
+                });
+                if (ok) void executar(() => api.despachar(ordem.id, previsao || null, entrega));
+              })();
             }}>
               {st === 'PAGO' ? 'Pedido despachado' : 'Despachar com pagamento pendente'}
             </Botao>
@@ -314,12 +323,22 @@ function Acoes({ ordem, souComprador, souVendedor, enviando, executar }: {
           </Botao>
         )}
         {podeCancelar && (
-          <Botao variante="perigo" disabled={enviando}
-            onClick={() => window.confirm('Cancelar esta ordem de pedido?') && executar(() => api.cancelar(ordem.id))}>
+          <Botao variante="perigo" disabled={enviando} onClick={async () => {
+            const ok = await confirmar({
+              titulo: `Cancelar a ordem ${ordem.codigo}?`,
+              mensagem: <>A ordem deixa de valer para você e para {souComprador ? 'o vendedor' : 'o comprador'}, e não pode ser
+                reaberta: para continuar a negociação, será preciso gerar uma ordem nova.</>,
+              confirmar: 'Cancelar ordem', voltar: 'Manter a ordem', perigo: true,
+            });
+            if (ok) void executar(() => api.cancelar(ordem.id));
+          }}>
             Cancelar ordem
           </Botao>
         )}
       </div>
+      <AceitarOrdemDialogo ordem={ordem} aberto={aceitando} enviando={enviando} onFechar={() => setAceitando(false)}
+        onAceitar={async () => { if (await executar(() => api.aceitarOrdem(ordem.id))) setAceitando(false); }} />
+      {dialogoConfirmacao}
     </Painel>
   );
 }
@@ -536,10 +555,15 @@ function Pagamentos({ ordem, podeCadastrar, podeExcluir, podeAnexar, souVendedor
     if (ok) { setExtra(vazio); setErros({}); setDataReferencia(hojeLocal()); }
   };
 
-  const excluir = (p: Pagamento) => {
-    if (window.confirm(`Excluir a forma de pagamento de ${formatarMoeda(p.valor)} (${TIPO_LABEL[p.tipoPagamento]})?`)) {
-      void executar(() => api.removerPagamento(ordem.id, p.id));
-    }
+  const [confirmar, dialogoConfirmacao] = useConfirmacao();
+  const excluir = async (p: Pagamento) => {
+    const ok = await confirmar({
+      titulo: 'Excluir forma de pagamento?',
+      mensagem: <>A forma de pagamento <strong>{TIPO_LABEL[p.tipoPagamento]}</strong> de <strong>{formatarMoeda(p.valor)}</strong>{' '}
+        será excluída e o valor volta para "falta cadastrar".</>,
+      confirmar: 'Excluir', perigo: true,
+    });
+    if (ok) void executar(() => api.removerPagamento(ordem.id, p.id));
   };
 
   const campo = (k: Exclude<CampoPagamento, 'valor' | 'dataReferencia'> | 'nomeReferencia', rotulo: string, placeholder?: string) => (
@@ -637,7 +661,8 @@ function Pagamentos({ ordem, podeCadastrar, podeExcluir, podeAnexar, souVendedor
         </form>
       )}
       <DetalhesPagamento ordem={ordem} pagamento={detalhe} onFechar={fecharDetalhe} podeExcluir={podeExcluir} podeAnexar={podeAnexar}
-        enviando={enviando} executar={executar} onExcluir={(p) => { setDetalheId(null); excluir(p); }} />
+        enviando={enviando} executar={executar} onExcluir={(p) => { setDetalheId(null); void excluir(p); }} />
+      {dialogoConfirmacao}
     </Painel>
   );
 }
@@ -850,5 +875,68 @@ function ItensOrdem({ ordem: o, souComprador, souVendedor, enviando, executar }:
         </div>
       )}
     </Painel>
+  );
+}
+
+/**
+ * Aceite da ordem pelo comprador: mostra tudo o que está sendo aceito (vendedor, itens, valores e total) e o
+ * que acontece depois. O botão só libera depois de o comprador marcar que conferiu.
+ */
+function AceitarOrdemDialogo({ ordem: o, aberto, enviando, onFechar, onAceitar }: {
+  ordem: OrdemDePedido; aberto: boolean; enviando: boolean; onFechar: () => void; onAceitar: () => void;
+}) {
+  const [conferiu, setConferiu] = useState(false);
+  useEffect(() => { if (aberto) setConferiu(false); }, [aberto]);
+  const unidades = o.itens.reduce((t, i) => t + i.quantidade, 0);
+
+  return (
+    <Dialogo aberto={aberto} onFechar={onFechar} largura="max-w-[620px]" titulo={`Aceitar a ordem ${o.codigo}`}
+      rodape={(
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <Botao onClick={onFechar} disabled={enviando}>Voltar e revisar</Botao>
+          <Botao variante="primario" disabled={!conferiu || enviando} onClick={onAceitar}>
+            {enviando ? 'Aceitando...' : `✔ Aceitar ordem de ${formatarMoeda(o.valorTotal)}`}
+          </Botao>
+        </div>
+      )}>
+      <p className="mt-0 text-sm text-suave">
+        Fornecedor: <strong className="text-texto">{o.vendedor.nome}</strong>. Confira os produtos, as quantidades e os valores
+        combinados antes de aceitar.
+      </p>
+
+      <ul className="my-4 divide-y divide-borda rounded-lg border border-borda">
+        {o.itens.map((i) => (
+          <li key={i.id} className="flex items-start gap-3 px-3.5 py-2.5">
+            <div className="min-w-0 flex-1">
+              <strong className="block truncate">{i.tituloAnuncio}</strong>
+              <span className="text-xs text-suave">
+                {[i.variacao, `${i.quantidade} un. × ${formatarMoeda(i.valorUnidade)}`].filter(Boolean).join(' · ')}
+              </span>
+            </div>
+            <strong className="whitespace-nowrap">{formatarMoeda(i.subtotal)}</strong>
+          </li>
+        ))}
+        <li className="flex items-center gap-3 bg-gray-50 px-3.5 py-3">
+          <span className="flex-1 text-sm text-suave">
+            Total · {o.itens.length} item(ns), {unidades} unidade(s)
+          </span>
+          <strong className="text-xl text-verde">{formatarMoeda(o.valorTotal)}</strong>
+        </li>
+      </ul>
+
+      <h4 className="mb-1.5">Depois do aceite</h4>
+      <ol className="m-0 list-decimal space-y-1 pl-5 text-sm">
+        <li>Os valores ficam fixos: o vendedor não pode mais alterá-los.</li>
+        <li>O vendedor cadastra as formas de pagamento combinadas (PIX, boleto, transferência).</li>
+        <li>Você paga e anexa o comprovante de cada pagamento na ordem.</li>
+        <li>O vendedor despacha o pedido e você confirma o recebimento.</li>
+      </ol>
+      <p className="mb-0 text-xs text-suave">Algo diferente do combinado? Volte e fale com o vendedor em "Incidentes e mensagens" antes de aceitar.</p>
+
+      <label className="mt-4 flex cursor-pointer items-start gap-2.5 rounded-lg border border-blue-200 bg-blue-50 px-3.5 py-3 text-sm">
+        <input type="checkbox" className="mt-0.5 size-4 accent-primaria" checked={conferiu} onChange={(e) => setConferiu(e.target.checked)} />
+        <span>Conferi os produtos, as quantidades e os valores, e estão de acordo com o que combinei com o fornecedor.</span>
+      </label>
+    </Dialogo>
   );
 }
