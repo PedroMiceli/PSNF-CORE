@@ -18,6 +18,8 @@ public record AnuncioResponse(
         String titulo,
         String descricao,
         boolean ativo,
+        /** vendido somente para compradores com CNPJ */
+        boolean exigeCnpj,
         UUID categoriaId,
         UUID vendedorId,
         BigDecimal precoMenor,
@@ -55,6 +57,7 @@ public record AnuncioResponse(
                 anuncio.getTitulo(),
                 anuncio.getDescricao(),
                 anuncio.isAtivo(),
+                anuncio.isExigeCnpj(),
                 anuncio.getCategoria(),
                 anuncio.getVendedor(),
                 anuncio.getMenorValor(),

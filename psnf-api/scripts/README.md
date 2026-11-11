@@ -30,5 +30,6 @@ Opções do `popular-anuncios.py`:
 - `--limite N`: cria no máximo N anúncios (teste rápido)
 - `--api URL` ou `API_URL=...`: endereço da API (padrão http://localhost:8080)
 
-Os fornecedores são usuários comuns, com senha `teste123`; os anúncios do Vendedor Mock aparecem em
+Os fornecedores são usuários comuns, com senha `teste123` e CNPJ de teste (cerca de 1 em cada 3 anúncios novos
+fica liberado para pessoa física; o resto é vendido só para quem tem CNPJ); os anúncios do Vendedor Mock aparecem em
 "Meus anúncios".

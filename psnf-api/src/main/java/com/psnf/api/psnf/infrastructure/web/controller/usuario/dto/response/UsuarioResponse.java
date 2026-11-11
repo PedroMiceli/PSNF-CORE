@@ -16,6 +16,8 @@ public record UsuarioResponse(
         String email,
         String imagem,
         String telefone,
+        /** sem pontuação; null = sem CNPJ */
+        String cnpj,
         LocalDateTime dataCadastro,
         List<EnderecoResponse> enderecos
 ) {
@@ -27,6 +29,7 @@ public record UsuarioResponse(
                 usuario.getEmail(),
                 usuario.getImagem(),
                 usuario.getTelefone(),
+                usuario.getCnpj(),
                 usuario.getDataCadastro(),
                 usuario.getEnderecos().stream().map(EnderecoResponse::from).toList()
         );

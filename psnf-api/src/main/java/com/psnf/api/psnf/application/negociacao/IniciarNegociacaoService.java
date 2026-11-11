@@ -1,5 +1,6 @@
 package com.psnf.api.psnf.application.negociacao;
 
+import com.psnf.api.psnf.domain.usuario.model.Usuario;
 import com.psnf.api.psnf.domain.anuncio.model.Anuncio;
 import com.psnf.api.psnf.domain.anuncio.port.out.AnuncioRepositoryPort;
 import com.psnf.api.psnf.domain.negociacao.model.Negociacao;
@@ -30,8 +31,9 @@ public class IniciarNegociacaoService implements IniciarNegociacaoUseCase {
         if (existente.isPresent()) {
             return new Resultado(loader.carregar(existente.get()), false);
         }
-        usuarioRepositoryPort.buscarPorId(compradorId); // 404 se o comprador não existir
+        Usuario comprador = usuarioRepositoryPort.buscarPorId(compradorId); // 404 se o comprador não existir
         Anuncio anuncio = anuncioRepositoryPort.buscarPorId(anuncioId);
+        if (!anuncio.pertenceA(compradorId)) anuncio.garantirQuePodeVenderPara(comprador.temCnpj());
         String nomeVendedor = usuarioRepositoryPort.buscarPorId(anuncio.getVendedor()).getNome();
         Negociacao nova = negociacaoRepositoryPort.save(Negociacao.iniciar(anuncio, compradorId, nomeVendedor));
         return new Resultado(loader.carregar(nova), true);

@@ -3,7 +3,7 @@ import { api } from '../api/endpoints';
 import { useAcao, useApi } from '../api/useApi';
 import { formatarData, formatarMoeda } from '../components/format';
 import {
-  acoes, Badge, BADGE_ATIVO, BADGE_INATIVO, Botao, Carregando, ErroBox, ImagemAnuncio, LinkBotao, tabela, TituloPagina, Vazio,
+  acoes, Badge, BADGE_ATIVO, BADGE_CNPJ, BADGE_INATIVO, BADGE_PF, Botao, Carregando, ErroBox, ImagemAnuncio, LinkBotao, tabela, TituloPagina, Vazio,
 } from '../components/ui';
 
 export function MeusAnuncios() {
@@ -48,7 +48,8 @@ export function MeusAnuncios() {
                   <td className={tabela.td}>{a.variacoes.map((v) => v.variacao).join(', ') || '—'}</td>
                   <td className={tabela.td}>{formatarData(a.dataCadastro)}</td>
                   <td className={tabela.td}>
-                    {a.ativo ? <Badge className={BADGE_ATIVO}>Ativo</Badge> : <Badge className={BADGE_INATIVO}>Inativo</Badge>}
+                    {a.ativo ? <Badge className={BADGE_ATIVO}>Ativo</Badge> : <Badge className={BADGE_INATIVO}>Inativo</Badge>}{' '}
+                    <Badge className={a.exigeCnpj ? BADGE_CNPJ : BADGE_PF}>{a.exigeCnpj ? 'Só CNPJ' : 'Aceita PF'}</Badge>
                   </td>
                   <td className={tabela.td}>
                     <div className="flex justify-end gap-1.5">

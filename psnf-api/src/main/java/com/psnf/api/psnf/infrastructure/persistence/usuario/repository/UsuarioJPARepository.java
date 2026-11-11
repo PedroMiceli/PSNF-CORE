@@ -17,5 +17,8 @@ public interface UsuarioJPARepository extends JpaRepository<UsuarioJpa, UUID> {
 
     boolean existsByEmailIgnoreCase(String email);
 
+    @Query("select count(u) > 0 from UsuarioJpa u where u.cnpj = :cnpj and (:exceto is null or u.id <> :exceto)")
+    boolean cnpjEmUso(@Param("cnpj") String cnpj, @Param("exceto") UUID exceto);
+
     Optional<UsuarioJpa> findByEmailIgnoreCase(String email);
 }

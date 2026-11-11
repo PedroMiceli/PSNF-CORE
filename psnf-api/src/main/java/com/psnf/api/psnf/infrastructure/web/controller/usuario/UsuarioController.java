@@ -87,7 +87,7 @@ public class UsuarioController {
 
     @GetMapping("/{id}/anuncios")
     public ResponseEntity<List<AnuncioResponse>> listarAnunciosDoUsuario(@PathVariable UUID id) {
-        return ResponseEntity.ok(listarAnunciosPorVendedorUseCase.listarPorVendedor(id).stream()
+        return ResponseEntity.ok(listarAnunciosPorVendedorUseCase.listarPorVendedor(id, UsuarioAutenticadoUtil.obterUsuarioLogadoId()).stream()
                 .map(AnuncioResponse::from)
                 .toList());
     }

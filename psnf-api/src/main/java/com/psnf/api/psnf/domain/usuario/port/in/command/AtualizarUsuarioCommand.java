@@ -6,7 +6,9 @@ public record AtualizarUsuarioCommand(
         UUID usuarioId,
         String nome,
         String telefone,
-        String imagem
+        String imagem,
+        /* ausente mantém; vazio remove */
+        String cnpj
 ) {
     public AtualizarUsuarioCommand {
         if (usuarioId == null) {

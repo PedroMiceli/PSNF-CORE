@@ -32,6 +32,9 @@ public class AnuncioJpa extends BaseEntity {
 
     private boolean ativo;
 
+    @Column(nullable = false)
+    private boolean exigeCnpj = true;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "categoria_id", nullable = false)
     private CategoriaJpa categoria;

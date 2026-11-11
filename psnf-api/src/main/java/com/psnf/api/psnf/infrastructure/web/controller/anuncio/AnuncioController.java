@@ -55,7 +55,8 @@ public class AnuncioController {
             @RequestParam(defaultValue = "0") int pagina,
             @RequestParam(defaultValue = "" + PesquisarAnunciosQuery.TAMANHO_PADRAO) int tamanho
     ) {
-        var resultado = pesquisarAnunciosUseCase.pesquisar(new PesquisarAnunciosQuery(termo, categoriaId, pagina, tamanho));
+        var resultado = pesquisarAnunciosUseCase.pesquisar(new PesquisarAnunciosQuery(termo, categoriaId, pagina, tamanho)
+                .paraVisitante(UsuarioAutenticadoUtil.obterUsuarioLogadoId(), false));
         // notas da página inteira de uma vez (uma consulta)
         Map<UUID, ResumoAvaliacoes> notas = avaliarAnuncioUseCase.resumoPorAnuncios(resultado.itens().stream().map(Anuncio::getId).toList());
         return ResponseEntity.ok(PaginaResponse.from(resultado, a -> AnuncioResponse.from(a, notas.get(a.getId()))));
@@ -63,7 +64,7 @@ public class AnuncioController {
 
     @GetMapping("/{id}")
     public ResponseEntity<AnuncioResponse> buscarPorId(@PathVariable UUID id) {
-        return ResponseEntity.ok(AnuncioResponse.from(buscarAnuncioPorIdUseCase.buscarPorId(id),
+        return ResponseEntity.ok(AnuncioResponse.from(buscarAnuncioPorIdUseCase.buscarPorId(id, UsuarioAutenticadoUtil.obterUsuarioLogadoId()),
                 avaliarAnuncioUseCase.resumoPorAnuncios(List.of(id)).get(id)));
     }
 
@@ -89,7 +90,7 @@ public class AnuncioController {
     @GetMapping("/meus")
     public ResponseEntity<List<AnuncioResponse>> meusAnuncios() {
         return ResponseEntity.ok(listarAnunciosPorVendedorUseCase
-                .listarPorVendedor(UsuarioAutenticadoUtil.obterUsuarioLogadoId()).stream()
+                .listarPorVendedor(UsuarioAutenticadoUtil.obterUsuarioLogadoId(), UsuarioAutenticadoUtil.obterUsuarioLogadoId()).stream()
                 .map(AnuncioResponse::from)
                 .toList());
     }

@@ -43,7 +43,7 @@ public class SalvarOrdemDePedidoService implements CadastrarOrdemDePedidoUseCase
         Usuario comprador = usuarioRepositoryPort.buscarPorId(command.compradorId());
 
         List<ItemPedido> itens = command.itens().stream()
-                .map(item -> criarItem(item, vendedor))
+                .map(item -> criarItem(item, vendedor, comprador))
                 .toList();
 
         OrdemDePedido ordemDePedido = OrdemDePedido.criar(gerarCodigo(), comprador, vendedor, itens);
@@ -66,7 +66,7 @@ public class SalvarOrdemDePedidoService implements CadastrarOrdemDePedidoUseCase
         return salva;
     }
 
-    private ItemPedido criarItem(ItemPedidoCommand item, Usuario vendedor) {
+    private ItemPedido criarItem(ItemPedidoCommand item, Usuario vendedor, Usuario comprador) {
         Anuncio anuncio = anuncioRepositoryPort.buscarPorId(item.anuncioId());
 
         if (!anuncio.pertenceA(vendedor.getId())) {
@@ -75,6 +75,7 @@ public class SalvarOrdemDePedidoService implements CadastrarOrdemDePedidoUseCase
         if (!anuncio.isAtivo()) {
             throw new RegraDeNegocioException("O anúncio '" + anuncio.getTitulo() + "' não está ativo");
         }
+        anuncio.garantirQuePodeVenderPara(comprador.temCnpj());
 
         Variacao variacao = item.variacaoId() == null ? null : anuncio.buscarVariacao(item.variacaoId());
 

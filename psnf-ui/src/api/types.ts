@@ -47,6 +47,8 @@ export interface Usuario {
   email: string;
   imagem?: string | null;
   telefone?: string | null;
+  /** sem pontuação; null = sem CNPJ (só vê anúncios liberados para pessoa física) */
+  cnpj?: string | null;
   dataCadastro: string;
   enderecos: Endereco[];
 }
@@ -118,6 +120,8 @@ export interface Ncm {
 }
 
 export interface Anuncio {
+  /** vendido somente para compradores com CNPJ */
+  exigeCnpj: boolean;
   id: UUID;
   titulo: string;
   descricao: string;
@@ -176,6 +180,8 @@ export interface AnuncioInput {
   variacoes: { variacao: string; sku?: string | null; gtin?: string | null }[];
   informacoes?: InformacoesProduto | null;
   caracteristicas?: Caracteristica[];
+  /** vender somente para compradores com CNPJ (padrão true) */
+  exigeCnpj?: boolean;
 }
 
 export type StatusOrdem = 'AGUARDANDO_CONFIRMACAO' | 'ACEITO' | 'AGUARDANDO_PAGAMENTO' | 'PAGO' | 'ENVIADO' | 'ENTREGUE' | 'CANCELADO';

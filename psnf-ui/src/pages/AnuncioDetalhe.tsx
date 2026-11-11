@@ -6,7 +6,7 @@ import { AvaliacoesAnuncio } from '../components/AvaliacoesAnuncio';
 import { DetalhesProduto } from '../components/DetalhesProduto';
 import { Estrelas, formatarNota } from '../components/Estrelas';
 import { formatarMoeda } from '../components/format';
-import { acoes, Badge, BADGE_INATIVO, Botao, Carregando, chip, cx, dica, ErroBox, ImagemAnuncio, Voltar } from '../components/ui';
+import { acoes, Badge, BADGE_CNPJ, BADGE_INATIVO, BADGE_PF, Botao, Carregando, chip, cx, dica, ErroBox, ImagemAnuncio, Voltar } from '../components/ui';
 import { useChat } from '../context/ChatContext';
 import { useUsuario } from '../context/UsuarioContext';
 
@@ -58,7 +58,10 @@ export function AnuncioDetalhe() {
         <div className="min-w-0">
           <p className="text-sm tracking-wider text-suave uppercase">{vendedor.data?.nome ?? 'Fornecedor'}</p>
           <h1>
-            {a.titulo} {!a.ativo && <Badge className={BADGE_INATIVO}>Inativo</Badge>}
+            {a.titulo} {!a.ativo && <Badge className={BADGE_INATIVO}>Inativo</Badge>}{' '}
+            {a.exigeCnpj
+              ? <Badge className={BADGE_CNPJ}>Venda somente para CNPJ</Badge>
+              : <Badge className={BADGE_PF}>Aceita pessoa física</Badge>}
           </h1>
           <a href="#avaliacoes" className="-mt-2 mb-4 inline-flex items-center gap-2 text-sm hover:no-underline"
             onClick={(e) => { e.preventDefault(); document.getElementById('avaliacoes')?.scrollIntoView({ behavior: 'smooth' }); }}>

@@ -28,7 +28,8 @@ public class AnuncioRequestMapper {
                 imagens(request),
                 variacoes(request),
                 informacoes(request),
-                caracteristicas(request)
+                caracteristicas(request),
+                request.exigeCnpj() == null || request.exigeCnpj()
         );
     }
 
@@ -43,7 +44,8 @@ public class AnuncioRequestMapper {
                 imagens(request),
                 variacoes(request),
                 informacoes(request),
-                caracteristicas(request)
+                caracteristicas(request),
+                request.exigeCnpj() == null || request.exigeCnpj()
         );
     }
 

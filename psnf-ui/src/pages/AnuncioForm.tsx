@@ -27,6 +27,7 @@ const vazio = {
   variacoes: [] as VariacaoForm[],
   informacoes: INFO_VAZIA as InfoForm,
   caracteristicas: [] as Caracteristica[],
+  exigeCnpj: true,
 };
 
 /** Erros da API que pertencem ao painel de informações do produto. */
@@ -59,6 +60,7 @@ export function AnuncioForm() {
       variacoes: a.variacoes.map((v) => ({ variacao: v.variacao, sku: v.sku ?? '', gtin: v.gtin ?? '' })),
       informacoes: infoParaForm(a.informacoes),
       caracteristicas: a.caracteristicas ?? [],
+      exigeCnpj: a.exigeCnpj,
     });
   }, [existente.data]);
 
@@ -92,6 +94,7 @@ export function AnuncioForm() {
       caracteristicas: form.caracteristicas
         .map((c) => ({ nome: c.nome.trim(), valor: c.valor.trim() }))
         .filter((c) => c.nome || c.valor),
+      exigeCnpj: form.exigeCnpj,
     };
     const r = await acao.executar(() => (id ? api.atualizarAnuncio(id, body) : api.criarAnuncio(body)));
     if (r) navigate(`/anuncios/${r.id}`);
@@ -132,6 +135,18 @@ export function AnuncioForm() {
               {categorias.data?.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
             </select>
           </Campo>
+          <label className="mt-1 flex cursor-pointer items-start gap-2.5 text-sm">
+            <input type="checkbox" className="mt-0.5 size-4 accent-primaria" checked={form.exigeCnpj}
+              onChange={(e) => set('exigeCnpj', e.target.checked)} />
+            <span>
+              <strong>Vender somente para empresas (com CNPJ)</strong>
+              <span className="block text-suave">
+                {form.exigeCnpj
+                  ? 'Quem não tem CNPJ cadastrado não vê este anúncio.'
+                  : 'Pessoas físicas, sem CNPJ, também veem e podem negociar este anúncio.'}
+              </span>
+            </span>
+          </label>
         </Painel>
 
         <Painel>

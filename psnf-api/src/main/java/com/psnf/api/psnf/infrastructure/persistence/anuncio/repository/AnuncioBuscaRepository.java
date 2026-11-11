@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 
 /**
  * Busca de anúncios com o full-text search do PostgreSQL (coluna "busca" + pg_trgm).
- * A estrutura (coluna gerada, índices, extensões) está em resources/db/busca-anuncios.sql.
+ * A estrutura (coluna gerada, índices, extensões) está nas migrações (db/migration/V1__esquema_inicial.sql).
  *
  * Um anúncio é encontrado quando:
  *  - as palavras digitadas (ou o começo delas) aparecem no título/descrição, ignorando acentos e
@@ -42,6 +42,11 @@ public class AnuncioBuscaRepository {
                 .addValue("offset", (long) query.pagina() * query.tamanho());
 
         StringBuilder where = new StringBuilder(" WHERE a.ativo");
+        if (query.somenteSemExigenciaDeCnpj()) {
+            // sem CNPJ: só anúncios liberados para pessoa física (e os próprios)
+            where.append(" AND (NOT a.exige_cnpj OR a.vendedor_id = :visitante)");
+            params.addValue("visitante", query.visitanteId());
+        }
         if (query.categoriaId() != null) {
             where.append(" AND a.categoria_id = :categoriaId");
             params.addValue("categoriaId", query.categoriaId());

@@ -49,4 +49,9 @@ public class UsuarioRepositoryAdapter implements UsuarioRepositoryPort {
     public java.util.Optional<Usuario> buscarPorEmail(String email) {
         return usuarioJPARepository.findByEmailIgnoreCase(email.trim()).map(UsuarioJpaMapper::toDomain);
     }
+
+    @Override
+    public boolean cnpjEmUsoPorOutro(String cnpj, UUID exceto) {
+        return cnpj != null && usuarioJPARepository.cnpjEmUso(cnpj, exceto);
+    }
 }

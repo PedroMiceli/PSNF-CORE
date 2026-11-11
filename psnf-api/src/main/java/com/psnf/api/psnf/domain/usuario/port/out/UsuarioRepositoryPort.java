@@ -17,6 +17,9 @@ public interface UsuarioRepositoryPort {
 
     boolean existePorEmail(String email);
 
+    /** outra conta (diferente de {@code exceto}, que pode ser null) já usa este CNPJ? */
+    boolean cnpjEmUsoPorOutro(String cnpj, UUID exceto);
+
     /** e-mail sem diferenciar maiúsculas/minúsculas; vazio se não existir */
     java.util.Optional<Usuario> buscarPorEmail(String email);
 }

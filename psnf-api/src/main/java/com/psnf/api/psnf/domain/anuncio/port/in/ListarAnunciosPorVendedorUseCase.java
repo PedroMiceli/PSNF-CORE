@@ -7,5 +7,6 @@ import java.util.UUID;
 
 public interface ListarAnunciosPorVendedorUseCase {
 
-    List<Anuncio> listarPorVendedor(UUID vendedorId);
+    /** o próprio vendedor vê todos; sem CNPJ, os exclusivos para empresas ficam de fora */
+    List<Anuncio> listarPorVendedor(UUID vendedorId, UUID visitanteId);
 }
