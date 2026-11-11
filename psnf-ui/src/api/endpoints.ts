@@ -1,6 +1,6 @@
 import { http } from './client';
 import type {
-  AlertaMensagem, ArquivoEnviado, Atividade, MensagemNegociacao, Novidades, AvaliacaoInput, AvaliacoesAnuncio, EntregaInput, Anuncio, EnderecoConsultado, AnuncioInput, Categoria, EnderecoInput, Ncm, Negociacao, NegociacaoResumo, NovaOrdemInput, OrdemDePedido,
+  AlertaMensagem, ArquivoEnviado, Atividade, EmpresaConsultada, MensagemNegociacao, Novidades, AvaliacaoInput, AvaliacoesAnuncio, EntregaInput, Anuncio, EnderecoConsultado, AnuncioInput, Categoria, EnderecoInput, Ncm, Negociacao, NegociacaoResumo, NovaOrdemInput, OrdemDePedido,
   OrdemDePedidoResumo, Pagina, PagamentoInput, Usuario, UUID,
 } from './types';
 
@@ -35,6 +35,8 @@ export const api = {
   adicionarEndereco: (body: EnderecoInput) => http.post<Usuario>('/usuarios/me/enderecos', body),
   removerEndereco: (id: UUID) => http.delete<Usuario>(`/usuarios/me/enderecos/${id}`),
   /** Busca o endereço pelo CEP (a API consulta a BrasilAPI). */
+  /** dados públicos do CNPJ na Receita (BrasilAPI); 404 se a base pública não o tem */
+  consultarCnpj: (cnpj: string) => http.get<EmpresaConsultada>(`/cnpj/${cnpj.toUpperCase().replace(/[^0-9A-Z]/g, '')}`),
   consultarCep: (cep: string) => http.get<EnderecoConsultado>(`/cep/${cep.replace(/\D/g, '')}`),
   anunciosDoUsuario: (id: UUID) => http.get<Anuncio[]>(`/usuarios/${id}/anuncios`),
 

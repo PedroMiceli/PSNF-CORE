@@ -16,7 +16,8 @@ import java.util.Set;
  *
  * <ul>
  *   <li>Sem sessão no servidor (STATELESS): cada requisição traz o JWT; qualquer instância atende.</li>
- *   <li>Públicas: login/renovação/logout (/auth/**) e o cadastro (POST /usuarios). O resto exige login.</li>
+ *   <li>Públicas: login/renovação/logout (/auth/**), o cadastro (POST /usuarios) e a consulta de CNPJ
+ *       usada nele (GET /cnpj/**). O resto exige login.</li>
  *   <li>CSRF: como o navegador manda os cookies sozinho, um site malicioso poderia disparar ações em nome
  *       do usuário. O Spring grava um token no cookie XSRF-TOKEN (legível pelo JavaScript do nosso front)
  *       e exige que ele volte no header X-XSRF-TOKEN; outro site não consegue ler o cookie para copiá-lo.
@@ -50,6 +51,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(a -> a
                         .requestMatchers("/auth/**", "/error").permitAll()
                         .requestMatchers(HttpMethod.POST, "/usuarios").permitAll()
+                        // consulta de CNPJ: usada no cadastro, antes do login
+                        .requestMatchers(HttpMethod.GET, "/cnpj/**").permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(o -> o
                         .authenticationEntryPoint(RespostasDeSeguranca.naoAutenticado())

@@ -7,6 +7,7 @@ import { cnpjValido, mascaraCnpj, mascaraTelefone, telefoneValido } from '../com
 import { EnderecoForm } from '../components/EnderecoForm';
 import { Botao, Campo, Carregando, controle, cx, dica, ErroBox, ImagemAnuncio, linhaForm, painel, Painel } from '../components/ui';
 import { useUsuario } from '../context/UsuarioContext';
+import { ResultadoConsultaCnpj, useConsultaCnpj } from '../components/ConsultaCnpj';
 
 export function Perfil() {
   const usuario = useApi(() => api.usuarioLogado(), []);
@@ -16,6 +17,8 @@ export function Perfil() {
   const salvar = useAcao();
   const endereco = useAcao();
   const [dados, setDados] = useState({ nome: '', telefone: '', imagem: '', cnpj: '' });
+  // só consulta quando o CNPJ digitado é diferente do que já está salvo
+  const consulta = useConsultaCnpj(dados.cnpj.replace(/[^0-9A-Za-z]/g, '').toUpperCase() === (usuario.data?.cnpj ?? '') ? '' : dados.cnpj);
   const [tentouSalvar, setTentouSalvar] = useState(false);
 
   useEffect(() => {
@@ -30,7 +33,7 @@ export function Perfil() {
     e.preventDefault();
     setTentouSalvar(true);
     if (dados.telefone && !telefoneValido(dados.telefone)) return;
-    if (!cnpjValido(dados.cnpj)) return;
+    if (!cnpjValido(dados.cnpj) || consulta.tipo === 'inativa') return;
     // a API guarda só os dígitos; a máscara é apenas visual
     const r = await salvar.executar(() => api.atualizarUsuario({ ...dados, telefone: dados.telefone.replace(/\D/g, '') }));
     if (r) { usuario.setData(r); atualizarUsuario(r); }
@@ -39,6 +42,15 @@ export function Perfil() {
     const r = await endereco.executar(() => api.adicionarEndereco(novo));
     if (r) usuario.setData(r);
     return !!r;
+  };
+  // endereço cadastrado na Receita para o CNPJ: um clique em vez de digitar
+  const usarEnderecoDaReceita = async () => {
+    const e = await endereco.executar(() => api.consultarCnpj(u.cnpj ?? ''));
+    if (!e) return;
+    await adicionarEndereco({
+      cep: e.cep ?? '', logradouro: e.logradouro ?? '', numero: e.numero ?? 'S/N', complemento: e.complemento ?? '',
+      bairro: e.bairro ?? '', cidade: e.cidade ?? '', uf: e.uf ?? '',
+    });
   };
   const removerEndereco = async (id: string) => {
     const r = await endereco.executar(() => api.removerEndereco(id));
@@ -61,6 +73,10 @@ export function Perfil() {
             dica={dados.cnpj ? undefined : 'Sem CNPJ, você só vê anúncios liberados para pessoa física.'}>
             <input className={controle} value={dados.cnpj} placeholder="00.000.000/0000-00"
               onChange={(e) => setDados({ ...dados, cnpj: mascaraCnpj(e.target.value) })} />
+            {consulta.tipo === 'vazio' && u.cnpj && (u.cnpjVerificado
+              ? <span className="text-xs font-semibold text-verde">✓ Verificado na Receita: {u.razaoSocial}</span>
+              : <span className="text-xs text-suave">Não verificado na Receita (não encontrado na base pública)</span>)}
+            <ResultadoConsultaCnpj resultado={consulta} />
           </Campo>
           <Campo label="Telefone" erro={dados.telefone && !telefoneValido(dados.telefone) && tentouSalvar
             ? 'Informe o DDD e o número (ex.: (11) 99999-0001)' : salvar.erro?.campos?.telefone}>
@@ -100,6 +116,12 @@ export function Perfil() {
               </li>
             ))}
           </ul>
+        )}
+        {u.cnpjVerificado && (
+          <p className="mt-3 text-sm">
+            <button type="button" className="cursor-pointer font-semibold text-primaria hover:underline" disabled={endereco.enviando}
+              onClick={usarEnderecoDaReceita}>+ Adicionar o endereço da empresa (dados da Receita)</button>
+          </p>
         )}
         <EnderecoForm enviando={endereco.enviando} erros={endereco.erro?.campos} onSalvar={adicionarEndereco} />
       </Painel>

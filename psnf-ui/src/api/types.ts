@@ -32,6 +32,22 @@ export interface EnderecoConsultado {
   uf: string | null;
 }
 
+/** dados públicos do CNPJ na Receita Federal (BrasilAPI) */
+export interface EmpresaConsultada {
+  cnpj: string;
+  razaoSocial: string | null;
+  nomeFantasia: string | null;
+  /** ATIVA, BAIXADA, INAPTA, SUSPENSA ou NULA */
+  situacao: string | null;
+  cep: string | null;
+  logradouro: string | null;
+  numero: string | null;
+  complemento: string | null;
+  bairro: string | null;
+  cidade: string | null;
+  uf: string | null;
+}
+
 /** evento de segurança da conta (auditoria) */
 export interface Atividade {
   tipo: string;
@@ -49,6 +65,10 @@ export interface Usuario {
   telefone?: string | null;
   /** sem pontuação; null = sem CNPJ (só vê anúncios liberados para pessoa física) */
   cnpj?: string | null;
+  /** razão social confirmada na Receita (só com CNPJ verificado) */
+  razaoSocial?: string | null;
+  /** CNPJ confirmado como ATIVO na Receita Federal */
+  cnpjVerificado?: boolean;
   dataCadastro: string;
   enderecos: Endereco[];
 }

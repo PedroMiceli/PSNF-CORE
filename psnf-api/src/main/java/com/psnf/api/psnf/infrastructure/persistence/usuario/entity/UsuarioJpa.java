@@ -37,6 +37,8 @@ public class UsuarioJpa extends BaseEntity {
     private java.time.LocalDateTime emailConfirmadoEm;
     @Column(length = 14)
     private String cnpj;
+    private String razaoSocial;
+    private java.time.LocalDateTime cnpjVerificadoEm;
     private String imagem;
     private String telefone;
 

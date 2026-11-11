@@ -22,6 +22,9 @@ public class Usuario extends BaseDomain {
     private LocalDateTime emailConfirmadoEm;
     /** sem pontuação; null = pessoa sem CNPJ cadastrado */
     private String cnpj;
+    /** razão social confirmada na Receita (só quando o CNPJ foi verificado) */
+    private String razaoSocial;
+    private LocalDateTime cnpjVerificadoEm;
     private final String secret2fa;
     private String imagem;
     private String telefone;
@@ -61,6 +64,15 @@ public class Usuario extends BaseDomain {
     }
 
     public boolean temCnpj() { return cnpj != null; }
+
+    /** resultado da consulta à Receita: razão social e quando foi confirmado ATIVO (null = não verificado) */
+    public Usuario registrarVerificacaoCnpj(String razaoSocial, LocalDateTime verificadoEm) {
+        this.razaoSocial = razaoSocial;
+        this.cnpjVerificadoEm = verificadoEm;
+        return this;
+    }
+
+    public boolean cnpjVerificado() { return cnpj != null && cnpjVerificadoEm != null; }
 
     /** só a camada de persistência usa: restaura a data de confirmação gravada */
     public Usuario comEmailConfirmadoEm(LocalDateTime quando) {
@@ -106,6 +118,8 @@ public class Usuario extends BaseDomain {
     public String getSenha() { return senha; }
     public LocalDateTime getEmailConfirmadoEm() { return emailConfirmadoEm; }
     public String getCnpj() { return cnpj; }
+    public String getRazaoSocial() { return razaoSocial; }
+    public LocalDateTime getCnpjVerificadoEm() { return cnpjVerificadoEm; }
     public String getSecret2fa() { return secret2fa; }
     public String getImagem() { return imagem; }
     public String getTelefone() { return telefone; }

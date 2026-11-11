@@ -52,8 +52,11 @@ public class UsuarioMockInitializer implements ApplicationRunner {
                 logger.info("Usuário mock criado: {} ({})", usuario.getNome(), usuario.getId());
             } else {
                 // bancos de antes do CNPJ: os usuários de teste ganham o CNPJ de teste (se ninguém o usa)
-                jdbcTemplate.update("UPDATE usuario SET cnpj = ? WHERE id = ? AND cnpj IS NULL "
-                        + "AND NOT EXISTS (SELECT 1 FROM usuario o WHERE o.cnpj = ?)", cnpj, usuario.getId(), cnpj);
+                // e quem ficou com os CNPJs antigos (de empresas reais) é corrigido
+                jdbcTemplate.update("UPDATE usuario SET cnpj = ?, razao_social = NULL, cnpj_verificado_em = NULL "
+                                + "WHERE id = ? AND (cnpj IS NULL OR cnpj IN (?, ?)) "
+                                + "AND NOT EXISTS (SELECT 1 FROM usuario o WHERE o.cnpj = ?)",
+                        cnpj, usuario.getId(), UsuarioMock.CNPJS_ANTIGOS.get(0), UsuarioMock.CNPJS_ANTIGOS.get(1), cnpj);
             }
         }
         logger.warn("Usuários de teste ativos (senha {}): {} e {}. Desligue em produção com PSNF_USUARIOS_TESTE=false",

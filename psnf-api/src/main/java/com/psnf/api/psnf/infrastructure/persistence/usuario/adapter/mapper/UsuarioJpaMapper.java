@@ -14,6 +14,8 @@ public class UsuarioJpaMapper {
         jpa.setSecret2fa(usuario.getSecret2fa());
         jpa.setEmailConfirmadoEm(usuario.getEmailConfirmadoEm());
         jpa.setCnpj(usuario.getCnpj());
+        jpa.setRazaoSocial(usuario.getRazaoSocial());
+        jpa.setCnpjVerificadoEm(usuario.getCnpjVerificadoEm());
         jpa.setImagem(usuario.getImagem());
         jpa.setTelefone(usuario.getTelefone());
         usuario.getEnderecos().stream()
@@ -35,6 +37,7 @@ public class UsuarioJpaMapper {
                 jpa.getImagem(),
                 jpa.getTelefone(),
                 jpa.getEnderecos().stream().map(EnderecoJpaMapper::toDomain).toList()
-        ).comEmailConfirmadoEm(jpa.getEmailConfirmadoEm()).comCnpj(jpa.getCnpj());
+        ).comEmailConfirmadoEm(jpa.getEmailConfirmadoEm()).comCnpj(jpa.getCnpj())
+                .registrarVerificacaoCnpj(jpa.getRazaoSocial(), jpa.getCnpjVerificadoEm());
     }
 }

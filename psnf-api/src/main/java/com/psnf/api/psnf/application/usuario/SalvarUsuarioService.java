@@ -3,7 +3,6 @@ package com.psnf.api.psnf.application.usuario;
 import com.psnf.api.psnf.domain.auditoria.model.TipoEventoAuditoria;
 import com.psnf.api.psnf.domain.auditoria.port.out.AuditoriaPort;
 import com.psnf.api.psnf.domain.autenticacao.port.in.ContaUseCase;
-import com.psnf.api.psnf.domain.usuario.exception.CnpjJaCadastradoException;
 import com.psnf.api.psnf.domain.usuario.exception.EmailJaCadastradoException;
 import com.psnf.api.psnf.domain.usuario.model.Usuario;
 import com.psnf.api.psnf.domain.usuario.port.in.SalvarUsuarioUseCase;
@@ -23,6 +22,7 @@ public class SalvarUsuarioService implements SalvarUsuarioUseCase {
     private final SenhaEncoderPort senhaEncoderPort;
     private final ContaUseCase contaUseCase;
     private final AuditoriaPort auditoria;
+    private final VerificacaoCnpj verificacaoCnpj;
 
     @Override
     @Transactional
@@ -41,8 +41,7 @@ public class SalvarUsuarioService implements SalvarUsuarioUseCase {
                 EnderecoCommandMapper.toDomain(command.enderecos())
         );
 
-        usuario.definirCnpj(command.cnpj());
-        if (usuarioRepositoryPort.cnpjEmUsoPorOutro(usuario.getCnpj(), null)) throw new CnpjJaCadastradoException();
+        verificacaoCnpj.aplicar(usuario, command.cnpj());
         Usuario salvo = usuarioRepositoryPort.save(usuario);
         contaUseCase.enviarConfirmacao(salvo); // só entra depois de clicar no link
         auditoria.registrar(salvo.getId(), TipoEventoAuditoria.CADASTRO);
