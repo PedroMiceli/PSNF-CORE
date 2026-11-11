@@ -83,6 +83,9 @@ async function request<T>(method: string, path: string, body?: unknown, tentativ
       method,
       headers,
       credentials: 'same-origin',
+      // logout: o navegador conclui o pedido mesmo se a página for fechada ou trocada logo em seguida
+      // (sem isso, sair e fechar a aba no mesmo instante podia deixar a sessão aberta)
+      keepalive: path.startsWith('/auth/logout'),
       body: body === undefined ? undefined : ehForm ? body : JSON.stringify(body),
     });
   } catch {
@@ -96,6 +99,8 @@ async function request<T>(method: string, path: string, body?: unknown, tentativ
   if (res.status === 401 && tentativa === 0 && !SEM_RENOVAR.some((p) => path.startsWith(p))) {
     if (await renovarSessao()) return request<T>(method, path, body, 1);
     aoPerderSessao?.();
+    // a renovação falhou e a API apagou os cookies vencidos: as rotas públicas (vitrine) funcionam sem login
+    if (METODOS_SEGUROS.has(method)) return request<T>(method, path, body, 1);
   }
   // CSRF recusado (cookie trocado ou apagado): busca um token novo e tenta uma vez mais
   if (res.status === 403 && tentativa === 0 && obj?.erro?.includes('CSRF')) {

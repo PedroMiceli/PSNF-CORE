@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../api/endpoints';
 import type { EnderecoInput } from '../api/types';
 import { useAcao, useApi } from '../api/useApi';
@@ -12,6 +13,7 @@ import { ResultadoConsultaCnpj, useConsultaCnpj } from '../components/ConsultaCn
 export function Perfil() {
   const usuario = useApi(() => api.usuarioLogado(), []);
   const { atualizarUsuario, sair } = useUsuario();
+  const navigate = useNavigate();
   const atividade = useApi(() => api.atividade(), []);
   const [saindo, setSaindo] = useState(false);
   const salvar = useAcao();
@@ -133,7 +135,7 @@ export function Perfil() {
           Esqueceu a sessão aberta em outro computador ou perdeu o celular? Encerre o acesso em todos os
           dispositivos, inclusive neste: será preciso entrar de novo em cada um.
         </p>
-        <Botao variante="perigo" disabled={saindo} onClick={async () => { setSaindo(true); await sair(true); }}>
+        <Botao variante="perigo" disabled={saindo} onClick={async () => { setSaindo(true); await sair(true); navigate('/login', { replace: true }); }}>
           {saindo ? 'Encerrando...' : 'Sair de todos os dispositivos'}
         </Botao>
 

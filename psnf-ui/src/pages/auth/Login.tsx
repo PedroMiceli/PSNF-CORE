@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import type { ApiError } from '../../api/client';
 import { api } from '../../api/endpoints';
 import { Botao, Campo, controle, ErroBox } from '../../components/ui';
@@ -14,6 +14,7 @@ export function Login() {
   const [enviando, setEnviando] = useState(false);
   const [reenviado, setReenviado] = useState(false);
   const motivo = estado.tipo === 'anonimo' ? estado.motivo : undefined;
+  const veioDeAnuncio = /^\/anuncios\//.test((useLocation().state as { de?: string } | null)?.de ?? '');
 
   const enviar = async (e: FormEvent) => {
     e.preventDefault();
@@ -26,7 +27,8 @@ export function Login() {
   };
 
   return (
-    <AuthLayout titulo="Entrar" subtitulo="Acesse sua conta para comprar e vender."
+    <AuthLayout titulo="Entrar"
+      subtitulo={veioDeAnuncio ? 'Entre para ver os detalhes do anúncio e negociar com o fornecedor.' : 'Acesse sua conta para comprar e vender.'}
       rodape={<>Ainda não tem conta? <Link to="/cadastro">Cadastre sua empresa</Link></>}>
       {motivo === 'expirou' && !erro && (
         <p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm" role="status">

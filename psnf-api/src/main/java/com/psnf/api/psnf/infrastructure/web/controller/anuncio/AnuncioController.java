@@ -45,6 +45,7 @@ public class AnuncioController {
 
     /**
      * Vitrine e pesquisa: anúncios ativos, paginados. A busca de texto é feita no PostgreSQL.
+     * PÚBLICA (sem login): o visitante não tem CNPJ, então só vê os anúncios liberados para pessoa física.
      * Ex.: GET /anuncios?termo=carrinho&categoriaId=...&pagina=0&tamanho=24
      * Sem termo: mais recentes primeiro. Com termo: mais relevantes primeiro.
      */
@@ -56,7 +57,7 @@ public class AnuncioController {
             @RequestParam(defaultValue = "" + PesquisarAnunciosQuery.TAMANHO_PADRAO) int tamanho
     ) {
         var resultado = pesquisarAnunciosUseCase.pesquisar(new PesquisarAnunciosQuery(termo, categoriaId, pagina, tamanho)
-                .paraVisitante(UsuarioAutenticadoUtil.obterUsuarioLogadoId(), false));
+                .paraVisitante(UsuarioAutenticadoUtil.usuarioLogadoId().orElse(null), false)); // sem login: sem CNPJ
         // notas da página inteira de uma vez (uma consulta)
         Map<UUID, ResumoAvaliacoes> notas = avaliarAnuncioUseCase.resumoPorAnuncios(resultado.itens().stream().map(Anuncio::getId).toList());
         return ResponseEntity.ok(PaginaResponse.from(resultado, a -> AnuncioResponse.from(a, notas.get(a.getId()))));
