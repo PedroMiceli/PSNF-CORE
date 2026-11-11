@@ -73,6 +73,15 @@ public class OrdemDePedidoJpa extends BaseEntity {
     @OneToMany(mappedBy = "ordemDePedido", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<EntregaJpa> entregas = new ArrayList<>();
 
+    @OneToMany(mappedBy = "ordemDePedido", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("dataCadastro ASC")
+    private List<AnexoEntregaJpa> anexosEntrega = new ArrayList<>();
+
+    /** quem confirmou a entrega/retirada e quando */
+    @Column(name = "entrega_confirmada_por_id")
+    private java.util.UUID entregaConfirmadaPor;
+    private LocalDateTime entregaConfirmadaEm;
+
     /** última mudança relevante para o outro lado (consulta de novidades) */
     private LocalDateTime atualizadaEm;
 

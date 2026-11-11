@@ -273,6 +273,10 @@ export interface OrdemDePedido {
   /** negociação (chat) em que a ordem foi combinada */
   negociacaoId: UUID | null;
   itens: ItemPedido[];
+  /** fotos/PDFs da entrega (prova de saída ou de retirada), anexados pelo vendedor */
+  anexosEntrega: AnexoEntrega[];
+  /** quem confirmou a entrega/retirada e quando; null enquanto não confirmada */
+  confirmacaoEntrega: { confirmadaPor: AutorOrdem; confirmadaEm: string } | null;
   pagamentos: Pagamento[];
   notasFiscais: NotaFiscal[];
   mensagensIncidente: Mensagem[];
@@ -293,6 +297,9 @@ export interface OrdemDePedidoResumo {
   /** mensagens de incidente do outro lado que o usuário logado ainda não viu */
   mensagensNaoLidas: number;
 }
+
+export interface AutorOrdem { id: UUID; nome: string; papel: 'COMPRADOR' | 'VENDEDOR' }
+export interface AnexoEntrega { id: UUID; caminho: string; enviadoPor: AutorOrdem; dataCadastro: string }
 
 /** Detalhes da entrega informados pelo vendedor (os dois campos são opcionais). */
 export interface Entrega {

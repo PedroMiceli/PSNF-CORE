@@ -38,8 +38,27 @@ public record OrdemDePedidoResponse(
         List<ItemResponse> itens,
         List<PagamentoResponse> pagamentos,
         List<NotaFiscalResponse> notasFiscais,
-        List<MensagemResponse> mensagensIncidente
+        List<MensagemResponse> mensagensIncidente,
+        /** fotos/PDFs da entrega (prova de saída ou de retirada) */
+        List<AnexoEntregaResponse> anexosEntrega,
+        /** quem confirmou a entrega/retirada e quando; null enquanto não confirmada */
+        ConfirmacaoResponse confirmacaoEntrega
 ) {
+
+    /** @param papel COMPRADOR ou VENDEDOR */
+    public record Autor(UUID id, String nome, String papel) {
+        static Autor de(OrdemDePedido o, UUID id) {
+            if (id == null) return null;
+            boolean vendedor = o.isVendedor(id);
+            return new Autor(id, vendedor ? o.getVendedor().getNome() : o.getComprador().getNome(), vendedor ? "VENDEDOR" : "COMPRADOR");
+        }
+    }
+
+    public record AnexoEntregaResponse(UUID id, String caminho, Autor enviadoPor, LocalDateTime dataCadastro) {
+    }
+
+    public record ConfirmacaoResponse(Autor confirmadaPor, LocalDateTime confirmadaEm) {
+    }
 
     /** informacoes: cópia das informações do produto no momento da compra (para NF, garantia...) */
     public record ItemResponse(UUID id, UUID anuncioId, String tituloAnuncio, String variacao, int quantidade,
@@ -107,7 +126,11 @@ public record OrdemDePedidoResponse(
                 ordem.getItens().stream().map(ItemResponse::from).toList(),
                 ordem.getPagamentos().stream().map(PagamentoResponse::from).toList(),
                 ordem.getNotasFiscais().stream().map(NotaFiscalResponse::from).toList(),
-                ordem.getMensagensIncidente().stream().map(MensagemResponse::from).toList()
+                ordem.getMensagensIncidente().stream().map(MensagemResponse::from).toList(),
+                ordem.getAnexosEntrega().stream().map(a -> new AnexoEntregaResponse(a.getId(), a.getCaminho(),
+                        Autor.de(ordem, a.getEnviadoPor()), a.getDataCadastro())).toList(),
+                ordem.getEntregaConfirmadaPor() == null ? null
+                        : new ConfirmacaoResponse(Autor.de(ordem, ordem.getEntregaConfirmadaPor()), ordem.getEntregaConfirmadaEm())
         );
     }
 }

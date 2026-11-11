@@ -46,6 +46,12 @@ public class OrdemDePedido extends BaseDomain {
     private LocalDateTime incidentesLidosVendedorEm;
     private final List<MensagemIncidente> mensagensIncidente;
     private final List<NotaFiscal> notasFiscais;
+    /** fotos/PDFs da entrega (prova de saída ou de retirada), anexados pelo vendedor */
+    private final List<AnexoEntrega> anexosEntrega = new ArrayList<>();
+    /** quem confirmou a entrega/retirada e quando (na retirada no local, o vendedor também pode confirmar) */
+    private UUID entregaConfirmadaPor;
+    private LocalDateTime entregaConfirmadaEm;
+    public static final int MAXIMO_ANEXOS_ENTREGA = 10;
 
     private OrdemDePedido(UUID id, LocalDateTime dataCadastro, LocalDateTime dataAlteracao, LocalDateTime dataExcluido, String codigo, LocalDate previsaoDeEntrega, EnumStatusOrdemDePedido status, Usuario comprador, Usuario vendedor, List<ItemPedido> itens, List<Pagamento> pagamentos, List<MensagemIncidente> mensagensIncidente, List<NotaFiscal> notasFiscais) {
         super(id, dataCadastro, dataAlteracao, dataExcluido);
@@ -262,12 +268,70 @@ public class OrdemDePedido extends BaseDomain {
         }
     }
 
+    /**
+     * Confirma que o pedido chegou ou foi retirado. No envio, só o comprador confirma (o vendedor não sabe se
+     * chegou); na retirada no local, o vendedor também pode confirmar, porque está presente quando o comprador
+     * retira. Fica registrado quem confirmou e quando, e a outra parte recebe uma mensagem automática.
+     */
     public void confirmarEntrega(UUID usuarioId) {
         tocar();
-        garantirComprador(usuarioId);
+        garantirParticipante(usuarioId);
+        boolean retirada = entrega != null && entrega.isRetiradaNoLocal();
+        if (isVendedor(usuarioId) && !retirada) {
+            throw new AcessoNegadoException("Só o comprador confirma o recebimento de um pedido enviado");
+        }
         garantirStatus(ENVIADO);
         this.status = ENTREGUE;
+        this.entregaConfirmadaPor = usuarioId;
+        this.entregaConfirmadaEm = LocalDateTime.now();
+        String texto = !retirada ? "✔ O comprador (" + comprador.getNome() + ") confirmou o recebimento do pedido."
+                : isVendedor(usuarioId) ? "✔ O vendedor (" + vendedor.getNome() + ") confirmou que o pedido foi retirado pelo comprador."
+                : "✔ O comprador (" + comprador.getNome() + ") confirmou que retirou o pedido.";
+        mensagensIncidente.add(MensagemIncidente.criar(texto, null, usuarioId));
+        marcarIncidentesLidos(usuarioId);
     }
+
+    /**
+     * O vendedor anexa uma foto ou PDF à entrega (carga saindo, comprador retirando...), no envio ou na
+     * retirada no local. Vale depois do aceite e também depois da entrega confirmada (prova pode chegar depois).
+     */
+    public AnexoEntrega adicionarAnexoEntrega(UUID usuarioId, String caminho) {
+        tocar();
+        garantirVendedor(usuarioId);
+        if (status == AGUARDANDO_CONFIRMACAO || status == CANCELADO) {
+            throw new RegraDeNegocioException("Os arquivos da entrega só podem ser anexados depois que o comprador aceitar a ordem");
+        }
+        if (anexosEntrega.size() >= MAXIMO_ANEXOS_ENTREGA) {
+            throw new RegraDeNegocioException("A entrega aceita no máximo " + MAXIMO_ANEXOS_ENTREGA + " arquivos");
+        }
+        AnexoEntrega anexo = AnexoEntrega.criar(caminho, usuarioId);
+        anexosEntrega.add(anexo);
+        return anexo;
+    }
+
+    /** Remove um arquivo enviado por engano. Depois da entrega confirmada, os arquivos ficam como prova. */
+    public void removerAnexoEntrega(UUID usuarioId, UUID anexoId) {
+        tocar();
+        garantirVendedor(usuarioId);
+        if (status == ENTREGUE) {
+            throw new RegraDeNegocioException("Depois da entrega confirmada, os arquivos da entrega não podem ser removidos");
+        }
+        if (!anexosEntrega.removeIf(a -> anexoId.equals(a.getId()))) {
+            throw new RegraDeNegocioException("Arquivo " + anexoId + " não pertence à entrega desta ordem");
+        }
+    }
+
+    /** só a persistência usa */
+    public void restaurarEntregaConfirmada(List<AnexoEntrega> anexos, UUID confirmadaPor, LocalDateTime confirmadaEm) {
+        anexosEntrega.clear();
+        if (anexos != null) anexosEntrega.addAll(anexos);
+        this.entregaConfirmadaPor = confirmadaPor;
+        this.entregaConfirmadaEm = confirmadaEm;
+    }
+
+    public List<AnexoEntrega> getAnexosEntrega() { return List.copyOf(anexosEntrega); }
+    public UUID getEntregaConfirmadaPor() { return entregaConfirmadaPor; }
+    public LocalDateTime getEntregaConfirmadaEm() { return entregaConfirmadaEm; }
 
     public void cancelar(UUID usuarioId) {
         tocar();
