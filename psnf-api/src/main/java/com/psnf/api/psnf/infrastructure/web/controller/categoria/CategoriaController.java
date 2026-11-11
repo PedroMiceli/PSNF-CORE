@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 /**
- * Categorias são fixas: carregadas pelo sistema (resources/db/categorias.sql) e somente leitura para
+ * Categorias são fixas: carregadas pelo sistema (db/migration/R__categorias.sql) e somente leitura para
  * compradores e vendedores. A criação/edição ficará numa futura área administrativa, com permissão própria.
  */
 @RestController

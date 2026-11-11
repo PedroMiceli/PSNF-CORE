@@ -9,7 +9,7 @@ Uso (com a API rodando; para as imagens, também o MinIO):
     API_URL=http://localhost:8081 python3 psnf-api/scripts/popular-anuncios.py
 
 O que ele faz:
-  1. busca as categorias da plataforma (fixas: são carregadas pela própria API, ninguém as cria);
+  1. busca as categorias da plataforma (fixas: a própria API as carrega; se faltarem, rode popular-categorias.py);
   2. cria os fornecedores (usuários vendedores) que ainda não existirem;
   3. cadastra cada anúncio com faixas de preço por quantidade, variações e imagens.
 
@@ -380,7 +380,7 @@ def slug(texto):
 
 # ------------------------------------------------------------------------------ etapas
 def buscar_categorias():
-    """As categorias são fixas (resources/db/categorias.sql na API). Produtos de uma categoria que não
+    """As categorias são fixas (db/migration/R__categorias.sql na API). Produtos de uma categoria que não
     exista na plataforma são pulados, com aviso."""
     existentes = {c["nome"].lower(): c["id"] for c in chamar("GET", "/categorias")}
     ids = {}
