@@ -22,6 +22,7 @@ public class IniciarNegociacaoService implements IniciarNegociacaoUseCase {
     private final AnuncioRepositoryPort anuncioRepositoryPort;
     private final UsuarioRepositoryPort usuarioRepositoryPort;
     private final DetalhesNegociacaoLoader loader;
+    private final RegraCnpjNegociacao regraCnpj;
 
     @Override
     @Transactional
@@ -29,6 +30,7 @@ public class IniciarNegociacaoService implements IniciarNegociacaoUseCase {
         // o mesmo comprador não abre duas conversas sobre o mesmo anúncio: reabre a existente
         Optional<Negociacao> existente = negociacaoRepositoryPort.buscarPorAnuncioEComprador(anuncioId, compradorId);
         if (existente.isPresent()) {
+            regraCnpj.garantirAcesso(existente.get(), compradorId); // reabrir também exige CNPJ
             return new Resultado(loader.carregar(existente.get()), false);
         }
         Usuario comprador = usuarioRepositoryPort.buscarPorId(compradorId); // 404 se o comprador não existir

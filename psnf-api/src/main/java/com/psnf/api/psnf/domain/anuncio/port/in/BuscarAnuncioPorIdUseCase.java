@@ -6,7 +6,6 @@ import java.util.UUID;
 
 public interface BuscarAnuncioPorIdUseCase {
 
-    /** {@code visitanteId}: sem CNPJ, anúncio exclusivo para empresas responde 404 */
-    Anuncio buscarPorId(UUID anuncioId, UUID visitanteId);
+    Anuncio buscarPorId(UUID anuncioId);
 
 }

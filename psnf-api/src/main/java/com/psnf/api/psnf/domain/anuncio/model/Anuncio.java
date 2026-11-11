@@ -93,12 +93,10 @@ public class Anuncio extends BaseDomain {
     /** o vendedor decide se vende só para empresas (com CNPJ) ou também para pessoas físicas */
     public void definirExigeCnpj(boolean exigeCnpj) { this.exigeCnpj = exigeCnpj; }
 
-    /** quem não tem CNPJ não enxerga anúncios exclusivos para empresas; o dono sempre vê os seus */
-    public boolean visivelPara(UUID usuarioId, boolean usuarioTemCnpj) {
-        return pertenceA(usuarioId) || !exigeCnpj || usuarioTemCnpj;
-    }
-
-    /** comprador sem CNPJ não negocia nem compra anúncio exclusivo para empresas */
+    /**
+     * Todos veem todos os anúncios; o CNPJ só conta para negociar: comprador sem CNPJ não negocia,
+     * não conversa e não compra anúncio exclusivo para empresas.
+     */
     public void garantirQuePodeVenderPara(boolean compradorTemCnpj) {
         if (exigeCnpj && !compradorTemCnpj) throw new CompradorSemCnpjException(titulo);
     }

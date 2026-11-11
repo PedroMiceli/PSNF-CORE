@@ -12,7 +12,7 @@ import { useUsuario } from '../context/UsuarioContext';
 
 export function AnuncioDetalhe() {
   const { id = '' } = useParams();
-  const { usuarioId } = useUsuario();
+  const { usuarioId, usuario } = useUsuario();
   const navigate = useNavigate();
   const anuncio = useApi(() => api.anuncio(id), [id]);
   const vendedor = useApi(async () => (anuncio.data ? api.usuario(anuncio.data.vendedorId) : null), [anuncio.data?.vendedorId]);
@@ -29,6 +29,8 @@ export function AnuncioDetalhe() {
   const a = anuncio.data;
   const nota = notaLocal ?? { media: a.notaMedia, total: a.quantidadeAvaliacoes };
   const ehDono = a.vendedorId === usuarioId;
+  // todos veem o anúncio; sem CNPJ, os exclusivos para empresas não negociam
+  const semCnpjParaEste = a.exigeCnpj && !usuario?.cnpj;
   const faixas = [...a.valores].sort((x, y) => x.quantidadeMinima - y.quantidadeMinima);
   const principal = imagemSelecionada ?? (a.imagens.find((i) => i.principal) ?? a.imagens[0])?.caminho;
 
@@ -119,6 +121,12 @@ export function AnuncioDetalhe() {
             </div>
           ) : (
             <div>
+              {semCnpjParaEste ? (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm" role="note">
+                  <strong>Este fornecedor vende somente para empresas.</strong> Para negociar,{' '}
+                  <Link to="/perfil">cadastre o CNPJ no seu perfil</Link>.
+                </div>
+              ) : (
               <Botao variante="primario" disabled={iniciando || !a.ativo} onClick={async () => {
                 setIniciando(true);
                 acao.setErro(await iniciarNegociacao(a.id));
@@ -126,11 +134,14 @@ export function AnuncioDetalhe() {
               }}>
                 💬 {iniciando ? 'Abrindo...' : 'Iniciar negociação'}
               </Botao>
-              <p className={dica}>
-                {a.ativo
-                  ? <>Converse com o fornecedor sobre quantidades, valores e entrega. Fechado o acordo, o <strong>vendedor</strong> gera a ordem de pedido para você.</>
-                  : 'Este anúncio está inativo e não aceita novas negociações.'}
-              </p>
+              )}
+              {!semCnpjParaEste && (
+                <p className={dica}>
+                  {a.ativo
+                    ? <>Converse com o fornecedor sobre quantidades, valores e entrega. Fechado o acordo, o <strong>vendedor</strong> gera a ordem de pedido para você.</>
+                    : 'Este anúncio está inativo e não aceita novas negociações.'}
+                </p>
+              )}
             </div>
           )}
 

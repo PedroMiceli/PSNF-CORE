@@ -16,11 +16,14 @@ public class EnviarMensagemNegociacaoService implements EnviarMensagemNegociacao
 
     private final NegociacaoRepositoryPort negociacaoRepositoryPort;
     private final DetalhesNegociacaoLoader loader;
+    private final RegraCnpjNegociacao regraCnpj;
 
     @Override
     @Transactional
     public NegociacaoDetalhes enviar(UUID negociacaoId, UUID autorId, String texto) {
         Negociacao n = negociacaoRepositoryPort.buscarPorId(negociacaoId);
+        n.garantirParticipante(autorId);
+        regraCnpj.garantirAcesso(n, autorId);
         n.enviarMensagem(autorId, texto);
         return loader.carregar(negociacaoRepositoryPort.save(n));
     }

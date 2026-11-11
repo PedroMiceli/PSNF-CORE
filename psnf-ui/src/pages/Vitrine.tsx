@@ -4,10 +4,11 @@ import { Link } from 'react-router-dom';
 import { api } from '../api/endpoints';
 import { useApi } from '../api/useApi';
 import { formatarMoeda } from '../components/format';
-import { Botao, Carregando, cx, ErroBox, ImagemAnuncio, Vazio } from '../components/ui';
+import { Badge, BADGE_CNPJ, Botao, Carregando, cx, ErroBox, ImagemAnuncio, Vazio } from '../components/ui';
 import { useUsuario } from '../context/UsuarioContext';
 
 const POR_PAGINA = 24;
+const cartao = 'overflow-hidden rounded-card border border-borda bg-white text-inherit';
 
 /** Atualiza o valor só depois que o usuário para de digitar. */
 function useDebounce<T>(valor: T, ms: number): T {
@@ -21,6 +22,8 @@ function useDebounce<T>(valor: T, ms: number): T {
 
 export function Vitrine() {
   const { usuario } = useUsuario();
+  // quem tem CNPJ negocia qualquer anúncio: o selo "Somente CNPJ" só aparece para quem não tem
+  const temCnpj = !!usuario?.cnpj;
   const [categoriaId, setCategoriaId] = useState<string>('');
   const [busca, setBusca] = useState('');
   const termo = useDebounce(busca.trim(), 300);
@@ -78,14 +81,13 @@ export function Vitrine() {
       <div className="min-w-0">
         {!usuario ? (
           <p className="mb-4 rounded-card border border-blue-200 bg-blue-50 px-4 py-3 text-sm" role="note">
-            <Link to="/login">Entre</Link> ou <Link to="/cadastro">crie sua conta</Link> para ver os detalhes, negociar
-            com os fornecedores e fazer pedidos. Empresas com CNPJ cadastrado veem todos os anúncios; aqui aparecem
-            os liberados para qualquer comprador.
+            <Link to="/login">Entre</Link> ou <Link to="/cadastro">crie sua conta</Link> para ver os detalhes dos anúncios,
+            negociar com os fornecedores e fazer pedidos.
           </p>
         ) : !usuario.cnpj && (
           <p className="mb-4 rounded-card border border-amber-200 bg-amber-50 px-4 py-3 text-sm" role="note">
-            Você está vendo só os anúncios liberados para pessoa física. Muitos fornecedores vendem apenas
-            para empresas: <Link to="/perfil">cadastre o CNPJ no seu perfil</Link> para ver todos.
+            Anúncios marcados como <strong>Somente CNPJ</strong> são vendidos apenas para empresas: você pode vê-los, mas para
+            negociar <Link to="/perfil">cadastre o CNPJ no seu perfil</Link>.
           </p>
         )}
         <div className="mb-4 flex items-center gap-2.5 rounded-card border border-gray-300 bg-white px-4 focus-within:border-primaria focus-within:ring-3 focus-within:ring-blue-200">
@@ -111,9 +113,7 @@ export function Vitrine() {
             {termo || categoriaId
               ? 'Tente outro termo ou outra categoria.'
               : !usuario
-                ? <>Nenhum anúncio aberto ao público por enquanto. <Link to="/cadastro">Crie sua conta</Link> com CNPJ para ver os anúncios para empresas.</>
-                : !usuario.cnpj
-                ? <>Nenhum anúncio liberado para pessoa física por enquanto. Com o <Link to="/perfil">CNPJ cadastrado</Link>, você vê os anúncios para empresas.</>
+                ? 'Nenhum anúncio publicado ainda.'
                 : <>Nenhum anúncio ativo. <Link to="/anuncios/novo">Cadastre um anúncio</Link> como vendedor.</>}
           </Vazio>
         ) : (
@@ -122,11 +122,15 @@ export function Vitrine() {
               {resultado.itens.map((a) => {
                 const principal = a.imagens.find((i) => i.principal) ?? a.imagens[0];
                 return (
-                  <Link key={a.id} to={`/anuncios/${a.id}`}
-                    className="overflow-hidden rounded-card border border-borda bg-white text-inherit transition hover:-translate-y-0.5 hover:no-underline hover:shadow-[0_8px_24px_rgba(15,23,42,0.08)]">
+                  // sem login: só ver (o cartão não abre); logado: abre o anúncio
+                  usuario ? (
+                    <Link key={a.id} to={`/anuncios/${a.id}`} className={cartao + ' transition hover:-translate-y-0.5 hover:no-underline hover:shadow-[0_8px_24px_rgba(15,23,42,0.08)]'}>
                     <ImagemAnuncio caminho={principal?.caminho} alt={a.titulo} className="h-[170px] w-full" />
                     <div className="p-3.5">
-                      <span className="text-[0.72rem] tracking-wider text-suave uppercase">{nomeCategoria(a.categoriaId)}</span>
+                      <span className="flex items-center justify-between gap-2">
+                        <span className="text-[0.72rem] tracking-wider text-suave uppercase">{nomeCategoria(a.categoriaId)}</span>
+                        {a.exigeCnpj && !temCnpj && <Badge className={BADGE_CNPJ}>Somente CNPJ</Badge>}
+                      </span>
                       <h3 className="mt-1 mb-1 text-base">{a.titulo}</h3>
                       {a.quantidadeAvaliacoes > 0 && (
                         <p className="mb-1 flex items-center gap-1 text-xs">
@@ -141,7 +145,31 @@ export function Vitrine() {
                         {a.valores.length} faixa(s) de preço · {a.variacoes.length} variação(ões)
                       </p>
                     </div>
-                  </Link>
+                    </Link>
+                  ) : (
+                    <div key={a.id} className={cartao} title="Entre para ver os detalhes e negociar">
+                    <ImagemAnuncio caminho={principal?.caminho} alt={a.titulo} className="h-[170px] w-full" />
+                    <div className="p-3.5">
+                      <span className="flex items-center justify-between gap-2">
+                        <span className="text-[0.72rem] tracking-wider text-suave uppercase">{nomeCategoria(a.categoriaId)}</span>
+                        {a.exigeCnpj && !temCnpj && <Badge className={BADGE_CNPJ}>Somente CNPJ</Badge>}
+                      </span>
+                      <h3 className="mt-1 mb-1 text-base">{a.titulo}</h3>
+                      {a.quantidadeAvaliacoes > 0 && (
+                        <p className="mb-1 flex items-center gap-1 text-xs">
+                          <Estrelas nota={a.notaMedia ?? 0} tamanho="text-sm" />
+                          <strong>{formatarNota(a.notaMedia)}</strong> <span className="text-suave">({a.quantidadeAvaliacoes})</span>
+                        </p>
+                      )}
+                      <p className="text-lg font-extrabold text-verde">
+                        <small className="text-[0.72rem] font-medium text-suave">a partir de</small> {formatarMoeda(a.precoMenor)}
+                      </p>
+                      <p className="mt-1 text-xs text-suave">
+                        {a.valores.length} faixa(s) de preço · {a.variacoes.length} variação(ões)
+                      </p>
+                    </div>
+                    </div>
+                  )
                 );
               })}
             </div>

@@ -42,11 +42,6 @@ public class AnuncioBuscaRepository {
                 .addValue("offset", (long) query.pagina() * query.tamanho());
 
         StringBuilder where = new StringBuilder(" WHERE a.ativo");
-        if (query.somenteSemExigenciaDeCnpj()) {
-            // sem CNPJ: só anúncios liberados para pessoa física (e os próprios)
-            where.append(" AND (NOT a.exige_cnpj OR a.vendedor_id = :visitante)");
-            params.addValue("visitante", query.visitanteId());
-        }
         if (query.categoriaId() != null) {
             where.append(" AND a.categoria_id = :categoriaId");
             params.addValue("categoriaId", query.categoriaId());

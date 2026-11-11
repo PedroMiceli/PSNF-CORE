@@ -58,19 +58,15 @@ class AnuncioTest {
     }
 
     @Test
-    void anuncioSoParaEmpresasFicaInvisivelParaQuemNaoTemCnpjMenosParaODono() {
+    void anuncioSoParaEmpresasNaoNegociaComQuemNaoTemCnpj() {
         Anuncio a = anuncio(List.of(com.psnf.api.psnf.domain.anuncio.model.Valor.criar(new java.math.BigDecimal("10"), 1)),
                 List.of(ImagemAnuncio.criar("a.png", true)));
-        UUID outro = UUID.randomUUID();
         org.assertj.core.api.Assertions.assertThat(a.isExigeCnpj()).isTrue(); // padrão
-        org.assertj.core.api.Assertions.assertThat(a.visivelPara(outro, false)).isFalse();
-        org.assertj.core.api.Assertions.assertThat(a.visivelPara(outro, true)).isTrue();
-        org.assertj.core.api.Assertions.assertThat(a.visivelPara(a.getVendedor(), false)).isTrue();
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> a.garantirQuePodeVenderPara(false))
                 .isInstanceOf(com.psnf.api.psnf.domain.anuncio.exception.CompradorSemCnpjException.class);
+        a.garantirQuePodeVenderPara(true); // com CNPJ: negocia
 
         a.definirExigeCnpj(false); // liberado para pessoa física
-        org.assertj.core.api.Assertions.assertThat(a.visivelPara(outro, false)).isTrue();
         a.garantirQuePodeVenderPara(false);
     }
 }
