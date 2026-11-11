@@ -37,7 +37,7 @@ export const mascaraTelefone = (valor: string) => {
 };
 
 /**
- * CNPJ: "11222333000181" -> "11.222.333/0001-81". Aceita o CNPJ alfanumérico (desde 2026): letras nos 12
+ * CNPJ: "00000001099914" -> "00.000.001/0999-14". Aceita o CNPJ alfanumérico (desde 2026): letras nos 12
  * primeiros caracteres, sempre em maiúsculas; os 2 últimos são números. Aceita digitação parcial.
  */
 export const mascaraCnpj = (valor: string) => {

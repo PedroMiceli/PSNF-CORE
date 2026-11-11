@@ -33,3 +33,10 @@ Opções do `popular-anuncios.py`:
 Os fornecedores são usuários comuns, com senha `teste123` e CNPJ de teste (cerca de 1 em cada 3 anúncios novos
 fica liberado para pessoa física; o resto é vendido só para quem tem CNPJ); os anúncios do Vendedor Mock aparecem em
 "Meus anúncios".
+
+**CNPJs de teste**: os scripts geram CNPJs com dígitos verificadores válidos e conferem na Receita
+(`GET /cnpj`, BrasilAPI) que **não pertencem a nenhuma empresa**: se o número existir, tentam o próximo.
+Contas criadas por versões antigas, com CNPJs `9000...` (alguns eram de empresas reais), são corrigidas ao
+rodar os scripts de novo. Os usuários mock usam `00.000.001/0999-14` (vendedor) e `00.000.002/0999-69`
+(comprador). Por não estarem na base pública, esses CNPJs aparecem como "não verificados".
+

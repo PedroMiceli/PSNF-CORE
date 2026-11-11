@@ -1,6 +1,5 @@
 package com.psnf.api.psnf.application.usuario;
 
-import com.psnf.api.psnf.domain.usuario.exception.CnpjJaCadastradoException;
 import com.psnf.api.psnf.domain.usuario.model.Usuario;
 import com.psnf.api.psnf.domain.usuario.port.in.AtualizarUsuarioUseCase;
 import com.psnf.api.psnf.domain.usuario.port.in.command.AtualizarUsuarioCommand;
@@ -14,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class AtualizarUsuarioService implements AtualizarUsuarioUseCase {
 
     private final UsuarioRepositoryPort usuarioRepositoryPort;
+    private final VerificacaoCnpj verificacaoCnpj;
 
     @Override
     @Transactional
@@ -22,8 +22,7 @@ public class AtualizarUsuarioService implements AtualizarUsuarioUseCase {
         usuario.atualizarDados(command.nome(), command.telefone(), command.imagem());
         // ausente (null) mantém o CNPJ; texto vazio remove. Assim um cliente que não conhece o campo
         // (script antigo, outro app) não apaga o CNPJ ao atualizar só o nome ou a foto.
-        if (command.cnpj() != null) usuario.definirCnpj(command.cnpj());
-        if (usuarioRepositoryPort.cnpjEmUsoPorOutro(usuario.getCnpj(), usuario.getId())) throw new CnpjJaCadastradoException();
+        verificacaoCnpj.aplicar(usuario, command.cnpj());
         return usuarioRepositoryPort.save(usuario);
     }
 }

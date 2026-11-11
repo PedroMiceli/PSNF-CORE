@@ -18,6 +18,10 @@ public record UsuarioResponse(
         String telefone,
         /** sem pontuação; null = sem CNPJ */
         String cnpj,
+        /** razão social confirmada na Receita; null se o CNPJ não foi verificado */
+        String razaoSocial,
+        /** CNPJ confirmado como ATIVO na Receita Federal */
+        boolean cnpjVerificado,
         LocalDateTime dataCadastro,
         List<EnderecoResponse> enderecos
 ) {
@@ -30,6 +34,8 @@ public record UsuarioResponse(
                 usuario.getImagem(),
                 usuario.getTelefone(),
                 usuario.getCnpj(),
+                usuario.getRazaoSocial(),
+                usuario.cnpjVerificado(),
                 usuario.getDataCadastro(),
                 usuario.getEnderecos().stream().map(EnderecoResponse::from).toList()
         );

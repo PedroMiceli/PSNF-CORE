@@ -484,23 +484,40 @@ def entrar_confirmando(email, senhas):
     raise ApiErro(401, "senha não confere")
 
 
-def gerar_cnpj(numero):
-    """CNPJ de teste com dígitos verificadores válidos (empresa fictícia), a partir de um número."""
-    base = f"{90000000 + numero:08d}0001"
+def _com_digitos(base):
     for pesos in ([5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2], [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]):
         resto = sum((ord(c) - 48) * p for c, p in zip(base, pesos)) % 11
         base += str(0 if resto < 2 else 11 - resto)
     return base
 
 
+def gerar_cnpj(numero):
+    """CNPJ de teste com dígitos válidos que NÃO pertence a nenhuma empresa: a API consulta a Receita
+    (GET /cnpj, BrasilAPI) e, se o número existir, tenta o próximo. Usuário de teste não pode ficar com
+    o CNPJ de uma empresa de verdade."""
+    for tentativa in range(20):
+        cnpj = _com_digitos(f"0000{numero:04d}{999 - tentativa:04d}")
+        try:
+            chamar("GET", "/cnpj/" + cnpj)  # 200: empresa real, pula
+        except ApiErro as e:
+            if e.status == 404:
+                return cnpj
+            if e.status != 503:
+                raise
+            return cnpj  # consulta fora do ar: o número é improvável de existir
+    raise SystemExit(f"Não achei um CNPJ de teste livre para {numero}")
+
+
 def garantir_cnpj(login, cnpj):
+    """cnpj: o CNPJ ou uma função que o gera (só é chamada se a conta precisar de um)"""
     """Contas criadas antes do CNPJ: grava o CNPJ de teste no perfil (mantendo nome, telefone e foto)."""
     u = login["usuario"]
-    if u.get("cnpj"):
+    # versões antigas do script geravam CNPJs 9000..., alguns de empresas reais: troca por um de teste
+    if u.get("cnpj") and not u["cnpj"].startswith("9000"):
         return
     try:
         chamar("PUT", "/usuarios/me", {"nome": u["nome"], "telefone": u.get("telefone"), "imagem": u.get("imagem"),
-                                       "cnpj": cnpj}, usuario=login["accessToken"])
+                                       "cnpj": cnpj() if callable(cnpj) else cnpj}, usuario=login["accessToken"])
     except ApiErro as e:
         print(f"  ! não foi possível gravar o CNPJ de {u['email']}: {e}")
 

@@ -18,9 +18,14 @@ public final class UsuarioMock {
     public static final UUID COMPRADOR_ID = UUID.fromString("7f1e2a5b-9c3d-4e8f-a6b7-1d2c3e4f5a6b");
 
     public static final String SENHA = "123456";
-    /** CNPJs de teste (dígitos válidos, empresas fictícias) */
-    public static final String VENDEDOR_CNPJ = "11222333000181";
-    public static final String COMPRADOR_CNPJ = "44555666000181";
+    /**
+     * CNPJs de teste: dígitos verificadores válidos e conferidos como inexistentes na Receita (BrasilAPI
+     * responde 404), para os usuários de teste não usarem o CNPJ de uma empresa de verdade.
+     */
+    public static final String VENDEDOR_CNPJ = "00000001099914";
+    public static final String COMPRADOR_CNPJ = "00000002099969";
+    /** usados antes por engano: eram CNPJs de empresas reais; o inicializador troca pelos de cima */
+    static final java.util.List<String> CNPJS_ANTIGOS = java.util.List.of("11222333000181", "44555666000181");
 
     public static final Usuario VENDEDOR = Usuario.restaurar(
             VENDEDOR_ID, LocalDateTime.now(), null, null,

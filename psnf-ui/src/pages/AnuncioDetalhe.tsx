@@ -56,7 +56,13 @@ export function AnuncioDetalhe() {
 
         {/* informações */}
         <div className="min-w-0">
-          <p className="text-sm tracking-wider text-suave uppercase">{vendedor.data?.nome ?? 'Fornecedor'}</p>
+          <p className="text-sm tracking-wider text-suave uppercase">
+            {vendedor.data?.nome ?? 'Fornecedor'}
+            {vendedor.data?.cnpjVerificado && (
+              <span className="ml-2 align-middle text-xs font-semibold tracking-normal text-verde normal-case"
+                title={`CNPJ ativo na Receita Federal: ${vendedor.data.razaoSocial ?? ''}`}>✓ Empresa verificada</span>
+            )}
+          </p>
           <h1>
             {a.titulo} {!a.ativo && <Badge className={BADGE_INATIVO}>Inativo</Badge>}{' '}
             {a.exigeCnpj
