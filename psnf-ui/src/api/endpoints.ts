@@ -107,7 +107,8 @@ export const api = {
   /** descrição da entrega e código de envio são opcionais */
   despachar: (id: UUID, previsaoDeEntrega: string | null, entrega?: EntregaInput) =>
     http.patch<OrdemDePedido>(`/ordens-de-pedido/${id}/enviar`, {
-      previsaoDeEntrega, descricaoEntrega: entrega?.descricao || null, codigoRastreio: entrega?.codigoRastreio || null,
+      previsaoDeEntrega, descricaoEntrega: entrega?.descricao || null,
+      codigoRastreio: entrega?.retiradaNoLocal ? null : entrega?.codigoRastreio || null, retiradaNoLocal: entrega?.retiradaNoLocal ?? null,
     }),
   /** o vendedor informa ou corrige os dados da entrega (com os dois vazios, a entrega é removida) */
   registrarEntrega: (id: UUID, entrega: EntregaInput) => http.put<OrdemDePedido>(`/ordens-de-pedido/${id}/entrega`, entrega),

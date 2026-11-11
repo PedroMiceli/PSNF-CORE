@@ -91,7 +91,7 @@ export function OrdemDetalhe() {
     <section>
       <Voltar to="/ordens">Ordens de pedido</Voltar>
       <TituloPagina>
-        <h1 className="break-words">Ordem de pedido {o.codigo} <StatusBadge status={o.status} />{' '}
+        <h1 className="break-words">Ordem de pedido {o.codigo} <StatusBadge status={o.status} retirada={!!o.entrega?.retiradaNoLocal} />{' '}
           <PagamentoPendenteBadge status={o.status} pendente={o.pagamentoPendente} /></h1>
         <span className="text-suave">Você é o <strong>{souComprador ? 'comprador' : souVendedor ? 'vendedor' : 'observador'}</strong></span>
       </TituloPagina>
@@ -108,7 +108,7 @@ export function OrdemDetalhe() {
           </Botao>
         </div>
       )}
-      <LinhaDoTempo status={o.status} pagamentoPendente={o.pagamentoPendente} />
+      <LinhaDoTempo status={o.status} pagamentoPendente={o.pagamentoPendente} retirada={!!o.entrega?.retiradaNoLocal} />
       <AvisoPagamentoPendente ordem={o} souComprador={souComprador} />
       <ErroBox erro={acao.erro} />
 
@@ -119,7 +119,7 @@ export function OrdemDetalhe() {
             <Dado rotulo="Comprador">{o.comprador.nome} <small className="block break-words text-suave">{o.comprador.email}</small></Dado>
             <Dado rotulo="Vendedor">{o.vendedor.nome} <small className="block break-words text-suave">{o.vendedor.email}</small></Dado>
             <Dado rotulo="Criada em">{formatarData(o.dataCadastro)}</Dado>
-            <Dado rotulo="Previsão de entrega">{formatarData(o.previsaoDeEntrega)}</Dado>
+            <Dado rotulo={o.entrega?.retiradaNoLocal ? 'Disponível para retirada' : 'Previsão de entrega'}>{formatarData(o.previsaoDeEntrega)}</Dado>
             {o.negociacaoId && (
               <Dado rotulo="Negociação">
                 <button type="button" onClick={() => abrirChat(o.negociacaoId!)}
@@ -192,7 +192,9 @@ function AvisoPagamentoPendente({ ordem, souComprador }: { ordem: OrdemDePedido;
     <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border border-orange-300 bg-orange-50 px-4 py-3 text-orange-900" role="status">
       <strong>⚠ Pagamento pendente:</strong>
       <span>
-        o pedido foi {ordem.status === 'ENTREGUE' ? 'entregue' : 'enviado'}, mas ainda faltam{' '}
+        o pedido foi {ordem.entrega?.retiradaNoLocal
+          ? (ordem.status === 'ENTREGUE' ? 'retirado' : 'liberado para retirada')
+          : (ordem.status === 'ENTREGUE' ? 'entregue' : 'enviado')}, mas ainda faltam{' '}
         <strong>{formatarMoeda(ordem.valorTotal - ordem.valorPago)}</strong> ({semComprovante.length} pagamento(s) sem comprovante).
         {souComprador ? ' Anexe os comprovantes em "Formas de pagamento" assim que pagar.' : ' Aguardando o comprador pagar e anexar os comprovantes.'}
       </span>
@@ -200,7 +202,7 @@ function AvisoPagamentoPendente({ ordem, souComprador }: { ordem: OrdemDePedido;
   );
 }
 
-function LinhaDoTempo({ status, pagamentoPendente }: { status: StatusOrdem; pagamentoPendente: boolean }) {
+function LinhaDoTempo({ status, pagamentoPendente, retirada }: { status: StatusOrdem; pagamentoPendente: boolean; retirada: boolean }) {
   if (status === 'CANCELADO') {
     return <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 font-semibold text-vermelho">Esta ordem foi cancelada.</div>;
   }
@@ -226,7 +228,7 @@ function LinhaDoTempo({ status, pagamentoPendente }: { status: StatusOrdem; paga
               feito ? 'bg-verde text-white' : ehAtual ? 'bg-primaria text-white' : pagoPendente ? 'bg-orange-500 text-white' : 'bg-gray-200 text-suave')}>
               {feito ? '✔' : pagoPendente ? '!' : i + 1}
             </span>
-            {pagoPendente ? 'Pagamento pendente' : STATUS_LABEL[s]}
+            {pagoPendente ? 'Pagamento pendente' : retirada && s === 'ENVIADO' ? 'Pronto para retirada' : retirada && s === 'ENTREGUE' ? 'Retirado' : STATUS_LABEL[s]}
           </li>
         );
       })}
@@ -242,7 +244,13 @@ function Acoes({ ordem, souComprador, souVendedor, enviando, executar }: {
   const [aceitando, setAceitando] = useState(false);
   const [confirmar, dialogoConfirmacao] = useConfirmacao();
   const [previsao, setPrevisao] = useState('');
-  const [entrega, setEntrega] = useState({ descricao: ordem.entrega?.descricao ?? '', codigoRastreio: ordem.entrega?.codigoRastreio ?? '' });
+  const [entrega, setEntrega] = useState({ descricao: ordem.entrega?.descricao ?? '', codigoRastreio: ordem.entrega?.codigoRastreio ?? '',
+    retiradaNoLocal: !!ordem.entrega?.retiradaNoLocal });
+  // os dados podem ser salvos antes no painel "Entrega": o formulário do despacho acompanha
+  const salva = ordem.entrega;
+  useEffect(() => {
+    setEntrega({ descricao: salva?.descricao ?? '', codigoRastreio: salva?.codigoRastreio ?? '', retiradaNoLocal: !!salva?.retiradaNoLocal });
+  }, [salva?.descricao, salva?.codigoRastreio, salva?.retiradaNoLocal]);
   const st = ordem.status;
   const podeCancelar = (souComprador || souVendedor) && ['AGUARDANDO_CONFIRMACAO', 'ACEITO', 'AGUARDANDO_PAGAMENTO', 'PAGO'].includes(st);
   const podeAceitar = souComprador && st === 'AGUARDANDO_CONFIRMACAO';
@@ -250,6 +258,7 @@ function Acoes({ ordem, souComprador, souVendedor, enviando, executar }: {
   const podeDespachar = souVendedor && (st === 'PAGO' || st === 'AGUARDANDO_PAGAMENTO');
   const faltaPagar = ordem.valorTotal - ordem.valorPago;
   const podeConfirmar = souComprador && st === 'ENVIADO';
+  const retirada = !!ordem.entrega?.retiradaNoLocal;
   if (!podeCancelar && !podeDespachar && !podeConfirmar) return null;
 
   // o que cada um precisa fazer agora
@@ -257,7 +266,8 @@ function Acoes({ ordem, souComprador, souVendedor, enviando, executar }: {
     AGUARDANDO_CONFIRMACAO: 'Confira se os produtos, as quantidades e os valores estão corretos. Se estiver tudo certo, aceite a ordem; se não, converse com o vendedor ou cancele.',
     ACEITO: 'Aguardando o vendedor cadastrar as formas de pagamento combinadas.',
     AGUARDANDO_PAGAMENTO: 'Faça os pagamentos e anexe o comprovante de cada um em "Formas de pagamento".',
-    PAGO: 'Pagamento concluído. Aguardando o vendedor despachar o pedido.',
+    PAGO: retirada ? 'Pagamento concluído. Aguardando o vendedor liberar o pedido para retirada.' : 'Pagamento concluído. Aguardando o vendedor despachar o pedido.',
+    ENVIADO: retirada ? 'O pedido está pronto para retirada no fornecedor. Depois de retirar, confirme o recebimento.' : undefined,
   } as Partial<Record<StatusOrdem, string>>)[st] : ({
     AGUARDANDO_CONFIRMACAO: 'Aguardando o comprador conferir os produtos e os valores e aceitar a ordem.',
     ACEITO: 'O comprador aceitou. Cadastre as formas de pagamento combinadas (ex.: parte no PIX, parte no boleto) até cobrir o valor total.',
@@ -285,41 +295,46 @@ function Acoes({ ordem, souComprador, souVendedor, enviando, executar }: {
           <>
             <div className="w-full">
               <p className="mt-0 mb-2 text-sm font-semibold">Despacho <small className="font-normal text-suave">(os dados da entrega são opcionais e podem ser editados depois)</small></p>
+              <CaixaRetirada marcada={entrega.retiradaNoLocal} onMudar={(v) => setEntrega({ ...entrega, retiradaNoLocal: v })} />
               <div className={cx(linhaForm, 'items-start')}>
-                <Campo label="Código de envio / rastreio" className="max-w-[320px]">
-                  <input className={controle} value={entrega.codigoRastreio} maxLength={100} placeholder="Ex.: BR123456789BR"
-                    onChange={(e) => setEntrega({ ...entrega, codigoRastreio: e.target.value })} />
-                </Campo>
-                <Campo label="Detalhes da entrega" className="grow-2 basis-80">
+                {!entrega.retiradaNoLocal && (
+                  <Campo label="Código de envio / rastreio" className="max-w-[320px]">
+                    <input className={controle} value={entrega.codigoRastreio} maxLength={100} placeholder="Ex.: BR123456789BR"
+                      onChange={(e) => setEntrega({ ...entrega, codigoRastreio: e.target.value })} />
+                  </Campo>
+                )}
+                <Campo label={entrega.retiradaNoLocal ? 'Instruções para a retirada' : 'Detalhes da entrega'} className="grow-2 basis-80">
                   <textarea className={controle} rows={2} maxLength={2000} value={entrega.descricao}
-                    placeholder="Transportadora, horário, quem recebe, instruções..."
+                    placeholder={entrega.retiradaNoLocal ? 'Endereço, dias e horários, quem pode retirar, documento necessário...' : 'Transportadora, horário, quem recebe, instruções...'}
                     onChange={(e) => setEntrega({ ...entrega, descricao: e.target.value })} />
                 </Campo>
               </div>
             </div>
-            <Campo label="Previsão de entrega" className="mb-0 max-w-[260px]">
+            <Campo label={entrega.retiradaNoLocal ? 'Disponível para retirada a partir de' : 'Previsão de entrega'} className="mb-0 max-w-[260px]">
               <input className={controle} type="date" value={previsao} min={new Date().toISOString().slice(0, 10)}
                 onChange={(e) => setPrevisao(e.target.value)} />
             </Campo>
             <Botao variante="primario" disabled={enviando} onClick={() => {
               void (async () => {
                 const ok = st === 'PAGO' || await confirmar({
-                  titulo: 'Despachar com pagamento pendente?',
+                  titulo: entrega.retiradaNoLocal ? 'Liberar para retirada com pagamento pendente?' : 'Despachar com pagamento pendente?',
                   mensagem: <>Ainda faltam <strong>{formatarMoeda(faltaPagar)}</strong> em pagamentos. Você pode despachar mesmo
                     assim (ex.: venda a prazo): a ordem continua indicando o <strong>pagamento pendente</strong> até o comprador
                     anexar todos os comprovantes.</>,
-                  confirmar: 'Despachar mesmo assim',
+                  confirmar: entrega.retiradaNoLocal ? 'Liberar mesmo assim' : 'Despachar mesmo assim',
                 });
                 if (ok) void executar(() => api.despachar(ordem.id, previsao || null, entrega));
               })();
             }}>
-              {st === 'PAGO' ? 'Pedido despachado' : 'Despachar com pagamento pendente'}
+              {entrega.retiradaNoLocal
+                ? (st === 'PAGO' ? 'Liberar para retirada' : 'Liberar para retirada com pagamento pendente')
+                : (st === 'PAGO' ? 'Pedido despachado' : 'Despachar com pagamento pendente')}
             </Botao>
           </>
         )}
         {podeConfirmar && (
           <Botao variante="primario" disabled={enviando} onClick={() => executar(() => api.confirmarEntrega(ordem.id))}>
-            Confirmar entrega
+            {retirada ? 'Confirmar que retirei o pedido' : 'Confirmar entrega'}
           </Botao>
         )}
         {podeCancelar && (
@@ -359,44 +374,54 @@ function PainelEntrega({ ordem, souVendedor, enviando, executar }: {
   ordem: OrdemDePedido; souVendedor: boolean; enviando: boolean; executar: Exec;
 }) {
   const e = ordem.entrega;
+  const retirada = !!e?.retiradaNoLocal;
   const enviado = ['ENVIADO', 'ENTREGUE'].includes(ordem.status);
   const podeEditar = souVendedor && !['AGUARDANDO_CONFIRMACAO', 'CANCELADO'].includes(ordem.status);
   const [editando, setEditando] = useState(false);
-  const [form, setForm] = useState({ descricao: '', codigoRastreio: '' });
+  const [form, setForm] = useState({ descricao: '', codigoRastreio: '', retiradaNoLocal: false });
 
-  // só aparece quando faz sentido: já tem dados, o pedido saiu, ou o vendedor pode adiantar
-  if (!e && !enviado && !(podeEditar && ['PAGO'].includes(ordem.status))) return null;
+  // só aparece quando faz sentido: já tem dados, o pedido saiu, ou o vendedor já pode combinar a entrega
+  if (!e && !enviado && !podeEditar) return null;
 
-  const abrirEdicao = () => { setForm({ descricao: e?.descricao ?? '', codigoRastreio: e?.codigoRastreio ?? '' }); setEditando(true); };
+  const abrirEdicao = () => {
+    setForm({ descricao: e?.descricao ?? '', codigoRastreio: e?.codigoRastreio ?? '', retiradaNoLocal: retirada });
+    setEditando(true);
+  };
   const salvar = async (ev: FormEvent) => {
     ev.preventDefault();
-    if (await executar(() => api.registrarEntrega(ordem.id, { descricao: form.descricao || null, codigoRastreio: form.codigoRastreio || null }))) {
-      setEditando(false);
-    }
+    const dados = { descricao: form.descricao || null, codigoRastreio: form.retiradaNoLocal ? null : form.codigoRastreio || null, retiradaNoLocal: form.retiradaNoLocal };
+    if (await executar(() => api.registrarEntrega(ordem.id, dados))) setEditando(false);
   };
 
   return (
     <Painel id="entrega" aria-labelledby="entrega-titulo">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 id="entrega-titulo" className="m-0">🚚 Entrega</h3>
+        <h3 id="entrega-titulo" className="m-0">{retirada ? '📍 Retirada no local' : '🚚 Entrega'}</h3>
         {podeEditar && !editando && (
           <Botao tamanho="pequeno" onClick={abrirEdicao}>{e ? 'Editar dados da entrega' : '+ Informar dados da entrega'}</Botao>
         )}
       </div>
       {editando ? (
         <form onSubmit={salvar} className="mt-3">
+          <CaixaRetirada marcada={form.retiradaNoLocal} onMudar={(v) => setForm({ ...form, retiradaNoLocal: v })} />
           <div className={cx(linhaForm, 'items-start')}>
-            <Campo label="Código de envio / rastreio" className="max-w-[320px]">
-              <input className={controle} value={form.codigoRastreio} maxLength={100} placeholder="Ex.: BR123456789BR"
-                onChange={(ev) => setForm({ ...form, codigoRastreio: ev.target.value })} />
-            </Campo>
-            <Campo label="Detalhes da entrega" className="grow-2 basis-80">
+            {!form.retiradaNoLocal && (
+              <Campo label="Código de envio / rastreio" className="max-w-[320px]">
+                <input className={controle} value={form.codigoRastreio} maxLength={100} placeholder="Ex.: BR123456789BR"
+                  onChange={(ev) => setForm({ ...form, codigoRastreio: ev.target.value })} />
+              </Campo>
+            )}
+            <Campo label={form.retiradaNoLocal ? 'Instruções para a retirada' : 'Detalhes da entrega'} className="grow-2 basis-80">
               <textarea className={controle} rows={3} maxLength={2000} value={form.descricao}
-                placeholder="Transportadora, horário, quem recebe, instruções..."
+                placeholder={form.retiradaNoLocal ? 'Endereço, dias e horários, quem pode retirar, documento necessário...' : 'Transportadora, horário, quem recebe, instruções...'}
                 onChange={(ev) => setForm({ ...form, descricao: ev.target.value })} />
             </Campo>
           </div>
-          <p className={cx(dica, 'mt-0')}>Os dois campos são opcionais. Deixe os dois vazios para remover os dados da entrega.</p>
+          <p className={cx(dica, 'mt-0')}>
+            {form.retiradaNoLocal !== retirada
+              ? 'O comprador será avisado da mudança na forma de entrega por mensagem.'
+              : 'Os campos são opcionais. Sem dados e sem retirada no local, os dados da entrega são removidos.'}
+          </p>
           <div className={acoes}>
             <Botao type="submit" variante="primario" disabled={enviando}>Salvar</Botao>
             <Botao onClick={() => setEditando(false)}>Cancelar</Botao>
@@ -404,21 +429,41 @@ function PainelEntrega({ ordem, souVendedor, enviando, executar }: {
         </form>
       ) : (
         <div className="mt-3">
+          {retirada && (
+            <div className="mb-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm" role="note">
+              {souVendedor
+                ? <><strong>Você indicou retirada no local:</strong> o comprador busca o pedido no fornecedor, sem envio e sem código de rastreio. Se combinarem outra forma de entrega, edite os dados da entrega.</>
+                : <><strong>O vendedor indicou que este pedido deve ser retirado no local</strong>, no fornecedor. Não haverá envio nem código de rastreio. Combine o endereço, o dia e o horário em <a href="#mensagens">Incidentes e mensagens</a>; se precisarem de outra forma de entrega, o vendedor pode alterar.</>}
+            </div>
+          )}
           <dl className="m-0 mb-3 grid grid-cols-[max-content_minmax(0,1fr)] gap-x-4 gap-y-1.5 text-sm">
-            <dt className="text-suave">Previsão de entrega</dt><dd className="m-0">{formatarData(ordem.previsaoDeEntrega)}</dd>
+            <dt className="text-suave">{retirada ? 'Disponível para retirada' : 'Previsão de entrega'}</dt><dd className="m-0">{formatarData(ordem.previsaoDeEntrega)}</dd>
           </dl>
           {e?.codigoRastreio && <div className="max-w-[420px]"><CampoCopiavel rotulo="Código de envio / rastreio" valor={e.codigoRastreio} mono /></div>}
           {e?.descricao && (
             <div className="mb-1">
-              <span className="mb-1 block text-xs font-semibold text-gray-700">Detalhes da entrega</span>
+              <span className="mb-1 block text-xs font-semibold text-gray-700">{retirada ? 'Instruções para a retirada' : 'Detalhes da entrega'}</span>
               <p className="m-0 rounded-lg bg-gray-50 px-3 py-2 text-sm whitespace-pre-wrap break-words">{e.descricao}</p>
             </div>
           )}
-          {!e && <p className={cx(dica, 'mb-0')}>{souVendedor ? 'Informe o código de envio ou detalhes da entrega para o comprador acompanhar.' : 'O vendedor ainda não informou código de envio nem detalhes da entrega.'}</p>}
+          {!e && <p className={cx(dica, 'mb-0')}>{souVendedor ? 'Informe o código de envio, detalhes da entrega ou marque a retirada no local, para o comprador acompanhar.' : 'O vendedor ainda não informou código de envio nem detalhes da entrega.'}</p>}
           {e?.dataAlteracao && <p className={cx(dica, 'mb-0')}>Atualizado em {formatarData(e.dataAlteracao)}.</p>}
         </div>
       )}
     </Painel>
+  );
+}
+
+/** Caixa "retirada no local" do vendedor (no despacho e na edição da entrega). */
+function CaixaRetirada({ marcada, onMudar }: { marcada: boolean; onMudar: (v: boolean) => void }) {
+  return (
+    <label className="mb-3 flex cursor-pointer items-start gap-2.5 text-sm">
+      <input type="checkbox" className="mt-0.5 size-4 accent-primaria" checked={marcada} onChange={(e) => onMudar(e.target.checked)} />
+      <span>
+        <strong>Retirada no local</strong>: o comprador busca o pedido no fornecedor
+        <span className="block text-xs text-suave">Sem envio e sem código de rastreio. Pode ser desmarcada depois, se combinarem outra entrega.</span>
+      </span>
+    </label>
   );
 }
 

@@ -1430,3 +1430,44 @@ Content-Type: application/json
 { "itens": [ { "itemId": "{{itemRenegId}}", "valorUnidade": 5.00 } ] }
 
 > {% client.test("422", () => client.assert(response.status === 422, "status " + response.status)); %}
+
+
+### =============================== 13. RETIRADA NO LOCAL ==============================
+### (usa a ordem renegociada da seção 12, que já foi aceita)
+
+### 13.1 O vendedor indica retirada no local: o código de rastreio é descartado (não há envio)
+PUT {{baseUrl}}/ordens-de-pedido/{{ordemRenegId}}/entrega
+Authorization: Bearer {{tokenVendedor}}
+Content-Type: application/json
+
+{ "descricao": "Rua das Flores, 10 - seg a sex, 8h às 17h", "codigoRastreio": "BR123", "retiradaNoLocal": true }
+
+> {%
+    client.test("200 e retirada sem rastreio", () => client.assert(response.status === 200
+        && response.body.entrega.retiradaNoLocal === true && response.body.entrega.codigoRastreio === null));
+    const ultima = response.body.mensagensIncidente[response.body.mensagensIncidente.length - 1];
+    client.test("o comprador é avisado", () => client.assert(ultima.mensagem.includes("RETIRADO NO LOCAL")));
+%}
+
+### 13.2 [403] O comprador não define a forma de entrega
+PUT {{baseUrl}}/ordens-de-pedido/{{ordemRenegId}}/entrega
+Authorization: Bearer {{tokenComprador}}
+Content-Type: application/json
+
+{ "retiradaNoLocal": false }
+
+> {% client.test("403", () => client.assert(response.status === 403, "status " + response.status)); %}
+
+### 13.3 Combinaram outra coisa: o vendedor desfaz a retirada e informa o envio
+PUT {{baseUrl}}/ordens-de-pedido/{{ordemRenegId}}/entrega
+Authorization: Bearer {{tokenVendedor}}
+Content-Type: application/json
+
+{ "descricao": "Transportadora X", "codigoRastreio": "BR999", "retiradaNoLocal": false }
+
+> {%
+    client.test("200 e envio com rastreio", () => client.assert(response.status === 200
+        && response.body.entrega.retiradaNoLocal === false && response.body.entrega.codigoRastreio === "BR999"));
+    const ultima = response.body.mensagensIncidente[response.body.mensagensIncidente.length - 1];
+    client.test("o comprador é avisado da mudança", () => client.assert(ultima.mensagem.includes("NÃO será mais retirado no local")));
+%}

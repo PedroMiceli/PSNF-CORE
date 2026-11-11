@@ -116,14 +116,18 @@ public class OrdemDePedidoController {
         return ResponseEntity.ok(resposta(alterarStatusOrdemDePedidoUseCase.enviar(id, usuarioLogado(),
                 request == null ? null : request.previsaoDeEntrega(),
                 request == null ? null : request.descricaoEntrega(),
-                request == null ? null : request.codigoRastreio())));
+                request == null ? null : request.codigoRastreio(),
+                request == null ? null : request.retiradaNoLocal())));
     }
 
-    /** O vendedor informa ou corrige os detalhes da entrega (descrição e código de envio, ambos opcionais). */
+    /**
+     * O vendedor informa ou corrige os detalhes da entrega (descrição, código de envio e retirada no local,
+     * todos opcionais). Marcar ou desmarcar a retirada avisa o comprador com uma mensagem automática.
+     */
     @PutMapping("/{id}/entrega")
     public ResponseEntity<OrdemDePedidoResponse> registrarEntrega(@PathVariable UUID id, @RequestBody @Valid EntregaRequest request) {
         return ResponseEntity.ok(resposta(alterarStatusOrdemDePedidoUseCase.registrarEntrega(
-                id, usuarioLogado(), request.descricao(), request.codigoRastreio())));
+                id, usuarioLogado(), request.descricao(), request.codigoRastreio(), request.retiradaNoLocal())));
     }
 
     @PatchMapping("/{id}/confirmar-entrega")

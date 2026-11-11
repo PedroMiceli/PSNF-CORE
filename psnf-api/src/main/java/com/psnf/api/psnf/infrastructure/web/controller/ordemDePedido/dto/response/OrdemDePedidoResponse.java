@@ -62,9 +62,11 @@ public record OrdemDePedidoResponse(
         }
     }
 
-    public record EntregaResponse(UUID id, String descricao, String codigoRastreio, LocalDateTime dataCadastro, LocalDateTime dataAlteracao) {
+    public record EntregaResponse(UUID id, String descricao, String codigoRastreio, boolean retiradaNoLocal,
+                                  LocalDateTime dataCadastro, LocalDateTime dataAlteracao) {
         static EntregaResponse from(Entrega e) {
-            return new EntregaResponse(e.getId(), e.getDescricao(), e.getCodigoRastreio(), e.getDataCadastro(), e.getDataAlteracao());
+            return new EntregaResponse(e.getId(), e.getDescricao(), e.getCodigoRastreio(), e.isRetiradaNoLocal(),
+                    e.getDataCadastro(), e.getDataAlteracao());
         }
     }
 
