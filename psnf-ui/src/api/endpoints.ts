@@ -112,6 +112,9 @@ export const api = {
     }),
   /** o vendedor informa ou corrige os dados da entrega (com os dois vazios, a entrega é removida) */
   registrarEntrega: (id: UUID, entrega: EntregaInput) => http.put<OrdemDePedido>(`/ordens-de-pedido/${id}/entrega`, entrega),
+  /** o vendedor anexa foto/PDF à entrega (caminho devolvido por enviarArquivo) */
+  adicionarAnexoEntrega: (id: UUID, caminho: string) => http.post<OrdemDePedido>(`/ordens-de-pedido/${id}/entrega/anexos`, { caminho }),
+  removerAnexoEntrega: (id: UUID, anexoId: UUID) => http.delete<OrdemDePedido>(`/ordens-de-pedido/${id}/entrega/anexos/${anexoId}`),
   confirmarEntrega: (id: UUID) => http.patch<OrdemDePedido>(`/ordens-de-pedido/${id}/confirmar-entrega`),
   cancelar: (id: UUID) => http.patch<OrdemDePedido>(`/ordens-de-pedido/${id}/cancelar`),
 };

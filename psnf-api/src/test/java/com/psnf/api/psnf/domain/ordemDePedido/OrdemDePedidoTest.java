@@ -380,4 +380,54 @@ class OrdemDePedidoTest {
         assertEquals("Rua das Flores, 10", ordem.getEntrega().getDescricao());
         assertTrue(ordem.getEntrega().isRetiradaNoLocal());
     }
+
+    // ------------------------------------------------------------ arquivos e confirmação da entrega
+
+    private void ateEnviado(Boolean retirada) {
+        ordem.aceitar(comprador.getId());
+        ordem.registrarPagamento(vendedor.getId(), pix("100.00"));
+        ordem.enviar(vendedor.getId(), null, null, null, retirada);
+    }
+
+    @Test
+    void vendedorConfirmaARetiradaEFicaRegistradoQuemConfirmou() {
+        ateEnviado(true);
+        ordem.confirmarEntrega(vendedor.getId());
+        assertEquals(EnumStatusOrdemDePedido.ENTREGUE, ordem.getStatus());
+        assertEquals(vendedor.getId(), ordem.getEntregaConfirmadaPor());
+        assertNotNull(ordem.getEntregaConfirmadaEm());
+        assertTrue(ordem.getMensagensIncidente().getLast().getMensagem().contains("O vendedor (vendedor) confirmou que o pedido foi retirado"));
+        assertEquals(1, ordem.mensagensIncidenteNaoLidas(comprador.getId()) > 0 ? 1 : 0);
+    }
+
+    @Test
+    void compradorConfirmaARetiradaTambem() {
+        ateEnviado(true);
+        ordem.confirmarEntrega(comprador.getId());
+        assertEquals(comprador.getId(), ordem.getEntregaConfirmadaPor());
+        assertTrue(ordem.getMensagensIncidente().getLast().getMensagem().contains("confirmou que retirou o pedido"));
+    }
+
+    @Test
+    void noEnvioSoOCompradorConfirma() {
+        ateEnviado(null);
+        assertThrows(AcessoNegadoException.class, () -> ordem.confirmarEntrega(vendedor.getId()));
+        ordem.confirmarEntrega(comprador.getId());
+        assertEquals(comprador.getId(), ordem.getEntregaConfirmadaPor());
+    }
+
+    @Test
+    void arquivosDaEntregaComAutorLimiteETravaDepoisDaConfirmacao() {
+        assertThrows(RegraDeNegocioException.class, () -> ordem.adicionarAnexoEntrega(vendedor.getId(), "/arquivos/a.png")); // antes do aceite
+        ateEnviado(true);
+        var anexo = ordem.adicionarAnexoEntrega(vendedor.getId(), "/arquivos/carga.png");
+        assertEquals(vendedor.getId(), anexo.getEnviadoPor());
+        assertThrows(AcessoNegadoException.class, () -> ordem.adicionarAnexoEntrega(comprador.getId(), "/arquivos/b.png"));
+        assertThrows(IllegalArgumentException.class, () -> ordem.adicionarAnexoEntrega(vendedor.getId(), "https://outro.site/x.png"));
+        for (int i = 1; i < OrdemDePedido.MAXIMO_ANEXOS_ENTREGA; i++) ordem.adicionarAnexoEntrega(vendedor.getId(), "/arquivos/" + i + ".png");
+        assertThrows(RegraDeNegocioException.class, () -> ordem.adicionarAnexoEntrega(vendedor.getId(), "/arquivos/11.png"));
+
+        ordem.confirmarEntrega(comprador.getId());
+        assertThrows(RegraDeNegocioException.class, () -> ordem.removerAnexoEntrega(vendedor.getId(), UUID.randomUUID()));
+    }
 }

@@ -1,5 +1,7 @@
 package com.psnf.api.psnf.infrastructure.persistence.ordemDePedido.adapter.mapper;
 
+import com.psnf.api.psnf.infrastructure.persistence.ordemDePedido.entity.AnexoEntregaJpa;
+import com.psnf.api.psnf.domain.ordemDePedido.models.AnexoEntrega;
 import com.psnf.api.psnf.domain.ordemDePedido.models.Entrega;
 import com.psnf.api.psnf.domain.ordemDePedido.models.OrdemDePedido;
 import com.psnf.api.psnf.infrastructure.persistence.anuncio.entity.jpa.AnuncioJpa;
@@ -53,6 +55,16 @@ public class OrdemDePedidoJpaMapper {
                 jpa.getMensagensIncidente().add(MensagensIncidenteJpaMapper.toEntity(m, usuarioRef.apply(m.getUsuarioCriador()), jpa)));
         ordem.getNotasFiscais().forEach(n ->
                 jpa.getNotasFiscais().add(NotaFiscalJpaMapper.toEntity(n, jpa)));
+        ordem.getAnexosEntrega().forEach(a -> {
+            AnexoEntregaJpa aj = new AnexoEntregaJpa();
+            aj.restaurarBase(a.getId(), a.getDataCadastro(), a.getDataAlteracao(), a.getDataExcluido());
+            aj.setCaminho(a.getCaminho());
+            aj.setEnviadoPor(a.getEnviadoPor());
+            aj.setOrdemDePedido(jpa);
+            jpa.getAnexosEntrega().add(aj);
+        });
+        jpa.setEntregaConfirmadaPor(ordem.getEntregaConfirmadaPor());
+        jpa.setEntregaConfirmadaEm(ordem.getEntregaConfirmadaEm());
         return jpa;
     }
 
@@ -76,6 +88,10 @@ public class OrdemDePedidoJpaMapper {
         ordem.restaurarLeituraIncidentes(jpa.getIncidentesLidosCompradorEm(), jpa.getIncidentesLidosVendedorEm());
         if (jpa.getNegociacao() != null) ordem.vincularNegociacao(jpa.getNegociacao().getId());
         ordem.restaurarAtualizadaEm(jpa.getAtualizadaEm());
+        ordem.restaurarEntregaConfirmada(jpa.getAnexosEntrega().stream()
+                        .map(a -> AnexoEntrega.restaurar(a.getId(), a.getDataCadastro(), a.getDataAlteracao(), a.getDataExcluido(),
+                                a.getCaminho(), a.getEnviadoPor())).toList(),
+                jpa.getEntregaConfirmadaPor(), jpa.getEntregaConfirmadaEm());
         EntregaJpa e = jpa.getEntregas().isEmpty() ? null : jpa.getEntregas().getFirst();
         if (e != null) {
             ordem.restaurarEntrega(Entrega.restaurar(e.getId(), e.getDataCadastro(), e.getDataAlteracao(), e.getDataExcluido(),

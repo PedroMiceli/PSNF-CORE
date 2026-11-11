@@ -257,8 +257,9 @@ function Acoes({ ordem, souComprador, souVendedor, enviando, executar }: {
   // também com pagamento pendente (ex.: venda a prazo): o comprador paga depois de receber
   const podeDespachar = souVendedor && (st === 'PAGO' || st === 'AGUARDANDO_PAGAMENTO');
   const faltaPagar = ordem.valorTotal - ordem.valorPago;
-  const podeConfirmar = souComprador && st === 'ENVIADO';
   const retirada = !!ordem.entrega?.retiradaNoLocal;
+  // na retirada no local, o vendedor também confirma (está presente quando o comprador retira)
+  const podeConfirmar = st === 'ENVIADO' && (souComprador || (souVendedor && retirada));
   if (!podeCancelar && !podeDespachar && !podeConfirmar) return null;
 
   // o que cada um precisa fazer agora
@@ -273,6 +274,7 @@ function Acoes({ ordem, souComprador, souVendedor, enviando, executar }: {
     ACEITO: 'O comprador aceitou. Cadastre as formas de pagamento combinadas (ex.: parte no PIX, parte no boleto) até cobrir o valor total.',
     AGUARDANDO_PAGAMENTO: 'Aguardando o comprador pagar e anexar os comprovantes. Se a venda for a prazo, você já pode despachar o pedido.',
     PAGO: 'Todos os comprovantes foram enviados. Confira os pagamentos e despache o pedido.',
+    ENVIADO: retirada ? 'Pedido pronto para retirada. Quando o comprador retirar, confirme a retirada (ele também pode confirmar). Se quiser, anexe uma foto da retirada em "Retirada no local".' : undefined,
   } as Partial<Record<StatusOrdem, string>>)[st];
 
   return (
@@ -333,8 +335,19 @@ function Acoes({ ordem, souComprador, souVendedor, enviando, executar }: {
           </>
         )}
         {podeConfirmar && (
-          <Botao variante="primario" disabled={enviando} onClick={() => executar(() => api.confirmarEntrega(ordem.id))}>
-            {retirada ? 'Confirmar que retirei o pedido' : 'Confirmar entrega'}
+          <Botao variante="primario" disabled={enviando} onClick={async () => {
+            const ok = await confirmar({
+              titulo: retirada ? 'Confirmar a retirada?' : 'Confirmar o recebimento?',
+              mensagem: <>{retirada
+                ? (souVendedor ? 'Você confirma que o comprador retirou o pedido.' : 'Você confirma que retirou o pedido no fornecedor.')
+                : 'Você confirma que recebeu o pedido.'}{' '}
+                Fica registrado que <strong>você ({souVendedor ? 'vendedor' : 'comprador'})</strong> confirmou, com data e hora,
+                {' '}{souVendedor ? 'e o comprador é avisado' : 'e o vendedor é avisado'}. Depois disso, os arquivos da entrega não podem mais ser removidos.</>,
+              confirmar: retirada ? 'Confirmar retirada' : 'Confirmar recebimento',
+            });
+            if (ok) void executar(() => api.confirmarEntrega(ordem.id));
+          }}>
+            {!retirada ? 'Confirmar entrega' : souVendedor ? 'Confirmar que o comprador retirou' : 'Confirmar que retirei o pedido'}
           </Botao>
         )}
         {podeCancelar && (
@@ -450,7 +463,77 @@ function PainelEntrega({ ordem, souVendedor, enviando, executar }: {
           {e?.dataAlteracao && <p className={cx(dica, 'mb-0')}>Atualizado em {formatarData(e.dataAlteracao)}.</p>}
         </div>
       )}
+      {ordem.confirmacaoEntrega && (
+        <p className="mt-3 mb-0 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-900" role="status">
+          ✔ {retirada ? 'Retirada' : 'Entrega'} confirmada por <strong>{ordem.confirmacaoEntrega.confirmadaPor.nome}</strong>{' '}
+          ({ordem.confirmacaoEntrega.confirmadaPor.papel === 'VENDEDOR' ? 'vendedor' : 'comprador'}) em {formatarData(ordem.confirmacaoEntrega.confirmadaEm)}.
+        </p>
+      )}
+      <ArquivosEntrega ordem={ordem} souVendedor={souVendedor} enviando={enviando} executar={executar} />
     </Painel>
+  );
+}
+
+/**
+ * Fotos e PDFs da entrega (carga saindo, comprador retirando...), com quem enviou e quando. Só o vendedor
+ * anexa; depois da entrega confirmada, ficam travados como prova.
+ */
+function ArquivosEntrega({ ordem, souVendedor, enviando, executar }: {
+  ordem: OrdemDePedido; souVendedor: boolean; enviando: boolean; executar: Exec;
+}) {
+  const [confirmar, dialogoConfirmacao] = useConfirmacao();
+  const fila = useRef<Promise<unknown>>(Promise.resolve());
+  const anexos = ordem.anexosEntrega;
+  const travado = ordem.status === 'ENTREGUE';
+  const podeAnexar = souVendedor && !['AGUARDANDO_CONFIRMACAO', 'CANCELADO'].includes(ordem.status) && anexos.length < 10;
+  if (!anexos.length && !podeAnexar) return null;
+
+  // vários arquivos de uma vez: um "anexar" por vez (a ordem é salva inteira a cada um)
+  const anexar = (caminho: string) => { fila.current = fila.current.then(() => executar(() => api.adicionarAnexoEntrega(ordem.id, caminho))); };
+  const remover = async (id: string) => {
+    if (await confirmar({ titulo: 'Remover arquivo da entrega?', mensagem: 'O arquivo deixa de aparecer para você e para o comprador.', confirmar: 'Remover', perigo: true })) {
+      void executar(() => api.removerAnexoEntrega(ordem.id, id));
+    }
+  };
+
+  return (
+    <div className="mt-4 border-t border-borda pt-3">
+      <h4 className="mt-0 mb-1">Fotos e arquivos da entrega</h4>
+      <p className={cx(dica, 'mt-0')}>
+        {travado ? '🔒 Travados como prova desde a confirmação da entrega.'
+          : souVendedor ? 'Foto da carga saindo, do comprador retirando, comprovante da transportadora... Servem de prova de que o pedido saiu ou foi retirado.'
+          : 'Arquivos que o vendedor anexou como prova de saída ou de retirada do pedido.'}
+      </p>
+      {anexos.length > 0 && (
+        <ul className="m-0 mb-3 grid list-none grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-3 p-0">
+          {anexos.map((a) => {
+            const pdf = /\.pdf$/i.test(a.caminho);
+            return (
+              <li key={a.id} className="overflow-hidden rounded-lg border border-borda bg-white">
+                <a href={urlArquivo(a.caminho)} target="_blank" rel="noreferrer" className="block hover:no-underline" title="Abrir em tamanho original">
+                  {pdf
+                    ? <span className="flex h-28 items-center justify-center bg-gray-50 text-3xl" aria-label="PDF">📄</span>
+                    : <img src={urlArquivo(a.caminho)} alt="Foto da entrega" className="h-28 w-full object-cover" />}
+                </a>
+                <div className="px-2 py-1.5 text-[0.7rem] leading-snug text-suave">
+                  Enviado por <strong className="text-texto">{a.enviadoPor.nome}</strong><br />{formatarData(a.dataCadastro)}
+                  {souVendedor && !travado && (
+                    <button type="button" disabled={enviando} onClick={() => void remover(a.id)}
+                      className="ml-1 cursor-pointer text-vermelho hover:underline">remover</button>
+                  )}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      {podeAnexar && (
+        <UploadArquivo accept={ACEITA_COMPROVANTE} multiple compacto
+          rotulo={enviando ? 'Anexando...' : '📷 Anexar fotos ou PDF da entrega'}
+          onEnviado={(a) => anexar(a.caminho)} />
+      )}
+      {dialogoConfirmacao}
+    </div>
   );
 }
 

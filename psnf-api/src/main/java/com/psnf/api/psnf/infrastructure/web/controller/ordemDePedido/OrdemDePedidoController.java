@@ -31,6 +31,7 @@ public class OrdemDePedidoController {
     private final RegistrarMensagemIncidenteUseCase registrarMensagemIncidenteUseCase;
     private final AlterarStatusOrdemDePedidoUseCase alterarStatusOrdemDePedidoUseCase;
     private final com.psnf.api.psnf.domain.ordemDePedido.port.in.AlterarValoresOrdemUseCase alterarValoresOrdemUseCase;
+    private final com.psnf.api.psnf.domain.ordemDePedido.port.in.AnexosEntregaUseCase anexosEntregaUseCase;
 
     /**
      * O VENDEDOR (usuário logado) cria a ordem para o comprador com quem fechou acordo no chat,
@@ -130,6 +131,19 @@ public class OrdemDePedidoController {
                 id, usuarioLogado(), request.descricao(), request.codigoRastreio(), request.retiradaNoLocal())));
     }
 
+    /** O vendedor anexa uma foto ou PDF à entrega (prova de saída da carga ou de retirada). */
+    @PostMapping("/{id}/entrega/anexos")
+    public ResponseEntity<OrdemDePedidoResponse> adicionarAnexoEntrega(@PathVariable UUID id, @RequestBody @Valid AnexoEntregaRequest request) {
+        return ResponseEntity.ok(resposta(anexosEntregaUseCase.adicionar(id, usuarioLogado(), request.caminho())));
+    }
+
+    /** Remove um arquivo enviado por engano (não depois de a entrega ser confirmada). */
+    @DeleteMapping("/{id}/entrega/anexos/{anexoId}")
+    public ResponseEntity<OrdemDePedidoResponse> removerAnexoEntrega(@PathVariable UUID id, @PathVariable UUID anexoId) {
+        return ResponseEntity.ok(resposta(anexosEntregaUseCase.remover(id, usuarioLogado(), anexoId)));
+    }
+
+    /** Confirma a entrega (comprador) ou a retirada no local (comprador ou vendedor); registra quem confirmou. */
     @PatchMapping("/{id}/confirmar-entrega")
     public ResponseEntity<OrdemDePedidoResponse> confirmarEntrega(@PathVariable UUID id) {
         return ResponseEntity.ok(resposta(

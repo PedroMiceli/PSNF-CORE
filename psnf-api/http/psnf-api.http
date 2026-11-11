@@ -1471,3 +1471,44 @@ Content-Type: application/json
     const ultima = response.body.mensagensIncidente[response.body.mensagensIncidente.length - 1];
     client.test("o comprador é avisado da mudança", () => client.assert(ultima.mensagem.includes("NÃO será mais retirado no local")));
 %}
+
+
+### =============================== 14. ARQUIVOS DA ENTREGA ============================
+### (ordem renegociada da seção 12, já aceita)
+
+### 14.1 O vendedor anexa uma foto à entrega (o caminho vem de POST /arquivos)
+POST {{baseUrl}}/ordens-de-pedido/{{ordemRenegId}}/entrega/anexos
+Authorization: Bearer {{tokenVendedor}}
+Content-Type: application/json
+
+{ "caminho": "/arquivos/foto-da-carga.png" }
+
+> {%
+    const a = response.body.anexosEntrega[response.body.anexosEntrega.length - 1];
+    client.test("200 com quem enviou", () => client.assert(response.status === 200 && a.enviadoPor.papel === "VENDEDOR"));
+    client.global.set("anexoEntregaId", a.id);
+%}
+
+### 14.2 [403] O comprador não anexa arquivos à entrega
+POST {{baseUrl}}/ordens-de-pedido/{{ordemRenegId}}/entrega/anexos
+Authorization: Bearer {{tokenComprador}}
+Content-Type: application/json
+
+{ "caminho": "/arquivos/outra.png" }
+
+> {% client.test("403", () => client.assert(response.status === 403, "status " + response.status)); %}
+
+### 14.3 [400] Só arquivos enviados ao storage da plataforma
+POST {{baseUrl}}/ordens-de-pedido/{{ordemRenegId}}/entrega/anexos
+Authorization: Bearer {{tokenVendedor}}
+Content-Type: application/json
+
+{ "caminho": "https://outro-site.com/foto.png" }
+
+> {% client.test("400", () => client.assert(response.status === 400, "status " + response.status)); %}
+
+### 14.4 O vendedor remove o arquivo enviado por engano (antes da confirmação da entrega)
+DELETE {{baseUrl}}/ordens-de-pedido/{{ordemRenegId}}/entrega/anexos/{{anexoEntregaId}}
+Authorization: Bearer {{tokenVendedor}}
+
+> {% client.test("200 e removido", () => client.assert(response.status === 200 && !response.body.anexosEntrega.some(a => a.id === client.global.get("anexoEntregaId")))); %}
