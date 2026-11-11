@@ -88,6 +88,9 @@ export const api = {
   pagar: (id: UUID, body: PagamentoInput) => http.post<OrdemDePedido>(`/ordens-de-pedido/${id}/pagamentos`, body),
   /** o comprador confere e aceita a ordem criada pelo vendedor */
   aceitarOrdem: (id: UUID) => http.patch<OrdemDePedido>(`/ordens-de-pedido/${id}/aceitar`),
+  /** renegociação: o vendedor ajusta o valor unitário dos itens antes de o comprador aceitar */
+  alterarValoresOrdem: (id: UUID, itens: { itemId: UUID; valorUnidade: number }[]) =>
+    http.put<OrdemDePedido>(`/ordens-de-pedido/${id}/itens/valores`, { itens }),
   /** o comprador anexa o comprovante de um pagamento (caminho vindo de enviarArquivo) */
   anexarComprovante: (id: UUID, pagamentoId: UUID, caminho: string) =>
     http.post<OrdemDePedido>(`/ordens-de-pedido/${id}/pagamentos/${pagamentoId}/comprovante`, { caminho }),

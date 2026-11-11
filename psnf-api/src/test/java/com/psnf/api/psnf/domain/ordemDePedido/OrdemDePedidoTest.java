@@ -289,4 +289,47 @@ class OrdemDePedidoTest {
         ordem.registrarMensagemIncidente(vendedor.getId(), MensagemIncidente.criar("Separando o pedido", null, vendedor.getId()));
         assertTrue(ordem.getAtualizadaEm().isAfter(depoisDoAceite));
     }
+
+    // ------------------------------------------------------------ renegociação de valores
+
+    private final UUID camiseta = UUID.randomUUID(), bone = UUID.randomUUID();
+
+    private OrdemDePedido ordemComIds() {
+        return OrdemDePedido.criar("PED-3", comprador, vendedor, List.of(
+                ItemPedido.restaurar(camiseta, LocalDateTime.now(), null, null, UUID.randomUUID(), "Camiseta", "Azul", 2, new BigDecimal("30.00"), null),
+                ItemPedido.restaurar(bone, LocalDateTime.now(), null, null, UUID.randomUUID(), "Boné", null, 1, new BigDecimal("40.00"), null)));
+    }
+
+    @Test
+    void vendedorRenegociaOValorAntesDoAceiteEOCompradorEAvisado() {
+        OrdemDePedido o = ordemComIds();
+        var aviso = o.alterarValores(vendedor.getId(), java.util.Map.of(camiseta, new BigDecimal("25"), bone, new BigDecimal("40.00")));
+
+        assertEquals(new BigDecimal("90.00"), o.getValorTotal()); // 2 x 25 + 40
+        assertTrue(aviso.getMensagem().contains("Camiseta (Azul): R$\u00a030,00 → R$\u00a025,00 por unidade"), aviso.getMensagem());
+        assertFalse(aviso.getMensagem().contains("Boné"), "item com o mesmo valor não entra no aviso");
+        assertTrue(aviso.getMensagem().contains("Novo total: R$\u00a090,00 (antes R$\u00a0100,00)"), aviso.getMensagem());
+        assertEquals(1, o.mensagensIncidenteNaoLidas(comprador.getId()));
+        assertEquals(0, o.mensagensIncidenteNaoLidas(vendedor.getId()));
+
+        o.aceitar(comprador.getId()); // o comprador aceita o valor novo
+        assertEquals(EnumStatusOrdemDePedido.ACEITO, o.getStatus());
+    }
+
+    @Test
+    void soOVendedorESoAntesDoAceite() {
+        OrdemDePedido o = ordemComIds();
+        var novo = java.util.Map.of(camiseta, new BigDecimal("20"));
+        assertThrows(AcessoNegadoException.class, () -> o.alterarValores(comprador.getId(), novo));
+        o.aceitar(comprador.getId());
+        assertThrows(RegraDeNegocioException.class, () -> o.alterarValores(vendedor.getId(), novo));
+    }
+
+    @Test
+    void recusaValorZeroItemDeOutraOrdemENadaAlterado() {
+        OrdemDePedido o = ordemComIds();
+        assertThrows(IllegalArgumentException.class, () -> o.alterarValores(vendedor.getId(), java.util.Map.of(camiseta, BigDecimal.ZERO)));
+        assertThrows(RegraDeNegocioException.class, () -> o.alterarValores(vendedor.getId(), java.util.Map.of(UUID.randomUUID(), BigDecimal.TEN)));
+        assertThrows(RegraDeNegocioException.class, () -> o.alterarValores(vendedor.getId(), java.util.Map.of(camiseta, new BigDecimal("30"))));
+    }
 }

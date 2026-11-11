@@ -121,6 +121,43 @@ public class OrdemDePedido extends BaseDomain {
     }
 
     /**
+     * Renegociação: o comprador ainda não aceitou (achou caro, por exemplo) e o vendedor ajusta o valor
+     * unitário de um ou mais itens. Só em AGUARDANDO_CONFIRMACAO: depois de aceita, a ordem fica como foi
+     * combinada (e nesse status ainda não há formas de pagamento para desencontrar do novo total).
+     * O comprador é avisado por uma mensagem automática em "Incidentes e mensagens".
+     *
+     * @param novos valor unitário novo por id do item; itens com o mesmo valor são ignorados
+     * @return a mensagem registrada, com o antes e o depois
+     */
+    public MensagemIncidente alterarValores(UUID usuarioId, java.util.Map<UUID, BigDecimal> novos) {
+        tocar();
+        garantirVendedor(usuarioId);
+        if (status != AGUARDANDO_CONFIRMACAO) {
+            throw new RegraDeNegocioException("Os valores só podem ser alterados enquanto o comprador não aceitou a ordem");
+        }
+        BigDecimal totalAntes = getValorTotal();
+        java.text.NumberFormat moeda = java.text.NumberFormat.getCurrencyInstance(java.util.Locale.of("pt", "BR"));
+        StringBuilder linhas = new StringBuilder();
+        for (var e : novos.entrySet()) {
+            ItemPedido item = itens.stream().filter(i -> e.getKey().equals(i.getId())).findFirst()
+                    .orElseThrow(() -> new RegraDeNegocioException("O item " + e.getKey() + " não pertence a esta ordem"));
+            BigDecimal novo = e.getValue() == null ? null : e.getValue().setScale(2, java.math.RoundingMode.HALF_UP);
+            if (novo != null && novo.compareTo(item.getValorUnidade()) == 0) continue;
+            BigDecimal antes = item.getValorUnidade();
+            item.alterarValorUnidade(novo);
+            linhas.append("\n• ").append(item.getTituloAnuncio())
+                    .append(item.getVariacao() == null ? "" : " (" + item.getVariacao() + ")")
+                    .append(": ").append(moeda.format(antes)).append(" → ").append(moeda.format(novo)).append(" por unidade");
+        }
+        if (linhas.isEmpty()) throw new RegraDeNegocioException("Nenhum valor foi alterado");
+        MensagemIncidente aviso = MensagemIncidente.criar("Valores renegociados pelo vendedor:" + linhas
+                + "\nNovo total: " + moeda.format(getValorTotal()) + " (antes " + moeda.format(totalAntes) + ")", null, usuarioId);
+        mensagensIncidente.add(aviso);
+        marcarIncidentesLidos(usuarioId); // o vendedor já sabe; o comprador recebe o alerta de mensagem nova
+        return aviso;
+    }
+
+    /**
      * O VENDEDOR cadastra uma forma de pagamento combinada com o comprador (ex.: parte no PIX, parte no boleto),
      * com os dados para o comprador pagar. Quando as formas cobrem o valor total, a ordem passa a aguardar pagamento.
      */
