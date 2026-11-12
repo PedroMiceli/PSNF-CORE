@@ -1512,3 +1512,48 @@ DELETE {{baseUrl}}/ordens-de-pedido/{{ordemRenegId}}/entrega/anexos/{{anexoEntre
 Authorization: Bearer {{tokenVendedor}}
 
 > {% client.test("200 e removido", () => client.assert(response.status === 200 && !response.body.anexosEntrega.some(a => a.id === client.global.get("anexoEntregaId")))); %}
+
+### =========================================================================================
+### 15. Página do vendedor (todos os anúncios ativos dele) - só com login
+### =========================================================================================
+
+### 15.1 [401] Sem login não abre a página do vendedor (só a vitrine GET /anuncios é pública)
+GET {{baseUrl}}/anuncios/vendedor/{{vendedorId}}
+
+> {% client.test("401", () => client.assert(response.status === 401, "status " + response.status)); %}
+
+### 15.2 Anúncios do vendedor: só os dele e só os ativos
+GET {{baseUrl}}/anuncios/vendedor/{{vendedorId}}?tamanho=100
+Authorization: Bearer {{tokenComprador}}
+
+> {%
+    // todos do mesmo vendedor (o da URL: o Vendedor Mock tem anúncios, então a lista não vem vazia) e ativos
+    const vendedores = new Set(response.body.itens.map(a => a.vendedorId));
+    client.test("200 só do vendedor e ativos", () => client.assert(response.status === 200 && response.body.total > 0
+        && vendedores.size === 1 && response.body.itens.every(a => a.ativo), "status " + response.status));
+    client.global.set("totalDoVendedor", String(response.body.total));
+%}
+
+### 15.3 Categorias do vendedor com a quantidade (soma = total de anúncios ativos dele)
+GET {{baseUrl}}/anuncios/vendedor/{{vendedorId}}/categorias
+Authorization: Bearer {{tokenComprador}}
+
+> {%
+    const soma = response.body.reduce((s, c) => s + c.quantidade, 0);
+    client.test("200 e soma bate", () => client.assert(response.status === 200 && soma === Number(client.global.get("totalDoVendedor")),
+        "soma " + soma + " total " + client.global.get("totalDoVendedor")));
+    client.global.set("categoriaDoVendedor", response.body[0].categoriaId);
+%}
+
+### 15.4 Filtro por categoria dentro da página do vendedor
+GET {{baseUrl}}/anuncios/vendedor/{{vendedorId}}?categoriaId={{categoriaDoVendedor}}
+Authorization: Bearer {{tokenComprador}}
+
+> {% client.test("200 só da categoria", () => client.assert(response.status === 200 && response.body.total > 0
+    && response.body.itens.every(a => a.categoriaId === client.global.get("categoriaDoVendedor")))); %}
+
+### 15.5 Quem não vende nada: página vazia (sem erro)
+GET {{baseUrl}}/anuncios/vendedor/{{compradorId}}
+Authorization: Bearer {{tokenVendedor}}
+
+> {% client.test("200 vazio", () => client.assert(response.status === 200 && response.body.total === 0, "status " + response.status)); %}

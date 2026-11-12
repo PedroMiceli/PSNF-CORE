@@ -1,6 +1,7 @@
 package com.psnf.api.psnf.infrastructure.web.controller.anuncio;
 
 import com.psnf.api.psnf.domain.anuncio.model.Anuncio;
+import com.psnf.api.psnf.domain.anuncio.model.CategoriaComAnuncios;
 import com.psnf.api.psnf.domain.avaliacao.model.ResumoAvaliacoes;
 import com.psnf.api.psnf.domain.avaliacao.port.in.AvaliarAnuncioUseCase;
 import com.psnf.api.psnf.domain.anuncio.port.in.*;
@@ -57,10 +58,36 @@ public class AnuncioController {
             @RequestParam(defaultValue = "0") int pagina,
             @RequestParam(defaultValue = "" + PesquisarAnunciosQuery.TAMANHO_PADRAO) int tamanho
     ) {
-        var resultado = pesquisarAnunciosUseCase.pesquisar(new PesquisarAnunciosQuery(termo, categoriaId, pagina, tamanho));
+        return ResponseEntity.ok(pesquisarComNotas(new PesquisarAnunciosQuery(termo, categoriaId, pagina, tamanho)));
+    }
+
+    /**
+     * Página do vendedor: os anúncios ATIVOS dele, com a mesma pesquisa e paginação da vitrine.
+     * Exige login (só GET /anuncios, exatamente, é público): quem não está logado não navega pelo catálogo
+     * de um fornecedor. Ex.: GET /anuncios/vendedor/{vendedorId}?termo=cabo&categoriaId=...&pagina=0
+     */
+    @GetMapping("/vendedor/{vendedorId}")
+    public ResponseEntity<PaginaResponse<AnuncioResponse>> anunciosDoVendedor(
+            @PathVariable UUID vendedorId,
+            @RequestParam(required = false) String termo,
+            @RequestParam(required = false) UUID categoriaId,
+            @RequestParam(defaultValue = "0") int pagina,
+            @RequestParam(defaultValue = "" + PesquisarAnunciosQuery.TAMANHO_PADRAO) int tamanho
+    ) {
+        return ResponseEntity.ok(pesquisarComNotas(new PesquisarAnunciosQuery(termo, categoriaId, vendedorId, pagina, tamanho)));
+    }
+
+    /** Categorias em que o vendedor tem anúncios ativos, com a quantidade (filtro da página do vendedor). */
+    @GetMapping("/vendedor/{vendedorId}/categorias")
+    public ResponseEntity<List<CategoriaComAnuncios>> categoriasDoVendedor(@PathVariable UUID vendedorId) {
+        return ResponseEntity.ok(pesquisarAnunciosUseCase.categoriasDoVendedor(vendedorId));
+    }
+
+    private PaginaResponse<AnuncioResponse> pesquisarComNotas(PesquisarAnunciosQuery query) {
+        var resultado = pesquisarAnunciosUseCase.pesquisar(query);
         // notas da página inteira de uma vez (uma consulta)
         Map<UUID, ResumoAvaliacoes> notas = avaliarAnuncioUseCase.resumoPorAnuncios(resultado.itens().stream().map(Anuncio::getId).toList());
-        return ResponseEntity.ok(PaginaResponse.from(resultado, a -> AnuncioResponse.from(a, notas.get(a.getId()))));
+        return PaginaResponse.from(resultado, a -> AnuncioResponse.from(a, notas.get(a.getId())));
     }
 
     @GetMapping("/{id}")

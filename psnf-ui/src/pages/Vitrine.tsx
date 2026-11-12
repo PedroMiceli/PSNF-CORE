@@ -1,24 +1,13 @@
-import { Estrelas, formatarNota } from '../components/Estrelas';
 import { useEffect, useState } from 'react';
+import { useDebounce } from '../api/useDebounce';
 import { Link } from 'react-router-dom';
 import { api } from '../api/endpoints';
 import { useApi } from '../api/useApi';
-import { formatarMoeda } from '../components/format';
-import { Badge, BADGE_CNPJ, Botao, Carregando, classesBotao, cx, ErroBox, ImagemAnuncio, Vazio } from '../components/ui';
+import { CartaoAnuncio, Paginacao } from '../components/CartaoAnuncio';
+import { Carregando, classesBotao, cx, ErroBox, Vazio } from '../components/ui';
 import { useUsuario } from '../context/UsuarioContext';
 
 const POR_PAGINA = 24;
-const cartao = 'overflow-hidden rounded-card border border-borda bg-white text-inherit';
-
-/** Atualiza o valor só depois que o usuário para de digitar. */
-function useDebounce<T>(valor: T, ms: number): T {
-  const [atrasado, setAtrasado] = useState(valor);
-  useEffect(() => {
-    const t = setTimeout(() => setAtrasado(valor), ms);
-    return () => clearTimeout(t);
-  }, [valor, ms]);
-  return atrasado;
-}
 
 export function Vitrine() {
   const { usuario } = useUsuario();
@@ -127,72 +116,12 @@ export function Vitrine() {
         ) : (
           <>
             <div className={cx('grid grid-cols-1 gap-4 transition-opacity sm:grid-cols-2 lg:grid-cols-3', anuncios.loading && 'opacity-55')}>
-              {resultado.itens.map((a) => {
-                const principal = a.imagens.find((i) => i.principal) ?? a.imagens[0];
-                return (
-                  // sem login: só ver (o cartão não abre); logado: abre o anúncio
-                  usuario ? (
-                    <Link key={a.id} to={`/anuncios/${a.id}`} className={cartao + ' transition hover:-translate-y-0.5 hover:no-underline hover:shadow-[0_8px_24px_rgba(15,23,42,0.08)]'}>
-                    <ImagemAnuncio caminho={principal?.caminho} alt={a.titulo} className="h-[170px] w-full" />
-                    <div className="p-3.5">
-                      <span className="flex items-center justify-between gap-2">
-                        <span className="text-[0.72rem] tracking-wider text-suave uppercase">{nomeCategoria(a.categoriaId)}</span>
-                        {a.exigeCnpj && !temCnpj && <Badge className={BADGE_CNPJ + " shrink-0 whitespace-nowrap"}>Somente CNPJ</Badge>}
-                      </span>
-                      <h3 className="mt-1 mb-1 text-base">{a.titulo}</h3>
-                      {a.quantidadeAvaliacoes > 0 && (
-                        <p className="mb-1 flex items-center gap-1 text-xs">
-                          <Estrelas nota={a.notaMedia ?? 0} tamanho="text-sm" />
-                          <strong>{formatarNota(a.notaMedia)}</strong> <span className="text-suave">({a.quantidadeAvaliacoes})</span>
-                        </p>
-                      )}
-                      <p className="text-lg font-extrabold text-verde">
-                        <small className="text-[0.72rem] font-medium text-suave">a partir de</small> {formatarMoeda(a.precoMenor)}
-                      </p>
-                      <p className="mt-1 text-xs text-suave">
-                        {a.valores.length} faixa(s) de preço · {a.variacoes.length} variação(ões)
-                      </p>
-                    </div>
-                    </Link>
-                  ) : (
-                    <div key={a.id} role="button" tabIndex={0} aria-label={`${a.titulo}: entre para ver os detalhes`}
-                      className={cartao + ' cursor-pointer transition hover:shadow-[0_8px_24px_rgba(15,23,42,0.08)]'}
-                      onClick={() => avisarLogin(a.id)}
-                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); avisarLogin(a.id); } }}>
-                    <ImagemAnuncio caminho={principal?.caminho} alt={a.titulo} className="h-[170px] w-full" />
-                    <div className="p-3.5">
-                      <span className="flex items-center justify-between gap-2">
-                        <span className="text-[0.72rem] tracking-wider text-suave uppercase">{nomeCategoria(a.categoriaId)}</span>
-                        {a.exigeCnpj && !temCnpj && <Badge className={BADGE_CNPJ + " shrink-0 whitespace-nowrap"}>Somente CNPJ</Badge>}
-                      </span>
-                      <h3 className="mt-1 mb-1 text-base">{a.titulo}</h3>
-                      {a.quantidadeAvaliacoes > 0 && (
-                        <p className="mb-1 flex items-center gap-1 text-xs">
-                          <Estrelas nota={a.notaMedia ?? 0} tamanho="text-sm" />
-                          <strong>{formatarNota(a.notaMedia)}</strong> <span className="text-suave">({a.quantidadeAvaliacoes})</span>
-                        </p>
-                      )}
-                      <p className="text-lg font-extrabold text-verde">
-                        <small className="text-[0.72rem] font-medium text-suave">a partir de</small> {formatarMoeda(a.precoMenor)}
-                      </p>
-                      <p className="mt-1 text-xs text-suave">
-                        {a.valores.length} faixa(s) de preço · {a.variacoes.length} variação(ões)
-                      </p>
-                    </div>
-                    </div>
-                  )
-                );
-              })}
+              {resultado.itens.map((a) => (
+                <CartaoAnuncio key={a.id} anuncio={a} categoria={nomeCategoria(a.categoriaId)} mostrarSeloCnpj={!temCnpj}
+                  aoClicarSemLogin={usuario ? undefined : () => avisarLogin(a.id)} />
+              ))}
             </div>
-            {resultado.totalPaginas > 1 && (
-              <nav className="mt-6 flex items-center justify-center gap-4 text-suave" aria-label="Páginas">
-                <Botao disabled={pagina === 0 || anuncios.loading}
-                  onClick={() => { setPagina(pagina - 1); window.scrollTo({ top: 0 }); }}>← Anterior</Botao>
-                <span>Página {pagina + 1} de {resultado.totalPaginas}</span>
-                <Botao disabled={pagina + 1 >= resultado.totalPaginas || anuncios.loading}
-                  onClick={() => { setPagina(pagina + 1); window.scrollTo({ top: 0 }); }}>Próxima →</Botao>
-              </nav>
-            )}
+            <Paginacao pagina={pagina} totalPaginas={resultado.totalPaginas} carregando={anuncios.loading} aoMudar={setPagina} />
           </>
         )}
       </div>

@@ -2,6 +2,7 @@ package com.psnf.api.psnf.infrastructure.persistence.anuncio.adapter;
 
 import com.psnf.api.psnf.domain.anuncio.exception.AnuncioNaoEncontradoException;
 import com.psnf.api.psnf.domain.anuncio.model.Anuncio;
+import com.psnf.api.psnf.domain.anuncio.model.CategoriaComAnuncios;
 import com.psnf.api.psnf.domain.anuncio.port.in.command.PesquisarAnunciosQuery;
 import com.psnf.api.psnf.domain.anuncio.port.out.AnuncioRepositoryPort;
 import com.psnf.api.psnf.domain.shared.model.Pagina;
@@ -61,6 +62,11 @@ public class AnuncioRepositoryAdapter implements AnuncioRepositoryPort {
         return anuncioJPARepository.findByVendedorIdOrderByDataCadastroDesc(vendedorId).stream()
                 .map(AnuncioJpaMapper::toDomain)
                 .toList();
+    }
+
+    @Override
+    public List<CategoriaComAnuncios> categoriasDoVendedor(UUID vendedorId) {
+        return anuncioBuscaRepository.categoriasDoVendedor(vendedorId);
     }
 
     @Override

@@ -1,6 +1,7 @@
 package com.psnf.api.psnf.domain.anuncio.port.out;
 
 import com.psnf.api.psnf.domain.anuncio.model.Anuncio;
+import com.psnf.api.psnf.domain.anuncio.model.CategoriaComAnuncios;
 import com.psnf.api.psnf.domain.anuncio.port.in.command.PesquisarAnunciosQuery;
 import com.psnf.api.psnf.domain.shared.model.Pagina;
 
@@ -22,4 +23,7 @@ public interface AnuncioRepositoryPort {
 
     /** Pesquisa paginada nos anúncios ativos (busca de texto feita no próprio PostgreSQL). */
     Pagina<Anuncio> pesquisar(PesquisarAnunciosQuery query);
+
+    /** Categorias em que o vendedor tem anúncios ativos, com a quantidade em cada uma (por nome). */
+    List<CategoriaComAnuncios> categoriasDoVendedor(UUID vendedorId);
 }

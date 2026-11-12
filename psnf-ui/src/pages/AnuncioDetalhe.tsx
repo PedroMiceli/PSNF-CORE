@@ -58,12 +58,16 @@ export function AnuncioDetalhe() {
 
         {/* informações */}
         <div className="min-w-0">
-          <p className="text-sm tracking-wider text-suave uppercase">
+          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm tracking-wider text-suave uppercase">
             {vendedor.data?.nome ?? 'Fornecedor'}
             {vendedor.data?.cnpjVerificado && (
-              <span className="ml-2 align-middle text-xs font-semibold tracking-normal text-verde normal-case"
+              <span className="text-xs font-semibold tracking-normal text-verde normal-case"
                 title={`CNPJ ativo na Receita Federal: ${vendedor.data.razaoSocial ?? ''}`}>✓ Empresa verificada</span>
             )}
+            <Link to={`/vendedores/${a.vendedorId}`} state={{ anuncioId: a.id }}
+              className="rounded-full border border-borda bg-white px-2.5 py-0.5 text-xs font-semibold tracking-normal normal-case hover:border-primaria hover:no-underline">
+              {ehDono ? 'Ver minha página de vendedor' : 'Ver todos os anúncios'} →
+            </Link>
           </p>
           <h1>
             {a.titulo} {!a.ativo && <Badge className={BADGE_INATIVO}>Inativo</Badge>}{' '}

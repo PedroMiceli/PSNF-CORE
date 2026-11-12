@@ -1,5 +1,6 @@
 package com.psnf.api.psnf.infrastructure.persistence.anuncio.repository;
 
+import com.psnf.api.psnf.domain.anuncio.model.CategoriaComAnuncios;
 import com.psnf.api.psnf.domain.anuncio.port.in.command.PesquisarAnunciosQuery;
 import com.psnf.api.psnf.domain.shared.model.Pagina;
 import lombok.RequiredArgsConstructor;
@@ -46,6 +47,10 @@ public class AnuncioBuscaRepository {
             where.append(" AND a.categoria_id = :categoriaId");
             params.addValue("categoriaId", query.categoriaId());
         }
+        if (query.vendedorId() != null) {
+            where.append(" AND a.vendedor_id = :vendedorId");
+            params.addValue("vendedorId", query.vendedorId());
+        }
 
         List<String> palavras = query.temTermo() ? palavras(query.termo()) : List.of();
         String ordem = " ORDER BY a.data_cadastro DESC, a.id";
@@ -75,6 +80,18 @@ public class AnuncioBuscaRepository {
                         params, UUID.class);
 
         return new Pagina<>(ids, query.pagina(), query.tamanho(), total == null ? 0 : total);
+    }
+
+    /** Categorias com anúncios ativos do vendedor e quantos há em cada uma, em ordem alfabética. */
+    public List<CategoriaComAnuncios> categoriasDoVendedor(UUID vendedorId) {
+        return jdbc.query("""
+                SELECT c.id, c.nome, count(*) AS quantidade
+                FROM anuncio a JOIN categoria c ON c.id = a.categoria_id
+                WHERE a.ativo AND a.vendedor_id = :vendedorId
+                GROUP BY c.id, c.nome
+                ORDER BY c.nome""",
+                new MapSqlParameterSource("vendedorId", vendedorId),
+                (rs, i) -> new CategoriaComAnuncios(rs.getObject("id", UUID.class), rs.getString("nome"), rs.getLong("quantidade")));
     }
 
     /**
