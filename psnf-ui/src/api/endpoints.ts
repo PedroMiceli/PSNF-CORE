@@ -1,7 +1,7 @@
 import { http } from './client';
 import type {
   AlertaMensagem, ArquivoEnviado, Atividade, EmpresaConsultada, MensagemNegociacao, Novidades, AvaliacaoInput, AvaliacoesAnuncio, EntregaInput, Anuncio, EnderecoConsultado, AnuncioInput, Categoria, EnderecoInput, Ncm, Negociacao, NegociacaoResumo, NovaOrdemInput, OrdemDePedido,
-  OrdemDePedidoResumo, Pagina, PagamentoInput, Usuario, UUID,
+  CategoriaComAnuncios, OrdemDePedidoResumo, Pagina, PagamentoInput, Usuario, UUID,
 } from './types';
 
 const q = (params: Record<string, string | number | undefined | null>) => {
@@ -52,6 +52,11 @@ export const api = {
   pesquisarAnuncios: (filtro: { termo?: string; categoriaId?: UUID; pagina?: number; tamanho?: number }) =>
     http.get<Pagina<Anuncio>>(`/anuncios${q(filtro)}`),
   anuncio: (id: UUID) => http.get<Anuncio>(`/anuncios/${id}`),
+  /** página do vendedor (exige login): os anúncios ativos dele, com a mesma pesquisa da vitrine */
+  anunciosDoVendedor: (vendedorId: UUID, filtro: { termo?: string; categoriaId?: UUID; pagina?: number; tamanho?: number }) =>
+    http.get<Pagina<Anuncio>>(`/anuncios/vendedor/${vendedorId}${q(filtro)}`),
+  /** categorias em que o vendedor tem anúncios ativos, com a quantidade */
+  categoriasDoVendedor: (vendedorId: UUID) => http.get<CategoriaComAnuncios[]>(`/anuncios/vendedor/${vendedorId}/categorias`),
   meusAnuncios: () => http.get<Anuncio[]>('/anuncios/meus'),
   criarAnuncio: (body: AnuncioInput) => http.post<Anuncio>('/anuncios', body),
   atualizarAnuncio: (id: UUID, body: AnuncioInput) => http.put<Anuncio>(`/anuncios/${id}`, body),

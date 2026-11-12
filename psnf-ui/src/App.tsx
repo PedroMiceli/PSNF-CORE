@@ -10,6 +10,7 @@ import { RedefinirSenha } from './pages/auth/RedefinirSenha';
 import { Login } from './pages/auth/Login';
 import { AnuncioDetalhe } from './pages/AnuncioDetalhe';
 import { AnuncioForm } from './pages/AnuncioForm';
+import { AnunciosVendedor } from './pages/AnunciosVendedor';
 import { MeusAnuncios } from './pages/MeusAnuncios';
 import { Negociacoes } from './pages/Negociacoes';
 import { NovaOrdem } from './pages/NovaOrdem';
@@ -73,6 +74,8 @@ function Rotas() {
         <Route path="anuncios/:id" element={<AnuncioDetalhe />} />
         <Route path="anuncios/:id/editar" element={<AnuncioForm />} />
         <Route path="meus-anuncios" element={<MeusAnuncios />} />
+        {/* só logado: sem login, cai no "*" das rotas públicas, que leva ao login e volta para cá */}
+        <Route path="vendedores/:id" element={<AnunciosVendedor />} />
         <Route path="negociacoes" element={<Negociacoes />} />
         <Route path="ordens" element={<Ordens />} />
         <Route path="ordens/nova" element={<NovaOrdem />} />

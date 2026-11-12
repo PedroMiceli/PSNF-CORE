@@ -80,6 +80,13 @@ export interface UsuarioResumo {
   telefone?: string | null;
 }
 
+/** categoria em que um vendedor tem anúncios ativos (filtro da página do vendedor) */
+export interface CategoriaComAnuncios {
+  categoriaId: UUID;
+  nome: string;
+  quantidade: number;
+}
+
 export interface Categoria {
   id: UUID;
   nome: string;
