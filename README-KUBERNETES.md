@@ -42,6 +42,7 @@ flowchart TB
     LB --> GW
     API --> DB[("PostgreSQL gerenciado<br/>Multi-AZ e backups")]
     API --> S3[("Bucket S3 privado<br/>fotos, NF, comprovantes")]
+    API --> RD[("Redis<br/>contadores do rate limit")]
     API --> SMTP["SMTP: e-mails de conta"]
     API --> BR["BrasilAPI: CEP, CNPJ, NCM"]
 ```
@@ -54,6 +55,7 @@ flowchart TB
 | `psnf-api` | A API Spring Boot, sem estado | 3 a 8 (HPA) |
 | PostgreSQL | Dados, busca de texto (`pg_trgm`, `unaccent`) e sessões (refresh tokens) | primário + réplica em espera |
 | S3 | Arquivos enviados; o navegador nunca fala com o bucket, só com a API | gerenciado |
+| Redis | Contadores do rate limit e das tentativas de senha, iguais para todos os pods | 1 nó + réplica |
 
 ## Por que esta arquitetura
 
@@ -62,6 +64,10 @@ Cada decisão abaixo vem de como a aplicação funciona hoje.
 - **A API escala na horizontal sem sessão presa.** O login é um JWT em cookie e o refresh token fica no
   banco, então qualquer pod atende qualquer requisição. Não é preciso "sticky session" no load balancer.
   A única exigência é que **todos os pods usem o mesmo `PSNF_JWT_SECRET`**.
+- **O rate limit vale para a plataforma inteira.** Os contadores ficam no Redis, então o limite de um
+  usuário é o mesmo qualquer que seja o pod que o atenda, e errar a senha em um pod conta nos outros. O
+  Redis não guarda nada além disso: se ele cair, a API continua atendendo e cada pod passa a limitar pela
+  própria memória até ele voltar.
 - **Não há WebSocket.** O chat e os alertas funcionam por consulta periódica (a cada 3 a 30 segundos),
   então um balanceamento HTTP comum basta, e o custo de cada usuário é previsível.
 - **O gateway tira o prefixo `/api`.** O front chama `/api/...` e a API responde em `/...`. No
@@ -92,6 +98,7 @@ a consulta de alertas só roda com a aba visível e o chat desacelera quando a c
 | `psnf-web` | 2 pods; 0,05 vCPU e 64 MiB | só arquivos estáticos |
 | Gateway | 2 pods | um por zona, no mínimo |
 | PostgreSQL | 2 vCPU / 8 GB (ex.: `db.m6g.large`), Multi-AZ, 100 GB SSD | aumente a instância se a CPU passar de 60% |
+| Redis | 1 nó pequeno (ex.: `cache.t4g.small`) com réplica em outra zona | uma operação por requisição; guarda poucos MB |
 | Conexões com o banco | 20 por pod (`PSNF_DB_POOL=20`) | 8 pods × 20 = 160 conexões no máximo |
 
 **Conexões com o banco.** É o limite que mais importa ao escalar. O total de pods vezes o tamanho do
@@ -233,9 +240,9 @@ Para os nós extras entrarem sozinhos sob carga, instale também um escalonador 
 ou Karpenter). Sem ele, o cluster fica nos 3 nós iniciais, que comportam a carga estimada, mas sem folga
 para picos.
 
-### 3. Criar o banco
+### 3. Criar o banco e o Redis
 
-Crie um PostgreSQL gerenciado **na mesma rede (VPC) do cluster**, sem endereço público:
+**Banco.** Crie um PostgreSQL gerenciado **na mesma rede (VPC) do cluster**, sem endereço público:
 
 | Parâmetro | Valor |
 | --- | --- |
@@ -251,6 +258,62 @@ A primeira migração cria as extensões `pg_trgm` e `unaccent`, usadas pela bus
 que a API usa precisa poder criar extensões nesse banco. No RDS, o usuário principal da instância pode.
 
 Guarde o endereço, o usuário e a senha: entram no passo 6.
+
+**Redis.** Guarda só os contadores do rate limit, que expiram sozinhos. Não precisa de backup nem de
+disco: se ele reiniciar vazio, os limites recomeçam do zero e ninguém fica bloqueado por engano.
+
+Na AWS, crie um ElastiCache (Redis OSS ou Valkey 7 ou mais novo) na mesma VPC, com um nó
+`cache.t4g.small`, uma réplica em outra zona com failover automático, criptografia em trânsito ligada e a
+porta 6379 liberada só para os nós do cluster. Guarde o endereço principal para o passo 6.
+
+Fora da AWS, ou para um ambiente de homologação, um Redis dentro do próprio cluster basta. Aplique o
+manifesto abaixo depois de criar o namespace (passo 6) e use `PSNF_REDIS_HOST: psnf-redis` e
+`PSNF_REDIS_TLS: "false"`:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: psnf-redis
+  namespace: psnf
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: psnf-redis
+  template:
+    metadata:
+      labels:
+        app: psnf-redis
+    spec:
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          # sem gravar em disco; ao encher a memória, descarta os contadores menos usados
+          args: ["--save", "", "--appendonly", "no", "--maxmemory", "200mb", "--maxmemory-policy", "allkeys-lru"]
+          ports:
+            - containerPort: 6379
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              memory: 256Mi
+          readinessProbe:
+            tcpSocket:
+              port: 6379
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: psnf-redis
+  namespace: psnf
+spec:
+  selector:
+    app: psnf-redis
+  ports:
+    - port: 6379
+```
 
 ### 4. Criar o bucket e dar permissão à API
 
@@ -369,6 +432,10 @@ data:
   PSNF_USUARIOS_TESTE: "false"
   PSNF_FORWARD_HEADERS: native
   PSNF_FRONT_URL: https://psnf.exemplo.com.br
+  # contadores do rate limit; TLS "true" quando o Redis exige criptografia em trânsito
+  PSNF_REDIS_HOST: <ENDERECO-DO-REDIS>
+  PSNF_REDIS_PORT: "6379"
+  PSNF_REDIS_TLS: "true"
   PSNF_SMTP_HOST: <SERVIDOR-SMTP>
   PSNF_SMTP_PORT: "587"
   PSNF_EMAIL_REMETENTE: PSNF <nao-responda@psnf.exemplo.com.br>
@@ -387,6 +454,8 @@ Os segredos não vão para o git. Crie direto no cluster:
 ```bash
 kubectl create secret generic psnf-api --namespace psnf --from-literal=SPRING_DATASOURCE_USERNAME='<USUARIO-DO-BANCO>' --from-literal=SPRING_DATASOURCE_PASSWORD='<SENHA-DO-BANCO>' --from-literal=PSNF_JWT_SECRET="$(openssl rand -base64 48)" --from-literal=PSNF_SMTP_USER='<USUARIO-SMTP>' --from-literal=PSNF_SMTP_PASSWORD='<SENHA-SMTP>'
 ```
+
+Se o Redis tiver senha, acrescente `--from-literal=PSNF_REDIS_PASSWORD='<SENHA-DO-REDIS>'`.
 
 O `PSNF_JWT_SECRET` assina os logins. Se ele mudar, todos os usuários são deslogados. Se ficar vazio,
 cada pod gera o seu e o login deixa de funcionar entre pods.
@@ -760,10 +829,10 @@ certificado.
 
 Estes pontos não impedem a operação com 2.000 usuários, mas é bom conhecê-los.
 
-- **O rate limit é por pod.** Os contadores ficam na memória de cada instância. Com N pods, um usuário
-  pode chegar a N vezes o limite configurado, e o mesmo vale para o freio de tentativas de senha. A
-  proteção continua existindo, só fica mais frouxa. Para um limite global, os contadores precisam ir
-  para um Redis compartilhado, o que exige mudança no código.
+- **Redis fora do ar afrouxa o rate limit.** A API continua atendendo, mas cada pod passa a contar na
+  própria memória, então o limite efetivo pode chegar a N vezes o configurado enquanto durar a queda. O
+  log da API registra a queda e a volta ("Rate limit: Redis indisponível" e "Redis voltou"): vale um
+  alarme para a primeira mensagem.
 - **Não há endpoint de saúde nem métricas.** As sondas usam `/categorias`. O próximo passo natural é
   adicionar o Spring Boot Actuator, com sondas próprias e métricas para Prometheus.
 - **As imagens passam pela API.** Cada foto é lida do S3 pela API e devolvida ao navegador, que a guarda

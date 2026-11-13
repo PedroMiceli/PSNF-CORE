@@ -17,5 +17,14 @@ services:
     volumes:
       - miniodata:/data
 
+  # Redis: baldes do rate limit e do freio de tentativas de login, compartilhados entre as instâncias da API.
+  # Sem persistência em disco: se reiniciar, os baldes voltam cheios (ninguém fica bloqueado por engano).
+  redis:
+    image: redis:7-alpine
+    container_name: psnf-redis
+    command: redis-server --save "" --appendonly no --maxmemory 256mb --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+
 volumes:
   miniodata:

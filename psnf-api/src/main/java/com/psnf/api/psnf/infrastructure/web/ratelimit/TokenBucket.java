@@ -1,22 +1,17 @@
 package com.psnf.api.psnf.infrastructure.web.ratelimit;
 
+import com.psnf.api.psnf.infrastructure.web.ratelimit.ArmazenamentoBaldes.Resultado;
+
 /**
- * Balde de fichas de um cliente. O reabastecimento é calculado na hora do uso (sem threads de fundo):
+ * Balde de fichas de um cliente, em memória ({@link BaldesEmMemoria}). O reabastecimento é calculado na hora do uso (sem threads de fundo):
  * fichas = min(capacidade, fichas + tempoDecorrido × taxa).
  */
 final class TokenBucket {
-
-    /** resultado de uma tentativa: quantas fichas sobraram e, se negado, em quantos segundos haverá uma */
-    record Resultado(boolean permitido, int restantes, long esperarSegundos) {}
 
     private final double capacidade;
     private final double fichasPorNano;
     private double fichas;
     private long atualizadoEm;
-
-    TokenBucket(RateLimitProperties.Limite limite, long agoraNanos) {
-        this(limite.capacidade(), limite.porMinuto(), agoraNanos);
-    }
 
     /** @param fichasPorMinuto pode ser fracionário: 0,2 = uma ficha a cada 5 minutos */
     TokenBucket(double capacidade, double fichasPorMinuto, long agoraNanos) {

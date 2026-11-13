@@ -15,8 +15,10 @@ class RateLimitFilterTest {
 
     private final AtomicLong agora = new AtomicLong(0);
 
+    private BaldesEmMemoria baldes = new BaldesEmMemoria(100_000, agora::get);
+
     private RateLimitFilter filtro(RateLimitProperties.Limite padrao, RateLimitProperties.Regra... regras) {
-        return new RateLimitFilter(new RateLimitProperties(true, padrao, List.of(regras), null), agora::get);
+        return new RateLimitFilter(new RateLimitProperties(true, padrao, List.of(regras), null, "memoria"), baldes);
     }
 
     private MockHttpServletResponse chamar(RateLimitFilter f, String metodo, String caminho, String ip) throws Exception {
@@ -101,7 +103,7 @@ class RateLimitFilterTest {
         for (int i = 0; i < 5; i++) assertThat(chamar(f, "OPTIONS", "/a", "1.1.1.1").getStatus()).isEqualTo(200);
 
         RateLimitFilter desligado = new RateLimitFilter(
-                new RateLimitProperties(false, new RateLimitProperties.Limite(1, 60), List.of(), null), agora::get);
+                new RateLimitProperties(false, new RateLimitProperties.Limite(1, 60), List.of(), null, "memoria"), baldes);
         for (int i = 0; i < 5; i++) assertThat(chamar(desligado, "GET", "/a", "1.1.1.1").getStatus()).isEqualTo(200);
     }
 
@@ -109,10 +111,23 @@ class RateLimitFilterTest {
     void descartaBaldesCheiosParaNaoCrescerAMemoria() throws Exception {
         RateLimitFilter f = filtro(new RateLimitProperties.Limite(2, 60));
         for (int i = 0; i < 50; i++) chamar(f, "GET", "/a", "10.0.0." + i);
-        assertThat(f.clientesEmMemoria()).isEqualTo(50);
+        assertThat(baldes.tamanho()).isEqualTo(50);
 
         avancarSegundos(61); // todos reabasteceram; a próxima requisição dispara a limpeza
         chamar(f, "GET", "/a", "9.9.9.9");
-        assertThat(f.clientesEmMemoria()).isEqualTo(1);
+        assertThat(baldes.tamanho()).isEqualTo(1);
+    }
+
+    @Test
+    void comAMemoriaNoMaximoDeixaPassarEmVezDeCrescer() throws Exception {
+        baldes = new BaldesEmMemoria(2, agora::get);
+        RateLimitFilter f = filtro(new RateLimitProperties.Limite(1, 60));
+        chamar(f, "GET", "/a", "1.1.1.1");
+        chamar(f, "GET", "/a", "2.2.2.2");
+        // terceiro cliente não cabe: não é limitado, e a memória não cresce
+        for (int i = 0; i < 3; i++) assertThat(chamar(f, "GET", "/a", "3.3.3.3").getStatus()).isEqualTo(200);
+        assertThat(baldes.tamanho()).isEqualTo(2);
+        // quem já tinha balde continua limitado
+        assertThat(chamar(f, "GET", "/a", "1.1.1.1").getStatus()).isEqualTo(429);
     }
 }
