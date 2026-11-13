@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 640" width="1200" height="640" font-family="-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" role="img" aria-label="Dados: onde cada informação mora">
+<title>Dados: onde cada informação mora</title>
+<defs><marker id="pf2E9E5B" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#2E9E5B"/></marker><marker id="pi2E9E5B" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M10,0 L0,5 L10,10 z" fill="#2E9E5B"/></marker><marker id="pf475569" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#475569"/></marker><marker id="pi475569" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M10,0 L0,5 L10,10 z" fill="#475569"/></marker></defs>
+<rect x="1" y="1" width="1198" height="638" rx="16" fill="#FFFFFF" stroke="#E5E7EB" stroke-width="2"/>
+<text x="28" y="38" font-size="19" font-weight="700" fill="#111827">Dados: onde cada informação mora</text><text x="28" y="60" font-size="13" fill="#4B5563">Banco e Redis dentro do cluster; arquivos e cópias de segurança no S3.</text>
+<rect x="40" y="165" width="170" height="80" rx="10" fill="#E8F1FE" stroke="#2F6FDE" stroke-width="1.6"/>
+<text x="125.0" y="202.0" font-size="14" font-weight="700" fill="#12366F" text-anchor="middle">API</text>
+<text x="125.0" y="219.0" font-size="12" font-weight="400" fill="#12366F" text-anchor="middle">3 a 6 pods</text>
+<rect x="290" y="95" width="560" height="270" rx="14" fill="#E6F6EC" fill-opacity="0.45" stroke="#2E9E5B" stroke-width="1.5"/>
+<text x="306" y="119" font-size="13" font-weight="700" fill="#14532D" text-anchor="start">PostgreSQL: três cópias, uma em cada nó</text>
+<path d="M315,161 a75.0,11 0 0 1 150,0 v88 a75.0,11 0 0 1 -150,0 z" fill="#E6F6EC" stroke="#2E9E5B" stroke-width="1.6"/>
+<path d="M315,161 a75.0,11 0 0 0 150,0" fill="none" stroke="#2E9E5B" stroke-width="1.6"/>
+<text x="390.0" y="199.5" font-size="14" font-weight="700" fill="#14532D" text-anchor="middle">Primário</text>
+<text x="390.0" y="216.5" font-size="12" font-weight="400" fill="#14532D" text-anchor="middle">nó 1</text>
+<text x="390.0" y="233.5" font-size="12" font-weight="400" fill="#14532D" text-anchor="middle">lê e grava</text>
+<path d="M495,161 a75.0,11 0 0 1 150,0 v88 a75.0,11 0 0 1 -150,0 z" fill="#E6F6EC" stroke="#2E9E5B" stroke-width="1.6"/>
+<path d="M495,161 a75.0,11 0 0 0 150,0" fill="none" stroke="#2E9E5B" stroke-width="1.6"/>
+<text x="570.0" y="199.5" font-size="14" font-weight="700" fill="#14532D" text-anchor="middle">Réplica</text>
+<text x="570.0" y="216.5" font-size="12" font-weight="400" fill="#14532D" text-anchor="middle">nó 2</text>
+<text x="570.0" y="233.5" font-size="12" font-weight="400" fill="#14532D" text-anchor="middle">cópia em tempo real</text>
+<path d="M675,161 a75.0,11 0 0 1 150,0 v88 a75.0,11 0 0 1 -150,0 z" fill="#E6F6EC" stroke="#2E9E5B" stroke-width="1.6"/>
+<path d="M675,161 a75.0,11 0 0 0 150,0" fill="none" stroke="#2E9E5B" stroke-width="1.6"/>
+<text x="750.0" y="199.5" font-size="14" font-weight="700" fill="#14532D" text-anchor="middle">Réplica</text>
+<text x="750.0" y="216.5" font-size="12" font-weight="400" fill="#14532D" text-anchor="middle">nó 3</text>
+<text x="750.0" y="233.5" font-size="12" font-weight="400" fill="#14532D" text-anchor="middle">cópia em tempo real</text>
+<path d="M465,205 L495,205" fill="none" stroke="#2E9E5B" stroke-width="1.8" marker-end="url(#pf2E9E5B)"/>
+<path d="M645,205 L675,205" fill="none" stroke="#2E9E5B" stroke-width="1.8" marker-end="url(#pf2E9E5B)"/>
+<text x="570" y="300" font-size="13" font-weight="600" fill="#14532D" text-anchor="middle">Se o primário cair, uma réplica assume sozinha em segundos.</text>
+<text x="570" y="322" font-size="12.5" font-weight="400" fill="#14532D" text-anchor="middle">A API sempre fala com "o primário atual", sem saber em que nó ele está.</text>
+<path d="M210,205 L315,205" fill="none" stroke="#475569" stroke-width="1.8" marker-end="url(#pf475569)"/>
+<text x="262" y="196" font-size="12" fill="#334155" text-anchor="middle" stroke="#FFFFFF" stroke-width="4" paint-order="stroke" stroke-linejoin="round">dados</text>
+<rect x="290" y="395" width="560" height="150" rx="14" fill="#E6F6EC" fill-opacity="0.45" stroke="#2E9E5B" stroke-width="1.5"/>
+<text x="306" y="419" font-size="13" font-weight="700" fill="#14532D" text-anchor="start">Redis: uma instância, sem disco</text>
+<rect x="315" y="440" width="200" height="80" rx="10" fill="#E6F6EC" stroke="#2E9E5B" stroke-width="1.6"/>
+<text x="415.0" y="469.0" font-size="14" font-weight="700" fill="#14532D" text-anchor="middle">Redis</text>
+<text x="415.0" y="486.0" font-size="12" font-weight="400" fill="#14532D" text-anchor="middle">contadores do rate limit</text>
+<text x="415.0" y="503.0" font-size="12" font-weight="400" fill="#14532D" text-anchor="middle">e das tentativas de senha</text>
+<text x="690" y="470" font-size="13" font-weight="600" fill="#14532D" text-anchor="middle">Não guarda nada que faça falta.</text>
+<text x="690" y="492" font-size="12.5" font-weight="400" fill="#14532D" text-anchor="middle">Se cair, a API conta na memória</text>
+<text x="690" y="510" font-size="12.5" font-weight="400" fill="#14532D" text-anchor="middle">até ele voltar em outro nó.</text>
+<path d="M170,245 L170,480 L315,480" fill="none" stroke="#475569" stroke-width="1.8" marker-end="url(#pf475569)"/>
+<text x="240" y="470" font-size="12" fill="#334155" text-anchor="middle" stroke="#FFFFFF" stroke-width="4" paint-order="stroke" stroke-linejoin="round">limites</text>
+<line x1="900" y1="95" x2="900" y2="570" stroke="#9AA3AF" stroke-width="1.5" stroke-dasharray="6 5"/>
+<text x="900" y="592" font-size="12" font-weight="600" fill="#6B7280" text-anchor="middle">limite do seu servidor  |  internet</text>
+<path d="M960,161 a100.0,11 0 0 1 200,0 v108 a100.0,11 0 0 1 -200,0 z" fill="#FFF1E0" stroke="#E08A1E" stroke-width="1.6"/>
+<path d="M960,161 a100.0,11 0 0 0 200,0" fill="none" stroke="#E08A1E" stroke-width="1.6"/>
+<text x="1060.0" y="209.5" font-size="14" font-weight="700" fill="#7A4504" text-anchor="middle">S3 (nuvem)</text>
+<text x="1060.0" y="226.5" font-size="12" font-weight="400" fill="#7A4504" text-anchor="middle">fotos, NF, comprovantes</text>
+<text x="1060.0" y="243.5" font-size="12" font-weight="400" fill="#7A4504" text-anchor="middle">bucket privado</text>
+<path d="M960,411 a100.0,11 0 0 1 200,0 v108 a100.0,11 0 0 1 -200,0 z" fill="#FFF1E0" stroke="#E08A1E" stroke-width="1.6"/>
+<path d="M960,411 a100.0,11 0 0 0 200,0" fill="none" stroke="#E08A1E" stroke-width="1.6"/>
+<text x="1060.0" y="459.5" font-size="14" font-weight="700" fill="#7A4504" text-anchor="middle">S3 (nuvem)</text>
+<text x="1060.0" y="476.5" font-size="12" font-weight="400" fill="#7A4504" text-anchor="middle">cópias de segurança</text>
+<text x="1060.0" y="493.5" font-size="12" font-weight="400" fill="#7A4504" text-anchor="middle">do banco</text>
+<path d="M125,165 L125,78 L1060,78 L1060,150" fill="none" stroke="#475569" stroke-width="1.8" marker-end="url(#pf475569)"/>
+<text x="640" y="73" font-size="12" fill="#334155" text-anchor="middle" stroke="#FFFFFF" stroke-width="4" paint-order="stroke" stroke-linejoin="round">arquivos enviados e lidos pela API</text>
+<path d="M850,345 L935,345 L935,460 L960,460" fill="none" stroke="#475569" stroke-width="1.8" marker-end="url(#pf475569)"/>
+<text x="1010" y="372" font-size="12" fill="#334155" text-anchor="middle" stroke="#FFFFFF" stroke-width="4" paint-order="stroke" stroke-linejoin="round">backup diário e alterações contínuas</text>
+</svg>

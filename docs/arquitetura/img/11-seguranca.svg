@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 585" width="1200" height="585" font-family="-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" role="img" aria-label="Segurança: camadas de acesso">
+<title>Segurança: camadas de acesso</title>
+<defs><marker id="pf475569" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#475569"/></marker><marker id="pi475569" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M10,0 L0,5 L10,10 z" fill="#475569"/></marker></defs>
+<rect x="1" y="1" width="1198" height="583" rx="16" fill="#FFFFFF" stroke="#E5E7EB" stroke-width="2"/>
+<text x="28" y="38" font-size="19" font-weight="700" fill="#111827">Segurança: camadas de acesso</text><text x="28" y="60" font-size="13" fill="#4B5563">Quanto mais para dentro, menos gente e menos sistemas alcançam.</text>
+<rect x="30" y="85" width="860" height="445" rx="14" fill="#F3F4F6" fill-opacity="0.45" stroke="#9AA3AF" stroke-width="1.5"/>
+<text x="46" y="109" font-size="13" font-weight="700" fill="#1F2937" text-anchor="start">Internet: qualquer pessoa</text>
+<rect x="55" y="255" width="130" height="70" rx="10" fill="#F3F4F6" stroke="#9AA3AF" stroke-width="1.6"/>
+<text x="120.0" y="295.0" font-size="14" font-weight="700" fill="#1F2937" text-anchor="middle">Usuários</text>
+<rect x="215" y="125" width="650" height="385" rx="14" fill="#F1EAFE" fill-opacity="0.45" stroke="#7B4FD6" stroke-width="1.5"/>
+<text x="231" y="149" font-size="13" font-weight="700" fill="#3B1F7A" text-anchor="start">Borda: firewall deixa entrar só 80 e 443</text>
+<rect x="240" y="255" width="130" height="70" rx="10" fill="#F1EAFE" stroke="#7B4FD6" stroke-width="1.6"/>
+<text x="305.0" y="287.0" font-size="14" font-weight="700" fill="#3B1F7A" text-anchor="middle">Gateway</text>
+<text x="305.0" y="304.0" font-size="12" font-weight="400" fill="#3B1F7A" text-anchor="middle">HTTPS</text>
+<rect x="400" y="165" width="440" height="325" rx="14" fill="#E8F1FE" fill-opacity="0.45" stroke="#2F6FDE" stroke-width="1.5"/>
+<text x="416" y="189" font-size="13" font-weight="700" fill="#12366F" text-anchor="start">Aplicação: só o gateway chega aqui</text>
+<rect x="425" y="210" width="120" height="60" rx="10" fill="#E8F1FE" stroke="#2F6FDE" stroke-width="1.6"/>
+<text x="485.0" y="245.0" font-size="14" font-weight="700" fill="#12366F" text-anchor="middle">Front</text>
+<rect x="425" y="300" width="120" height="80" rx="10" fill="#E8F1FE" stroke="#2F6FDE" stroke-width="1.6"/>
+<text x="485.0" y="329.0" font-size="14" font-weight="700" fill="#12366F" text-anchor="middle">API</text>
+<text x="485.0" y="346.0" font-size="12" font-weight="400" fill="#12366F" text-anchor="middle">login, permissões</text>
+<text x="485.0" y="363.0" font-size="12" font-weight="400" fill="#12366F" text-anchor="middle">e rate limit</text>
+<rect x="575" y="205" width="245" height="265" rx="14" fill="#E6F6EC" fill-opacity="0.45" stroke="#2E9E5B" stroke-width="1.5"/>
+<text x="591" y="229" font-size="13" font-weight="700" fill="#14532D" text-anchor="start">Dados: só a API chega aqui</text>
+<path d="M595,256 a102.5,11 0 0 1 205,0 v43 a102.5,11 0 0 1 -205,0 z" fill="#E6F6EC" stroke="#2E9E5B" stroke-width="1.6"/>
+<path d="M595,256 a102.5,11 0 0 0 205,0" fill="none" stroke="#2E9E5B" stroke-width="1.6"/>
+<text x="697.5" y="288.0" font-size="14" font-weight="700" fill="#14532D" text-anchor="middle">PostgreSQL</text>
+<rect x="595" y="325" width="205" height="50" rx="10" fill="#E6F6EC" stroke="#2E9E5B" stroke-width="1.6"/>
+<text x="697.5" y="355.0" font-size="14" font-weight="700" fill="#14532D" text-anchor="middle">Redis</text>
+<rect x="595" y="390" width="205" height="60" rx="10" fill="#FFF9DB" stroke="#D4A72C" stroke-width="1.6"/>
+<text x="697.5" y="417.0" font-size="14" font-weight="700" fill="#5C4400" text-anchor="middle">Segredos</text>
+<text x="697.5" y="434.0" font-size="12" font-weight="400" fill="#5C4400" text-anchor="middle">senhas e chaves</text>
+<path d="M185,290 L240,290" fill="none" stroke="#475569" stroke-width="1.8" marker-end="url(#pf475569)"/>
+<path d="M370,275 L385,275 L385,240 L425,240" fill="none" stroke="#475569" stroke-width="1.8" marker-end="url(#pf475569)"/>
+<path d="M370,305 L385,305 L385,340 L425,340" fill="none" stroke="#475569" stroke-width="1.8" marker-end="url(#pf475569)"/>
+<path d="M545,340 L575,340" fill="none" stroke="#475569" stroke-width="1.8" marker-end="url(#pf475569)"/>
+<rect x="920" y="85" width="250" height="445" rx="14" fill="#FFF1E0" fill-opacity="0.45" stroke="#E08A1E" stroke-width="1.5"/>
+<text x="936" y="109" font-size="13" font-weight="700" fill="#7A4504" text-anchor="start">Saídas permitidas</text>
+<rect x="945" y="130" width="200" height="70" rx="10" fill="#FFF1E0" stroke="#E08A1E" stroke-width="1.6"/>
+<text x="1045.0" y="162.0" font-size="14" font-weight="700" fill="#7A4504" text-anchor="middle">S3</text>
+<text x="1045.0" y="179.0" font-size="12" font-weight="400" fill="#7A4504" text-anchor="middle">arquivos e backups</text>
+<rect x="945" y="225" width="200" height="70" rx="10" fill="#FFF1E0" stroke="#E08A1E" stroke-width="1.6"/>
+<text x="1045.0" y="257.0" font-size="14" font-weight="700" fill="#7A4504" text-anchor="middle">E-mail (SMTP)</text>
+<text x="1045.0" y="274.0" font-size="12" font-weight="400" fill="#7A4504" text-anchor="middle">mensagens de conta</text>
+<rect x="945" y="320" width="200" height="70" rx="10" fill="#FFF1E0" stroke="#E08A1E" stroke-width="1.6"/>
+<text x="1045.0" y="352.0" font-size="14" font-weight="700" fill="#7A4504" text-anchor="middle">BrasilAPI</text>
+<text x="1045.0" y="369.0" font-size="12" font-weight="400" fill="#7A4504" text-anchor="middle">CEP, CNPJ, NCM</text>
+<rect x="945" y="415" width="200" height="70" rx="10" fill="#FFF1E0" stroke="#E08A1E" stroke-width="1.6"/>
+<text x="1045.0" y="447.0" font-size="14" font-weight="700" fill="#7A4504" text-anchor="middle">Let's Encrypt</text>
+<text x="1045.0" y="464.0" font-size="12" font-weight="400" fill="#7A4504" text-anchor="middle">certificado HTTPS</text>
+<path d="M485,380 L485,555 L905,555 L905,300 L920,300" fill="none" stroke="#475569" stroke-width="1.8" marker-end="url(#pf475569)"/>
+<text x="695" y="549" font-size="12" fill="#334155" text-anchor="middle" stroke="#FFFFFF" stroke-width="4" paint-order="stroke" stroke-linejoin="round">só a API e o gateway saem para a internet</text>
+</svg>

@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 890" width="1200" height="890" font-family="-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" role="img" aria-label="Visão geral da arquitetura">
+<title>Visão geral da arquitetura</title>
+<defs><marker id="pf475569" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#475569"/></marker><marker id="pi475569" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M10,0 L0,5 L10,10 z" fill="#475569"/></marker></defs>
+<rect x="1" y="1" width="1198" height="888" rx="16" fill="#FFFFFF" stroke="#E5E7EB" stroke-width="2"/>
+<text x="28" y="38" font-size="19" font-weight="700" fill="#111827">Visão geral da arquitetura</text><text x="28" y="60" font-size="13" fill="#4B5563">Um cluster Kubernetes de 3 nós no seu servidor; cada nó hospeda uma cópia de cada peça importante.</text>
+<rect x="40" y="85" width="250" height="70" rx="10" fill="#FFF1E0" stroke="#E08A1E" stroke-width="1.6"/>
+<text x="165.0" y="117.0" font-size="14" font-weight="700" fill="#7A4504" text-anchor="middle">E-mail (SMTP) e BrasilAPI</text>
+<text x="165.0" y="134.0" font-size="12" font-weight="400" fill="#7A4504" text-anchor="middle">serviços externos</text>
+<rect x="500" y="85" width="200" height="60" rx="10" fill="#F3F4F6" stroke="#9AA3AF" stroke-width="1.6"/>
+<text x="600.0" y="112.0" font-size="14" font-weight="700" fill="#1F2937" text-anchor="middle">Usuários</text>
+<text x="600.0" y="129.0" font-size="12" font-weight="400" fill="#1F2937" text-anchor="middle">internet</text>
+<rect x="910" y="85" width="250" height="70" rx="10" fill="#FFF1E0" stroke="#E08A1E" stroke-width="1.6"/>
+<text x="1035.0" y="117.0" font-size="14" font-weight="700" fill="#7A4504" text-anchor="middle">S3 (nuvem)</text>
+<text x="1035.0" y="134.0" font-size="12" font-weight="400" fill="#7A4504" text-anchor="middle">arquivos e backups</text>
+<rect x="470" y="185" width="260" height="60" rx="10" fill="#F1EAFE" stroke="#7B4FD6" stroke-width="1.6"/>
+<text x="600.0" y="212.0" font-size="14" font-weight="700" fill="#3B1F7A" text-anchor="middle">Roteador / firewall</text>
+<text x="600.0" y="229.0" font-size="12" font-weight="400" fill="#3B1F7A" text-anchor="middle">só as portas 80 e 443 entram</text>
+<rect x="40" y="280" width="1120" height="585" rx="14" fill="#F3F4F6" fill-opacity="0.45" stroke="#9AA3AF" stroke-width="1.5"/>
+<text x="56" y="304" font-size="13" font-weight="700" fill="#1F2937" text-anchor="start">Rede local do servidor</text>
+<rect x="450" y="300" width="300" height="60" rx="10" fill="#F1EAFE" stroke="#7B4FD6" stroke-width="1.6"/>
+<text x="600.0" y="327.0" font-size="14" font-weight="700" fill="#3B1F7A" text-anchor="middle">IP virtual (load balancer)</text>
+<text x="600.0" y="344.0" font-size="12" font-weight="400" fill="#3B1F7A" text-anchor="middle">muda de nó sozinho se um cair</text>
+<path d="M600,145 L600,185" fill="none" stroke="#475569" stroke-width="1.8" marker-end="url(#pf475569)"/>
+<path d="M600,245 L600,300" fill="none" stroke="#475569" stroke-width="1.8" marker-end="url(#pf475569)"/>
+<path d="M165,280 L165,155" fill="none" stroke="#475569" stroke-width="1.8" marker-end="url(#pf475569)"/>
+<text x="165" y="222" font-size="12" fill="#334155" text-anchor="middle" stroke="#FFFFFF" stroke-width="4" paint-order="stroke" stroke-linejoin="round">saída HTTPS</text>
+<path d="M1035,280 L1035,155" fill="none" stroke="#475569" stroke-width="1.8" marker-end="url(#pf475569)"/>
+<text x="1035" y="222" font-size="12" fill="#334155" text-anchor="middle" stroke="#FFFFFF" stroke-width="4" paint-order="stroke" stroke-linejoin="round">saída HTTPS</text>
+<rect x="70" y="405" width="320" height="390" rx="14" fill="#FFFFFF" fill-opacity="1" stroke="#2F6FDE" stroke-width="1.5"/>
+<text x="86" y="429" font-size="13" font-weight="700" fill="#12366F" text-anchor="start">Nó 1: controle do Kubernetes + aplicações</text>
+<rect x="90" y="445" width="280" height="48" rx="10" fill="#F1EAFE" stroke="#7B4FD6" stroke-width="1.6"/>
+<text x="230.0" y="466.0" font-size="14" font-weight="700" fill="#3B1F7A" text-anchor="middle">Gateway</text>
+<text x="230.0" y="483.0" font-size="12" font-weight="400" fill="#3B1F7A" text-anchor="middle">termina o HTTPS e roteia</text>
+<rect x="90" y="505" width="280" height="48" rx="10" fill="#E8F1FE" stroke="#2F6FDE" stroke-width="1.6"/>
+<text x="230.0" y="526.0" font-size="14" font-weight="700" fill="#12366F" text-anchor="middle">API</text>
+<text x="230.0" y="543.0" font-size="12" font-weight="400" fill="#12366F" text-anchor="middle">Spring Boot</text>
+<rect x="90" y="565" width="280" height="48" rx="10" fill="#E8F1FE" stroke="#2F6FDE" stroke-width="1.6"/>
+<text x="230.0" y="586.0" font-size="14" font-weight="700" fill="#12366F" text-anchor="middle">Front</text>
+<text x="230.0" y="603.0" font-size="12" font-weight="400" fill="#12366F" text-anchor="middle">site estático</text>
+<path d="M90,639 a140.0,11 0 0 1 280,0 v56 a140.0,11 0 0 1 -280,0 z" fill="#E6F6EC" stroke="#2E9E5B" stroke-width="1.6"/>
+<path d="M90,639 a140.0,11 0 0 0 280,0" fill="none" stroke="#2E9E5B" stroke-width="1.6"/>
+<text x="230.0" y="669.5" font-size="14" font-weight="700" fill="#14532D" text-anchor="middle">PostgreSQL</text>
+<text x="230.0" y="686.5" font-size="12" font-weight="400" fill="#14532D" text-anchor="middle">primário</text>
+<rect x="90" y="722" width="280" height="48" rx="10" fill="#F3F4F6" stroke="#9AA3AF" stroke-width="1.6"/>
+<text x="230.0" y="743.0" font-size="14" font-weight="700" fill="#1F2937" text-anchor="middle">Monitoramento</text>
+<text x="230.0" y="760.0" font-size="12" font-weight="400" fill="#1F2937" text-anchor="middle">métricas, logs e alertas</text>
+<path d="M600,360 L600,385 L230,385 L230,445" fill="none" stroke="#475569" stroke-width="1.8" marker-end="url(#pf475569)"/>
+<rect x="440" y="405" width="320" height="390" rx="14" fill="#FFFFFF" fill-opacity="1" stroke="#2F6FDE" stroke-width="1.5"/>
+<text x="456" y="429" font-size="13" font-weight="700" fill="#12366F" text-anchor="start">Nó 2: controle do Kubernetes + aplicações</text>
+<rect x="460" y="445" width="280" height="48" rx="10" fill="#F1EAFE" stroke="#7B4FD6" stroke-width="1.6"/>
+<text x="600.0" y="466.0" font-size="14" font-weight="700" fill="#3B1F7A" text-anchor="middle">Gateway</text>
+<text x="600.0" y="483.0" font-size="12" font-weight="400" fill="#3B1F7A" text-anchor="middle">termina o HTTPS e roteia</text>
+<rect x="460" y="505" width="280" height="48" rx="10" fill="#E8F1FE" stroke="#2F6FDE" stroke-width="1.6"/>
+<text x="600.0" y="526.0" font-size="14" font-weight="700" fill="#12366F" text-anchor="middle">API</text>
+<text x="600.0" y="543.0" font-size="12" font-weight="400" fill="#12366F" text-anchor="middle">Spring Boot</text>
+<rect x="460" y="565" width="280" height="48" rx="10" fill="#E8F1FE" stroke="#2F6FDE" stroke-width="1.6"/>
+<text x="600.0" y="586.0" font-size="14" font-weight="700" fill="#12366F" text-anchor="middle">Front</text>
+<text x="600.0" y="603.0" font-size="12" font-weight="400" fill="#12366F" text-anchor="middle">site estático</text>
+<path d="M460,639 a140.0,11 0 0 1 280,0 v56 a140.0,11 0 0 1 -280,0 z" fill="#E6F6EC" stroke="#2E9E5B" stroke-width="1.6"/>
+<path d="M460,639 a140.0,11 0 0 0 280,0" fill="none" stroke="#2E9E5B" stroke-width="1.6"/>
+<text x="600.0" y="669.5" font-size="14" font-weight="700" fill="#14532D" text-anchor="middle">PostgreSQL</text>
+<text x="600.0" y="686.5" font-size="12" font-weight="400" fill="#14532D" text-anchor="middle">réplica (cópia em tempo real)</text>
+<rect x="460" y="722" width="280" height="48" rx="10" fill="#E6F6EC" stroke="#2E9E5B" stroke-width="1.6"/>
+<text x="600.0" y="743.0" font-size="14" font-weight="700" fill="#14532D" text-anchor="middle">Redis</text>
+<text x="600.0" y="760.0" font-size="12" font-weight="400" fill="#14532D" text-anchor="middle">contadores do rate limit</text>
+<path d="M600,360 L600,445" fill="none" stroke="#475569" stroke-width="1.8" marker-end="url(#pf475569)"/>
+<rect x="810" y="405" width="320" height="390" rx="14" fill="#FFFFFF" fill-opacity="1" stroke="#2F6FDE" stroke-width="1.5"/>
+<text x="826" y="429" font-size="13" font-weight="700" fill="#12366F" text-anchor="start">Nó 3: controle do Kubernetes + aplicações</text>
+<rect x="830" y="445" width="280" height="48" rx="10" fill="#F1EAFE" stroke="#7B4FD6" stroke-width="1.6"/>
+<text x="970.0" y="466.0" font-size="14" font-weight="700" fill="#3B1F7A" text-anchor="middle">Gateway</text>
+<text x="970.0" y="483.0" font-size="12" font-weight="400" fill="#3B1F7A" text-anchor="middle">termina o HTTPS e roteia</text>
+<rect x="830" y="505" width="280" height="48" rx="10" fill="#E8F1FE" stroke="#2F6FDE" stroke-width="1.6"/>
+<text x="970.0" y="526.0" font-size="14" font-weight="700" fill="#12366F" text-anchor="middle">API</text>
+<text x="970.0" y="543.0" font-size="12" font-weight="400" fill="#12366F" text-anchor="middle">Spring Boot</text>
+<rect x="830" y="565" width="280" height="48" rx="10" fill="#E8F1FE" stroke="#2F6FDE" stroke-width="1.6" stroke-dasharray="6 4"/>
+<text x="970.0" y="586.0" font-size="14" font-weight="700" fill="#12366F" text-anchor="middle">API extra</text>
+<text x="970.0" y="603.0" font-size="12" font-weight="400" fill="#12366F" text-anchor="middle">criada sob carga</text>
+<path d="M830,639 a140.0,11 0 0 1 280,0 v56 a140.0,11 0 0 1 -280,0 z" fill="#E6F6EC" stroke="#2E9E5B" stroke-width="1.6"/>
+<path d="M830,639 a140.0,11 0 0 0 280,0" fill="none" stroke="#2E9E5B" stroke-width="1.6"/>
+<text x="970.0" y="669.5" font-size="14" font-weight="700" fill="#14532D" text-anchor="middle">PostgreSQL</text>
+<text x="970.0" y="686.5" font-size="12" font-weight="400" fill="#14532D" text-anchor="middle">réplica (cópia em tempo real)</text>
+<rect x="830" y="722" width="280" height="48" rx="10" fill="#F3F4F6" stroke="#9AA3AF" stroke-width="1.6"/>
+<text x="970.0" y="743.0" font-size="14" font-weight="700" fill="#1F2937" text-anchor="middle">Registro de imagens</text>
+<text x="970.0" y="760.0" font-size="12" font-weight="400" fill="#1F2937" text-anchor="middle">versões da aplicação</text>
+<path d="M600,360 L600,385 L970,385 L970,445" fill="none" stroke="#475569" stroke-width="1.8" marker-end="url(#pf475569)"/>
+<text x="600" y="835" font-size="13" font-weight="600" fill="#12366F" text-anchor="middle">As peças se repetem nos três nós: a plataforma continua no ar com um nó a menos.</text>
+</svg>

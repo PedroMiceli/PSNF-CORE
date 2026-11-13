@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 600" width="1200" height="600" font-family="-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" role="img" aria-label="O que acontece quando um nó cai">
+<title>O que acontece quando um nó cai</title>
+<defs></defs>
+<rect x="1" y="1" width="1198" height="598" rx="16" fill="#FFFFFF" stroke="#E5E7EB" stroke-width="2"/>
+<text x="28" y="38" font-size="19" font-weight="700" fill="#111827">O que acontece quando um nó cai</text><text x="28" y="60" font-size="13" fill="#4B5563">Exemplo: o nó 1, que tinha o banco primário e o IP virtual, sai do ar.</text>
+<rect x="30" y="90" width="560" height="420" rx="14" fill="#F3F4F6" fill-opacity="0.45" stroke="#9AA3AF" stroke-width="1.5"/>
+<text x="46" y="114" font-size="13" font-weight="700" fill="#1F2937" text-anchor="start">Antes</text>
+<rect x="50" y="135" width="165" height="350" rx="14" fill="#FFFFFF" fill-opacity="1" stroke="#2F6FDE" stroke-width="1.5"/>
+<text x="66" y="159" font-size="13" font-weight="700" fill="#12366F" text-anchor="start">Nó 1</text>
+<rect x="60" y="172" width="145" height="40" rx="10" fill="#F1EAFE" stroke="#7B4FD6" stroke-width="1.6"/>
+<text x="132.5" y="197.0" font-size="12" font-weight="700" fill="#3B1F7A" text-anchor="middle">IP virtual</text>
+<rect x="60" y="222" width="145" height="40" rx="10" fill="#F1EAFE" stroke="#7B4FD6" stroke-width="1.6"/>
+<text x="132.5" y="247.0" font-size="12" font-weight="700" fill="#3B1F7A" text-anchor="middle">Gateway</text>
+<rect x="60" y="272" width="145" height="40" rx="10" fill="#E8F1FE" stroke="#2F6FDE" stroke-width="1.6"/>
+<text x="132.5" y="297.0" font-size="12" font-weight="700" fill="#12366F" text-anchor="middle">API</text>
+<rect x="60" y="322" width="145" height="40" rx="10" fill="#E6F6EC" stroke="#2E9E5B" stroke-width="1.6"/>
+<text x="132.5" y="347.0" font-size="12" font-weight="700" fill="#14532D" text-anchor="middle">PostgreSQL primário</text>
+<rect x="230" y="135" width="165" height="350" rx="14" fill="#FFFFFF" fill-opacity="1" stroke="#2F6FDE" stroke-width="1.5"/>
+<text x="246" y="159" font-size="13" font-weight="700" fill="#12366F" text-anchor="start">Nó 2</text>
+<rect x="240" y="172" width="145" height="40" rx="10" fill="#F1EAFE" stroke="#7B4FD6" stroke-width="1.6"/>
+<text x="312.5" y="197.0" font-size="12" font-weight="700" fill="#3B1F7A" text-anchor="middle">Gateway</text>
+<rect x="240" y="222" width="145" height="40" rx="10" fill="#E8F1FE" stroke="#2F6FDE" stroke-width="1.6"/>
+<text x="312.5" y="247.0" font-size="12" font-weight="700" fill="#12366F" text-anchor="middle">API</text>
+<rect x="240" y="272" width="145" height="40" rx="10" fill="#E6F6EC" stroke="#2E9E5B" stroke-width="1.6"/>
+<text x="312.5" y="297.0" font-size="12" font-weight="700" fill="#14532D" text-anchor="middle">PostgreSQL réplica</text>
+<rect x="410" y="135" width="165" height="350" rx="14" fill="#FFFFFF" fill-opacity="1" stroke="#2F6FDE" stroke-width="1.5"/>
+<text x="426" y="159" font-size="13" font-weight="700" fill="#12366F" text-anchor="start">Nó 3</text>
+<rect x="420" y="172" width="145" height="40" rx="10" fill="#F1EAFE" stroke="#7B4FD6" stroke-width="1.6"/>
+<text x="492.5" y="197.0" font-size="12" font-weight="700" fill="#3B1F7A" text-anchor="middle">Gateway</text>
+<rect x="420" y="222" width="145" height="40" rx="10" fill="#E8F1FE" stroke="#2F6FDE" stroke-width="1.6"/>
+<text x="492.5" y="247.0" font-size="12" font-weight="700" fill="#12366F" text-anchor="middle">API</text>
+<rect x="420" y="272" width="145" height="40" rx="10" fill="#E6F6EC" stroke="#2E9E5B" stroke-width="1.6"/>
+<text x="492.5" y="297.0" font-size="12" font-weight="700" fill="#14532D" text-anchor="middle">PostgreSQL réplica</text>
+<rect x="610" y="90" width="560" height="420" rx="14" fill="#F3F4F6" fill-opacity="0.45" stroke="#9AA3AF" stroke-width="1.5"/>
+<text x="626" y="114" font-size="13" font-weight="700" fill="#1F2937" text-anchor="start">Depois (em segundos a poucos minutos)</text>
+<rect x="630" y="135" width="165" height="350" rx="14" fill="#FFFFFF" fill-opacity="1" stroke="#D64545" stroke-width="1.5"/>
+<text x="646" y="159" font-size="13" font-weight="700" fill="#7A1C1C" text-anchor="start">Nó 1</text>
+<rect x="640" y="172" width="145" height="40" rx="10" fill="#F3F4F6" stroke="#9AA3AF" stroke-width="1.6"/>
+<text x="712.5" y="197.0" font-size="12" font-weight="700" fill="#1F2937" text-anchor="middle">IP virtual</text>
+<rect x="640" y="222" width="145" height="40" rx="10" fill="#F3F4F6" stroke="#9AA3AF" stroke-width="1.6"/>
+<text x="712.5" y="247.0" font-size="12" font-weight="700" fill="#1F2937" text-anchor="middle">Gateway</text>
+<rect x="640" y="272" width="145" height="40" rx="10" fill="#F3F4F6" stroke="#9AA3AF" stroke-width="1.6"/>
+<text x="712.5" y="297.0" font-size="12" font-weight="700" fill="#1F2937" text-anchor="middle">API</text>
+<rect x="640" y="322" width="145" height="40" rx="10" fill="#F3F4F6" stroke="#9AA3AF" stroke-width="1.6"/>
+<text x="712.5" y="347.0" font-size="12" font-weight="700" fill="#1F2937" text-anchor="middle">PostgreSQL primário</text>
+<path d="M655,200 L770,440 M770,200 L655,440" stroke="#D64545" stroke-width="5" stroke-linecap="round" opacity="0.75"/>
+<rect x="810" y="135" width="165" height="350" rx="14" fill="#FFFFFF" fill-opacity="1" stroke="#2F6FDE" stroke-width="1.5"/>
+<text x="826" y="159" font-size="13" font-weight="700" fill="#12366F" text-anchor="start">Nó 2</text>
+<rect x="820" y="172" width="145" height="40" rx="10" fill="#F1EAFE" stroke="#7B4FD6" stroke-width="1.6"/>
+<text x="892.5" y="197.0" font-size="12" font-weight="700" fill="#3B1F7A" text-anchor="middle">IP virtual</text>
+<rect x="820" y="222" width="145" height="40" rx="10" fill="#F1EAFE" stroke="#7B4FD6" stroke-width="1.6"/>
+<text x="892.5" y="247.0" font-size="12" font-weight="700" fill="#3B1F7A" text-anchor="middle">Gateway</text>
+<rect x="820" y="272" width="145" height="40" rx="10" fill="#E8F1FE" stroke="#2F6FDE" stroke-width="1.6"/>
+<text x="892.5" y="297.0" font-size="12" font-weight="700" fill="#12366F" text-anchor="middle">API</text>
+<rect x="820" y="322" width="145" height="40" rx="10" fill="#E8F1FE" stroke="#2F6FDE" stroke-width="1.6"/>
+<text x="892.5" y="347.0" font-size="12" font-weight="700" fill="#12366F" text-anchor="middle">API (recriada)</text>
+<rect x="820" y="372" width="145" height="40" rx="10" fill="#E6F6EC" stroke="#2E9E5B" stroke-width="1.6"/>
+<text x="892.5" y="397.0" font-size="12" font-weight="700" fill="#14532D" text-anchor="middle">PostgreSQL primário</text>
+<rect x="990" y="135" width="165" height="350" rx="14" fill="#FFFFFF" fill-opacity="1" stroke="#2F6FDE" stroke-width="1.5"/>
+<text x="1006" y="159" font-size="13" font-weight="700" fill="#12366F" text-anchor="start">Nó 3</text>
+<rect x="1000" y="172" width="145" height="40" rx="10" fill="#F1EAFE" stroke="#7B4FD6" stroke-width="1.6"/>
+<text x="1072.5" y="197.0" font-size="12" font-weight="700" fill="#3B1F7A" text-anchor="middle">Gateway</text>
+<rect x="1000" y="222" width="145" height="40" rx="10" fill="#E8F1FE" stroke="#2F6FDE" stroke-width="1.6"/>
+<text x="1072.5" y="247.0" font-size="12" font-weight="700" fill="#12366F" text-anchor="middle">API</text>
+<rect x="1000" y="272" width="145" height="40" rx="10" fill="#E8F1FE" stroke="#2F6FDE" stroke-width="1.6"/>
+<text x="1072.5" y="297.0" font-size="12" font-weight="700" fill="#12366F" text-anchor="middle">API (recriada)</text>
+<rect x="1000" y="322" width="145" height="40" rx="10" fill="#E6F6EC" stroke="#2E9E5B" stroke-width="1.6"/>
+<text x="1072.5" y="347.0" font-size="12" font-weight="700" fill="#14532D" text-anchor="middle">PostgreSQL réplica</text>
+<rect x="30" y="525" width="1140" height="36" rx="8" fill="#FFF9DB" stroke="#D4A72C" stroke-width="1.2"/>
+<text x="44" y="548" font-size="12.5" font-weight="400" fill="#5C4400" text-anchor="start">O IP virtual passa para o nó 2, a réplica do nó 2 vira o banco primário e os pods da API são recriados nos nós 2 e 3. Ninguém precisa agir.</text>
+</svg>
