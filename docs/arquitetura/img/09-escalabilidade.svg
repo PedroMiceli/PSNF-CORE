@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 600" width="1200" height="600" font-family="-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" role="img" aria-label="Escalabilidade: de onde vem a capacidade para 2.000 usuários">
+<title>Escalabilidade: de onde vem a capacidade para 2.000 usuários</title>
+<defs><marker id="pf475569" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#475569"/></marker><marker id="pi475569" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M10,0 L0,5 L10,10 z" fill="#475569"/></marker></defs>
+<rect x="1" y="1" width="1198" height="598" rx="16" fill="#FFFFFF" stroke="#E5E7EB" stroke-width="2"/>
+<text x="28" y="38" font-size="19" font-weight="700" fill="#111827">Escalabilidade: de onde vem a capacidade para 2.000 usuários</text><text x="28" y="60" font-size="13" fill="#4B5563">Estimativas calculadas pelo comportamento da aplicação. Confirmar com teste de carga.</text>
+<rect x="40" y="110" width="250" height="110" rx="10" fill="#F3F4F6" stroke="#9AA3AF" stroke-width="1.6"/>
+<text x="165.0" y="154.0" font-size="14" font-weight="700" fill="#1F2937" text-anchor="middle">2.000 usuários ativos</text>
+<text x="165.0" y="171.0" font-size="12" font-weight="400" fill="#1F2937" text-anchor="middle">cerca de 25 chamadas por minuto</text>
+<text x="165.0" y="188.0" font-size="12" font-weight="400" fill="#1F2937" text-anchor="middle">cada um, com o chat aberto</text>
+<rect x="40" y="260" width="250" height="90" rx="10" fill="#FFF9DB" stroke="#D4A72C" stroke-width="1.6"/>
+<text x="165.0" y="294.0" font-size="14" font-weight="700" fill="#5C4400" text-anchor="middle">Pior caso</text>
+<text x="165.0" y="311.0" font-size="12" font-weight="400" fill="#5C4400" text-anchor="middle">perto de 830 chamadas</text>
+<text x="165.0" y="328.0" font-size="12" font-weight="400" fill="#5C4400" text-anchor="middle">por segundo</text>
+<path d="M165,220 L165,260" fill="none" stroke="#475569" stroke-width="1.8" marker-end="url(#pf475569)"/>
+<rect x="340" y="95" width="830" height="255" rx="14" fill="#E8F1FE" fill-opacity="0.45" stroke="#2F6FDE" stroke-width="1.5"/>
+<text x="356" y="119" font-size="13" font-weight="700" fill="#12366F" text-anchor="start">API: cresce e encolhe sozinha conforme o uso de CPU</text>
+<rect x="365" y="150" width="115" height="70" rx="10" fill="#E8F1FE" stroke="#2F6FDE" stroke-width="1.6"/>
+<text x="422.5" y="182.0" font-size="14" font-weight="700" fill="#12366F" text-anchor="middle">API 1</text>
+<text x="422.5" y="199.0" font-size="12" font-weight="400" fill="#12366F" text-anchor="middle">sempre ligada</text>
+<rect x="497" y="150" width="115" height="70" rx="10" fill="#E8F1FE" stroke="#2F6FDE" stroke-width="1.6"/>
+<text x="554.5" y="182.0" font-size="14" font-weight="700" fill="#12366F" text-anchor="middle">API 2</text>
+<text x="554.5" y="199.0" font-size="12" font-weight="400" fill="#12366F" text-anchor="middle">sempre ligada</text>
+<rect x="629" y="150" width="115" height="70" rx="10" fill="#E8F1FE" stroke="#2F6FDE" stroke-width="1.6"/>
+<text x="686.5" y="182.0" font-size="14" font-weight="700" fill="#12366F" text-anchor="middle">API 3</text>
+<text x="686.5" y="199.0" font-size="12" font-weight="400" fill="#12366F" text-anchor="middle">sempre ligada</text>
+<rect x="761" y="150" width="115" height="70" rx="10" fill="#E8F1FE" stroke="#2F6FDE" stroke-width="1.6" stroke-dasharray="6 4"/>
+<text x="818.5" y="182.0" font-size="14" font-weight="700" fill="#12366F" text-anchor="middle">API 4</text>
+<text x="818.5" y="199.0" font-size="12" font-weight="400" fill="#12366F" text-anchor="middle">só no pico</text>
+<rect x="893" y="150" width="115" height="70" rx="10" fill="#E8F1FE" stroke="#2F6FDE" stroke-width="1.6" stroke-dasharray="6 4"/>
+<text x="950.5" y="182.0" font-size="14" font-weight="700" fill="#12366F" text-anchor="middle">API 5</text>
+<text x="950.5" y="199.0" font-size="12" font-weight="400" fill="#12366F" text-anchor="middle">só no pico</text>
+<rect x="1025" y="150" width="115" height="70" rx="10" fill="#E8F1FE" stroke="#2F6FDE" stroke-width="1.6" stroke-dasharray="6 4"/>
+<text x="1082.5" y="182.0" font-size="14" font-weight="700" fill="#12366F" text-anchor="middle">API 6</text>
+<text x="1082.5" y="199.0" font-size="12" font-weight="400" fill="#12366F" text-anchor="middle">só no pico</text>
+<text x="755" y="262" font-size="13.5" font-weight="600" fill="#12366F" text-anchor="middle">Dia a dia: 3 pods (um por nó).   Pico: até 6 pods (dois por nó).</text>
+<text x="755" y="286" font-size="12.5" font-weight="400" fill="#12366F" text-anchor="middle">Qualquer pod atende qualquer usuário: o login não fica preso a um pod.</text>
+<text x="755" y="306" font-size="12.5" font-weight="400" fill="#12366F" text-anchor="middle">Teto: o hardware dos 3 nós. Não existe "criar mais um nó" como na nuvem.</text>
+<path d="M290,305 L340,305" fill="none" stroke="#475569" stroke-width="1.8" marker-end="url(#pf475569)"/>
+<rect x="40" y="380" width="1130" height="195" rx="14" fill="#F3F4F6" fill-opacity="0.45" stroke="#9AA3AF" stroke-width="1.5"/>
+<text x="56" y="404" font-size="13" font-weight="700" fill="#1F2937" text-anchor="start">Uso de memória de um nó de 32 GB (estimativa)</text>
+<rect x="70" y="425" width="133.75" height="46" rx="3" fill="#C4B5FD" stroke="#64748B"/>
+<text x="136.875" y="453" font-size="12.5" font-weight="700" fill="#111827" text-anchor="middle">4 GB</text>
+<rect x="203.75" y="425" width="267.5" height="46" rx="3" fill="#86EFAC" stroke="#64748B"/>
+<text x="337.5" y="453" font-size="12.5" font-weight="700" fill="#111827" text-anchor="middle">8 GB</text>
+<rect x="471.25" y="425" width="100.3125" height="46" rx="3" fill="#93C5FD" stroke="#64748B"/>
+<text x="521.40625" y="453" font-size="12.5" font-weight="700" fill="#111827" text-anchor="middle">3 GB</text>
+<rect x="571.5625" y="425" width="50.15625" height="46" rx="3" fill="#A5B4FC" stroke="#64748B"/>
+<text x="596.640625" y="453" font-size="12.5" font-weight="700" fill="#111827" text-anchor="middle">1,5 GB</text>
+<rect x="621.71875" y="425" width="100.3125" height="46" rx="3" fill="#D1D5DB" stroke="#64748B"/>
+<text x="671.875" y="453" font-size="12.5" font-weight="700" fill="#111827" text-anchor="middle">3 GB</text>
+<rect x="722.03125" y="425" width="417.96875" height="46" rx="3" fill="#F3F4F6" stroke="#64748B"/>
+<text x="931.015625" y="453" font-size="12.5" font-weight="700" fill="#111827" text-anchor="middle">12,5 GB</text>
+<rect x="70" y="500" width="14" height="14" rx="2" fill="#C4B5FD" stroke="#64748B"/>
+<text x="92" y="512" font-size="12.5" font-weight="400" fill="#1F2937" text-anchor="start">Sistema e Kubernetes</text>
+<rect x="440" y="500" width="14" height="14" rx="2" fill="#86EFAC" stroke="#64748B"/>
+<text x="462" y="512" font-size="12.5" font-weight="400" fill="#1F2937" text-anchor="start">PostgreSQL</text>
+<rect x="810" y="500" width="14" height="14" rx="2" fill="#93C5FD" stroke="#64748B"/>
+<text x="832" y="512" font-size="12.5" font-weight="400" fill="#1F2937" text-anchor="start">API (2 pods)</text>
+<rect x="70" y="526" width="14" height="14" rx="2" fill="#A5B4FC" stroke="#64748B"/>
+<text x="92" y="538" font-size="12.5" font-weight="400" fill="#1F2937" text-anchor="start">Gateway, front, Redis</text>
+<rect x="440" y="526" width="14" height="14" rx="2" fill="#D1D5DB" stroke="#64748B"/>
+<text x="462" y="538" font-size="12.5" font-weight="400" fill="#1F2937" text-anchor="start">Monitoramento</text>
+<rect x="810" y="526" width="14" height="14" rx="2" fill="#F3F4F6" stroke="#64748B"/>
+<text x="832" y="538" font-size="12.5" font-weight="400" fill="#1F2937" text-anchor="start">Folga para picos e falha de um nó</text>
+</svg>
