@@ -10,7 +10,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class LimiteTentativasLoginAdapterTest {
 
     private final AtomicLong agora = new AtomicLong(0);
-    private final LimiteTentativasLoginAdapter limite = new LimiteTentativasLoginAdapter(5, 5, agora::get);
+    private final LimiteTentativasLoginAdapter limite = new LimiteTentativasLoginAdapter(5, 5, new BaldesEmMemoria(100_000, agora::get));
 
     private void avancarMinutos(long m) { agora.addAndGet(TimeUnit.MINUTES.toNanos(m)); }
 

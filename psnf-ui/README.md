@@ -13,6 +13,15 @@ docker compose up -d minio
 
 Console do MinIO: http://localhost:9001 (usuário e senha `minioadmin`).
 
+O **rate limit** da API guarda os contadores no Redis. Suba-o do mesmo jeito:
+
+```bash
+docker compose up -d redis
+```
+
+Sem o Redis a API funciona igual: avisa no log e conta os limites na própria memória. Para nem tentar
+conectar, inicie a API com `PSNF_RATE_LIMIT_STORE=memoria`.
+
 ```bash
 cd psnf-ui
 nvm use          # usa o Node do .nvmrc (22)
