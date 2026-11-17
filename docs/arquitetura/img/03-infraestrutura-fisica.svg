@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 560" width="1200" height="560" font-family="-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" role="img" aria-label="Onde os 3 nós rodam: dois cenários">
+<title>Onde os 3 nós rodam: dois cenários</title>
+<defs><marker id="pf475569" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#475569"/></marker><marker id="pi475569" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M10,0 L0,5 L10,10 z" fill="#475569"/></marker></defs>
+<rect x="1" y="1" width="1198" height="558" rx="16" fill="#FFFFFF" stroke="#E5E7EB" stroke-width="2"/>
+<text x="28" y="38" font-size="19" font-weight="700" fill="#111827">Onde os 3 nós rodam: dois cenários</text><text x="28" y="60" font-size="13" fill="#4B5563">A arquitetura é a mesma nos dois. O que muda é quanto ela aguenta de falha de hardware.</text>
+<rect x="30" y="85" width="555" height="445" rx="14" fill="#F3F4F6" fill-opacity="0.45" stroke="#9AA3AF" stroke-width="1.5"/>
+<text x="46" y="109" font-size="13" font-weight="700" fill="#1F2937" text-anchor="start">Cenário A: um servidor físico com 3 máquinas virtuais</text>
+<rect x="65" y="130" width="485" height="190" rx="14" fill="#FFFFFF" fill-opacity="1" stroke="#2F6FDE" stroke-width="1.5"/>
+<text x="81" y="154" font-size="13" font-weight="700" fill="#12366F" text-anchor="start">Servidor físico</text>
+<rect x="90" y="175" width="130" height="110" rx="10" fill="#E8F1FE" stroke="#2F6FDE" stroke-width="1.6"/>
+<text x="155.0" y="227.0" font-size="14" font-weight="700" fill="#12366F" text-anchor="middle">Nó 1</text>
+<text x="155.0" y="244.0" font-size="12" font-weight="400" fill="#12366F" text-anchor="middle">máquina virtual</text>
+<rect x="240" y="175" width="130" height="110" rx="10" fill="#E8F1FE" stroke="#2F6FDE" stroke-width="1.6"/>
+<text x="305.0" y="227.0" font-size="14" font-weight="700" fill="#12366F" text-anchor="middle">Nó 2</text>
+<text x="305.0" y="244.0" font-size="12" font-weight="400" fill="#12366F" text-anchor="middle">máquina virtual</text>
+<rect x="390" y="175" width="130" height="110" rx="10" fill="#E8F1FE" stroke="#2F6FDE" stroke-width="1.6"/>
+<text x="455.0" y="227.0" font-size="14" font-weight="700" fill="#12366F" text-anchor="middle">Nó 3</text>
+<text x="455.0" y="244.0" font-size="12" font-weight="400" fill="#12366F" text-anchor="middle">máquina virtual</text>
+<rect x="65" y="345" width="485" height="54" rx="8" fill="#E6F6EC" stroke="#2E9E5B" stroke-width="1.2"/>
+<text x="79" y="368" font-size="12.5" font-weight="400" fill="#14532D" text-anchor="start">Ganha: atualizar a aplicação e o Kubernetes sem parar;</text>
+<text x="79" y="386" font-size="12.5" font-weight="400" fill="#14532D" text-anchor="start">um nó travado não derruba a plataforma.</text>
+<rect x="65" y="425" width="485" height="54" rx="8" fill="#FDE8E8" stroke="#D64545" stroke-width="1.2"/>
+<text x="79" y="448" font-size="12.5" font-weight="400" fill="#7A1C1C" text-anchor="start">Limite: defeito de hardware, disco ou energia do servidor</text>
+<text x="79" y="466" font-size="12.5" font-weight="400" fill="#7A1C1C" text-anchor="start">derruba os três nós de uma vez.</text>
+<rect x="615" y="85" width="555" height="445" rx="14" fill="#F3F4F6" fill-opacity="0.45" stroke="#9AA3AF" stroke-width="1.5"/>
+<text x="631" y="109" font-size="13" font-weight="700" fill="#1F2937" text-anchor="start">Cenário B: três servidores físicos</text>
+<rect x="650" y="130" width="150" height="110" rx="10" fill="#E8F1FE" stroke="#2F6FDE" stroke-width="1.6"/>
+<text x="725.0" y="182.0" font-size="14" font-weight="700" fill="#12366F" text-anchor="middle">Servidor 1</text>
+<text x="725.0" y="199.0" font-size="12" font-weight="400" fill="#12366F" text-anchor="middle">Nó 1</text>
+<path d="M725,240 L725,275" fill="none" stroke="#475569" stroke-width="1.8" marker-end="url(#pf475569)" marker-start="url(#pi475569)"/>
+<rect x="820" y="130" width="150" height="110" rx="10" fill="#E8F1FE" stroke="#2F6FDE" stroke-width="1.6"/>
+<text x="895.0" y="182.0" font-size="14" font-weight="700" fill="#12366F" text-anchor="middle">Servidor 2</text>
+<text x="895.0" y="199.0" font-size="12" font-weight="400" fill="#12366F" text-anchor="middle">Nó 2</text>
+<path d="M895,240 L895,275" fill="none" stroke="#475569" stroke-width="1.8" marker-end="url(#pf475569)" marker-start="url(#pi475569)"/>
+<rect x="990" y="130" width="150" height="110" rx="10" fill="#E8F1FE" stroke="#2F6FDE" stroke-width="1.6"/>
+<text x="1065.0" y="182.0" font-size="14" font-weight="700" fill="#12366F" text-anchor="middle">Servidor 3</text>
+<text x="1065.0" y="199.0" font-size="12" font-weight="400" fill="#12366F" text-anchor="middle">Nó 3</text>
+<path d="M1065,240 L1065,275" fill="none" stroke="#475569" stroke-width="1.8" marker-end="url(#pf475569)" marker-start="url(#pi475569)"/>
+<rect x="650" y="275" width="490" height="45" rx="10" fill="#F1EAFE" stroke="#7B4FD6" stroke-width="1.6"/>
+<text x="895.0" y="302.5" font-size="14" font-weight="700" fill="#3B1F7A" text-anchor="middle">Switch de rede local</text>
+<rect x="650" y="345" width="490" height="54" rx="8" fill="#E6F6EC" stroke="#2E9E5B" stroke-width="1.2"/>
+<text x="664" y="368" font-size="12.5" font-weight="400" fill="#14532D" text-anchor="start">Ganha: a plataforma continua no ar com um servidor</text>
+<text x="664" y="386" font-size="12.5" font-weight="400" fill="#14532D" text-anchor="start">inteiro a menos (hardware, disco, manutenção).</text>
+<rect x="650" y="425" width="490" height="54" rx="8" fill="#FDE8E8" stroke="#D64545" stroke-width="1.2"/>
+<text x="664" y="448" font-size="12.5" font-weight="400" fill="#7A1C1C" text-anchor="start">Limite: energia, switch e link de internet do local</text>
+<text x="664" y="466" font-size="12.5" font-weight="400" fill="#7A1C1C" text-anchor="start">continuam sendo pontos únicos.</text>
+</svg>

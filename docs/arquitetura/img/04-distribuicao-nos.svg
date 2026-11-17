@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 700" width="1200" height="700" font-family="-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" role="img" aria-label="O que roda em cada nó">
+<title>O que roda em cada nó</title>
+<defs></defs>
+<rect x="1" y="1" width="1198" height="698" rx="16" fill="#FFFFFF" stroke="#E5E7EB" stroke-width="2"/>
+<text x="28" y="38" font-size="19" font-weight="700" fill="#111827">O que roda em cada nó</text><text x="28" y="60" font-size="13" fill="#4B5563">Cada linha é uma peça; cada coluna, um nó. Peças críticas têm uma cópia por nó.</text>
+<rect x="340" y="110" width="250" height="40" rx="10" fill="#E8F1FE" stroke="#2F6FDE" stroke-width="1.6"/>
+<text x="465.0" y="135.0" font-size="14" font-weight="700" fill="#12366F" text-anchor="middle">Nó 1</text>
+<rect x="610" y="110" width="250" height="40" rx="10" fill="#E8F1FE" stroke="#2F6FDE" stroke-width="1.6"/>
+<text x="735.0" y="135.0" font-size="14" font-weight="700" fill="#12366F" text-anchor="middle">Nó 2</text>
+<rect x="880" y="110" width="250" height="40" rx="10" fill="#E8F1FE" stroke="#2F6FDE" stroke-width="1.6"/>
+<text x="1005.0" y="135.0" font-size="14" font-weight="700" fill="#12366F" text-anchor="middle">Nó 3</text>
+<rect x="30" y="161" width="1140" height="54" rx="4" fill="#F8FAFC" stroke="none"/>
+<text x="45" y="185" font-size="14" font-weight="700" fill="#111827" text-anchor="start">Controle do Kubernetes</text>
+<text x="45" y="203" font-size="12" font-weight="400" fill="#4B5563" text-anchor="start">decide onde cada peça roda</text>
+<rect x="375" y="170" width="180" height="38" rx="10" fill="#F1EAFE" stroke="#7B4FD6" stroke-width="1.6"/>
+<text x="465.0" y="194.0" font-size="13" font-weight="700" fill="#3B1F7A" text-anchor="middle">controle</text>
+<rect x="645" y="170" width="180" height="38" rx="10" fill="#F1EAFE" stroke="#7B4FD6" stroke-width="1.6"/>
+<text x="735.0" y="194.0" font-size="13" font-weight="700" fill="#3B1F7A" text-anchor="middle">controle</text>
+<rect x="915" y="170" width="180" height="38" rx="10" fill="#F1EAFE" stroke="#7B4FD6" stroke-width="1.6"/>
+<text x="1005.0" y="194.0" font-size="13" font-weight="700" fill="#3B1F7A" text-anchor="middle">controle</text>
+<text x="45" y="243" font-size="14" font-weight="700" fill="#111827" text-anchor="start">Gateway</text>
+<text x="45" y="261" font-size="12" font-weight="400" fill="#4B5563" text-anchor="start">entrada HTTPS</text>
+<rect x="375" y="228" width="180" height="38" rx="10" fill="#F1EAFE" stroke="#7B4FD6" stroke-width="1.6"/>
+<text x="465.0" y="252.0" font-size="13" font-weight="700" fill="#3B1F7A" text-anchor="middle">gateway</text>
+<rect x="645" y="228" width="180" height="38" rx="10" fill="#F1EAFE" stroke="#7B4FD6" stroke-width="1.6"/>
+<text x="735.0" y="252.0" font-size="13" font-weight="700" fill="#3B1F7A" text-anchor="middle">gateway</text>
+<rect x="915" y="228" width="180" height="38" rx="10" fill="#F1EAFE" stroke="#7B4FD6" stroke-width="1.6"/>
+<text x="1005.0" y="252.0" font-size="13" font-weight="700" fill="#3B1F7A" text-anchor="middle">gateway</text>
+<rect x="30" y="277" width="1140" height="54" rx="4" fill="#F8FAFC" stroke="none"/>
+<text x="45" y="301" font-size="14" font-weight="700" fill="#111827" text-anchor="start">API</text>
+<text x="45" y="319" font-size="12" font-weight="400" fill="#4B5563" text-anchor="start">mínimo de 3, até 6 sob carga</text>
+<rect x="375" y="286" width="180" height="38" rx="10" fill="#E8F1FE" stroke="#2F6FDE" stroke-width="1.6"/>
+<text x="465.0" y="310.0" font-size="13" font-weight="700" fill="#12366F" text-anchor="middle">API  + 1 extra</text>
+<rect x="645" y="286" width="180" height="38" rx="10" fill="#E8F1FE" stroke="#2F6FDE" stroke-width="1.6"/>
+<text x="735.0" y="310.0" font-size="13" font-weight="700" fill="#12366F" text-anchor="middle">API  + 1 extra</text>
+<rect x="915" y="286" width="180" height="38" rx="10" fill="#E8F1FE" stroke="#2F6FDE" stroke-width="1.6"/>
+<text x="1005.0" y="310.0" font-size="13" font-weight="700" fill="#12366F" text-anchor="middle">API  + 1 extra</text>
+<text x="45" y="359" font-size="14" font-weight="700" fill="#111827" text-anchor="start">Front</text>
+<text x="45" y="377" font-size="12" font-weight="400" fill="#4B5563" text-anchor="start">site estático</text>
+<rect x="375" y="344" width="180" height="38" rx="10" fill="#E8F1FE" stroke="#2F6FDE" stroke-width="1.6"/>
+<text x="465.0" y="368.0" font-size="13" font-weight="700" fill="#12366F" text-anchor="middle">front</text>
+<rect x="645" y="344" width="180" height="38" rx="10" fill="#E8F1FE" stroke="#2F6FDE" stroke-width="1.6"/>
+<text x="735.0" y="368.0" font-size="13" font-weight="700" fill="#12366F" text-anchor="middle">front</text>
+<text x="1005.0" y="369" font-size="14" font-weight="400" fill="#9AA3AF" text-anchor="middle">—</text>
+<rect x="30" y="393" width="1140" height="54" rx="4" fill="#F8FAFC" stroke="none"/>
+<text x="45" y="417" font-size="14" font-weight="700" fill="#111827" text-anchor="start">PostgreSQL</text>
+<text x="45" y="435" font-size="12" font-weight="400" fill="#4B5563" text-anchor="start">1 primário e 2 réplicas</text>
+<rect x="375" y="402" width="180" height="38" rx="10" fill="#E6F6EC" stroke="#2E9E5B" stroke-width="1.6"/>
+<text x="465.0" y="426.0" font-size="13" font-weight="700" fill="#14532D" text-anchor="middle">primário</text>
+<rect x="645" y="402" width="180" height="38" rx="10" fill="#E6F6EC" stroke="#2E9E5B" stroke-width="1.6"/>
+<text x="735.0" y="426.0" font-size="13" font-weight="700" fill="#14532D" text-anchor="middle">réplica</text>
+<rect x="915" y="402" width="180" height="38" rx="10" fill="#E6F6EC" stroke="#2E9E5B" stroke-width="1.6"/>
+<text x="1005.0" y="426.0" font-size="13" font-weight="700" fill="#14532D" text-anchor="middle">réplica</text>
+<text x="45" y="475" font-size="14" font-weight="700" fill="#111827" text-anchor="start">Redis</text>
+<text x="45" y="493" font-size="12" font-weight="400" fill="#4B5563" text-anchor="start">recriado em outro nó se cair</text>
+<text x="465.0" y="485" font-size="14" font-weight="400" fill="#9AA3AF" text-anchor="middle">—</text>
+<rect x="645" y="460" width="180" height="38" rx="10" fill="#E6F6EC" stroke="#2E9E5B" stroke-width="1.6"/>
+<text x="735.0" y="484.0" font-size="13" font-weight="700" fill="#14532D" text-anchor="middle">Redis</text>
+<text x="1005.0" y="485" font-size="14" font-weight="400" fill="#9AA3AF" text-anchor="middle">—</text>
+<rect x="30" y="509" width="1140" height="54" rx="4" fill="#F8FAFC" stroke="none"/>
+<text x="45" y="533" font-size="14" font-weight="700" fill="#111827" text-anchor="start">Monitoramento</text>
+<text x="45" y="551" font-size="12" font-weight="400" fill="#4B5563" text-anchor="start">métricas, logs, alertas</text>
+<rect x="375" y="518" width="180" height="38" rx="10" fill="#F3F4F6" stroke="#9AA3AF" stroke-width="1.6"/>
+<text x="465.0" y="542.0" font-size="13" font-weight="700" fill="#1F2937" text-anchor="middle">monitoramento</text>
+<text x="735.0" y="543" font-size="14" font-weight="400" fill="#9AA3AF" text-anchor="middle">—</text>
+<text x="1005.0" y="543" font-size="14" font-weight="400" fill="#9AA3AF" text-anchor="middle">—</text>
+<text x="45" y="591" font-size="14" font-weight="700" fill="#111827" text-anchor="start">Registro de imagens</text>
+<text x="45" y="609" font-size="12" font-weight="400" fill="#4B5563" text-anchor="start">versões da aplicação</text>
+<text x="465.0" y="601" font-size="14" font-weight="400" fill="#9AA3AF" text-anchor="middle">—</text>
+<text x="735.0" y="601" font-size="14" font-weight="400" fill="#9AA3AF" text-anchor="middle">—</text>
+<rect x="915" y="576" width="180" height="38" rx="10" fill="#F3F4F6" stroke="#9AA3AF" stroke-width="1.6"/>
+<text x="1005.0" y="600.0" font-size="13" font-weight="700" fill="#1F2937" text-anchor="middle">registro</text>
+<rect x="30" y="640" width="1140" height="36" rx="8" fill="#FFF9DB" stroke="#D4A72C" stroke-width="1.2"/>
+<text x="44" y="663" font-size="12.5" font-weight="400" fill="#5C4400" text-anchor="start">Peças com uma única cópia (Redis, monitoramento, registro) podem parar por instantes sem tirar a plataforma do ar.</text>
+</svg>

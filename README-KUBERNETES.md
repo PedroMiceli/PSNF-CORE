@@ -1,5 +1,9 @@
 # PSNF em produção: Kubernetes, load balancer e S3
 
+> **Este guia descreve a variante em nuvem (AWS) e não é o caminho escolhido.** A arquitetura em vigor,
+> em servidor próprio com 3 nós e só o S3 na nuvem, está em [`docs/arquitetura`](docs/arquitetura/README.md).
+> As partes daqui que não dependem de nuvem (imagens, configuração da API, rotas) podem ser reaproveitadas.
+
 Guia passo a passo para publicar a PSNF (API Spring Boot + front React) em Kubernetes, com um load
 balancer na entrada, PostgreSQL gerenciado e os arquivos (fotos, notas fiscais, comprovantes) em S3.
 A arquitetura foi dimensionada para **até 2.000 usuários ativos ao mesmo tempo**.
